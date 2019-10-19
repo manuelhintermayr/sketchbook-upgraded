@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import _ from 'lodash';
-import { Utils } from 'cannon';
 
 export class Utilities
 {

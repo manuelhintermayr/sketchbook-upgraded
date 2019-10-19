@@ -1,5 +1,5 @@
 
-import { Utilities as Utils } from '../sketchbook/Utilities';
+import { Utilities as Utils } from '../core/Utilities';
 
 export class Item extends Object
 {

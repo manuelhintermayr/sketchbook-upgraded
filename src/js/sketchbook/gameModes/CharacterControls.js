@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from'cannon';
-import { GameModes } from './GameModes';
-import { GameModeBase } from './GameModeBase';
+import { GameModes } from './_export';
+import { GameModesBase } from './GameModesBase';
 import _ from 'lodash';
 import { Object } from '../objects/Object';
 import { ObjectPhysics } from '../objects/ObjectPhysics';
@@ -10,7 +10,7 @@ import { ObjectPhysics } from '../objects/ObjectPhysics';
  * Character controls game mode. Allows player to control a character.
  * @param {Character} character Character to control 
  */
-export class CharacterControls extends GameModeBase
+export class CharacterControls extends GameModesBase
 {
     constructor(character)
     {

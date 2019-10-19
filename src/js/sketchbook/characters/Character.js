@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon';
 
-import { Utilities as Utils } from '../sketchbook/Utilities';
-import { Springs } from '../simulation/Springs';
+import { Utilities as Utils } from '../core/Utilities';
+import { Simulation } from '../simulation/_export';
 
-import { Controls } from '../sketchbook/Controls';
-import { CharacterAI } from './CharacterAI';
-import { CharacterStates } from './CharacterStates';
-import { GameModes } from '../gameModes/GameModes';
+import { Controls } from '../core/Controls';
+import { CharacterAI } from './CharacterAI/_export';
+import { CharacterStates } from './CharacterStates/_export';
+import { GameModes } from '../gameModes/_export';
 import { ObjectPhysics } from '../objects/ObjectPhysics';
 import { Object } from '../objects/Object';
 
@@ -73,7 +73,7 @@ export class Character extends THREE.Object3D
         // Velocity spring simulator
         this.defaultVelocitySimulatorDamping = 0.8;
         this.defaultVelocitySimulatorMass = 50;
-        this.velocitySimulator = new Springs.VectorSpringSimulator(60, this.defaultVelocitySimulatorMass, this.defaultVelocitySimulatorDamping);
+        this.velocitySimulator = new Simulation.VectorSpringSimulator(60, this.defaultVelocitySimulatorMass, this.defaultVelocitySimulatorDamping);
         this.moveSpeed = 4;
 
         // Rotation
@@ -83,7 +83,7 @@ export class Character extends THREE.Object3D
         // Rotation spring simulator
         this.defaultRotationSimulatorDamping = 0.5;
         this.defaultRotationSimulatorMass = 10;
-        this.rotationSimulator = new Springs.RelativeSpringSimulator(60, this.defaultRotationSimulatorMass, this.defaultRotationSimulatorDamping);
+        this.rotationSimulator = new Simulation.RelativeSpringSimulator(60, this.defaultRotationSimulatorMass, this.defaultRotationSimulatorDamping);
 
         //#endregion
 

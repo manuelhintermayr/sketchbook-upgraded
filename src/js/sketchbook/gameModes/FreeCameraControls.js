@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from'cannon';
-import { GameModeBase } from './GameModeBase';
-import { Controls } from '../sketchbook/Controls';
+import { GameModesBase } from './GameModesBase';
+import { Controls } from '../core/Controls';
 import _ from 'lodash';
 import { Object } from '../objects/Object';
 import { ObjectPhysics } from '../objects/ObjectPhysics';
@@ -11,7 +11,7 @@ import { ObjectPhysics } from '../objects/ObjectPhysics';
  * @param {Character} character Character to control 
  */
 
-export class FreeCameraControls extends GameModeBase
+export class FreeCameraControls extends GameModesBase
 {
     constructor(previousGameMode = undefined)
     {

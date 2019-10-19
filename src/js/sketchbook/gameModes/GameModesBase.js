@@ -1,5 +1,5 @@
 
-export class GameModeBase
+export class GameModesBase
 {
     init() { }
     update() { }

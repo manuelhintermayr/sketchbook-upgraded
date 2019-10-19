@@ -2,13 +2,12 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon';
 
 import { CameraController } from './CameraController';
-import { GameModes } from '../gameModes/GameModes';
-import { Utilities as Utils } from './Utilities';
-import { Shaders } from '../lib/shaders/Shaders';
+import { GameModes } from '../gameModes/_export';
+import { Shaders } from '../../lib/shaders/Shaders';
 
-import { Detector } from '../lib/utils/Detector';
-import { Stats } from '../lib/utils/Stats';
-import { GUI } from '../lib/utils/dat.gui';
+import { Detector } from '../../lib/utils/Detector';
+import { Stats } from '../../lib/utils/Stats';
+import { GUI } from '../../lib/utils/dat.gui';
 import _ from 'lodash';
 import { InputManager } from './InputManager';
 

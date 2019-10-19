@@ -1,6 +1,6 @@
 import * as CANNON from 'cannon';
 import * as THREE from 'three';
-import { Utilities as Utils } from '../sketchbook/Utilities';
+import { Utilities as Utils } from '../core/Utilities';
 // import { threeToCannon } from '../lib/utils/three-pathfinding';
 
 class Sphere
