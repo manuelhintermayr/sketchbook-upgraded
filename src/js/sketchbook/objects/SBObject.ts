@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import * as _ from 'lodash';
+import { World } from '../core/World';
+import { IPhysicsType } from '../interfaces/IPhysicsType';
 
 export class SBObject extends THREE.Object3D
 {
@@ -7,7 +9,7 @@ export class SBObject extends THREE.Object3D
     public model: any;
     public physics: any;
 
-    constructor(model?, physics?)
+    constructor(model?: THREE.Mesh, physics?: IPhysicsType)
     {
         super();
 
@@ -17,7 +19,7 @@ export class SBObject extends THREE.Object3D
         this.physics = physics;
     }
 
-    public update(timeStep): void
+    public update(timeStep: number): void
     {
         if (this.physics.visual !== undefined)
         {
@@ -32,7 +34,7 @@ export class SBObject extends THREE.Object3D
         }
     }
 
-    public setModel(model): void
+    public setModel(model: THREE.Mesh): void
     {
         this.model = model;
     }
@@ -42,12 +44,12 @@ export class SBObject extends THREE.Object3D
         this.model = this.physics.getVisualModel({ visible: true, wireframe: false });
     }
 
-    public setPhysics(physics): void
+    public setPhysics(physics: IPhysicsType): void
     {
         this.physics = physics;
     }
 
-    public addToWorld(world): void
+    public addToWorld(world: World): void
     {
 
         if (_.includes(world.objects, this))
@@ -71,6 +73,33 @@ export class SBObject extends THREE.Object3D
             if (this.model !== undefined)
             {
                 world.graphicsWorld.add(this.model);
+            }
+        }
+    }
+
+    public removeFromWorld(world: World): void
+    {
+        if (!_.includes(world.objects, this))
+        {
+            console.warn('Removing object from a world in which it isn\'t present.');
+        }
+        else 
+        {
+            _.pull(world.objects, this);
+
+            if (this.physics.physical !== undefined)
+            {
+                world.physicsWorld.remove(this.physics.physical);
+            }
+
+            if (this.physics.visual !== undefined)
+            {
+                world.graphicsWorld.remove(this.physics.visual);
+            }
+
+            if (this.model !== undefined)
+            {
+                world.graphicsWorld.remove(this.model);
             }
         }
     }
