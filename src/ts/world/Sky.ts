@@ -17,10 +17,18 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		this.refreshSunPosition();
 	}
 
+	get theta(): number {
+		return this._theta;
+	}
+
 	set phi(value: number) {
 		this._phi = value;
 		this.refreshSunPosition();
 		this.refreshHemiIntensity();
+	}
+
+	get phi(): number {
+		return this._phi;
 	}
 
 	private _phi: number = 50;

@@ -169,7 +169,24 @@ export class World
 		this.inputManager = new InputManager(this, this.renderer.domElement);
 		this.cameraOperator = new CameraOperator(this, this.camera, this.params.Mouse_Sensitivity);
 		this.sky = new Sky(this);
-		
+
+		// Day / night cycle (ported from Inthenew/Sketchbook)
+		setInterval(() =>
+		{
+			if (scope.params.Has_Day_Night_Cycle)
+			{
+				scope.sky.phi = scope.sky.phi + 0.01 * scope.params.Time_Scale;
+				if (!scope.params.Has_Night_Time && scope.sky.phi >= 180)
+				{
+					scope.sky.phi = 0;
+				}
+				else if (scope.params.Has_Night_Time && scope.sky.phi >= 360)
+				{
+					scope.sky.phi = 0;
+				}
+			}
+		}, 10);
+
 		// Load scene if path is supplied
 		if (worldScenePath !== undefined)
 		{
@@ -617,6 +634,8 @@ export class World
 			Debug_FPS: false,
 			Sun_Elevation: 50,
 			Sun_Rotation: 145,
+			Has_Day_Night_Cycle: false,
+			Has_Night_Time: false,
 		};
 
 		const gui = new GUI();
@@ -641,6 +660,16 @@ export class World
 			.onChange((value) =>
 			{
 				scope.sky.theta = value;
+			});
+		worldFolder.add(this.params, 'Has_Day_Night_Cycle').listen()
+			.onChange((value) =>
+			{
+				scope.params.Has_Day_Night_Cycle = value;
+			});
+		worldFolder.add(this.params, 'Has_Night_Time').listen()
+			.onChange((value) =>
+			{
+				scope.params.Has_Night_Time = value;
 			});
 
 		// Input
