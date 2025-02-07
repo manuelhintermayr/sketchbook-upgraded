@@ -170,20 +170,18 @@ export class World
 		this.cameraOperator = new CameraOperator(this, this.camera, this.params.Mouse_Sensitivity);
 		this.sky = new Sky(this);
 
-		// Day / night cycle (ported from Inthenew/Sketchbook)
+		// Day / night cycle (ported from Inthenew/Sketchbook).
+		// Sun_Elevation is mirrored back into params so the listen()-bound
+		// slider tracks the live value during the cycle.
 		setInterval(() =>
 		{
 			if (scope.params.Has_Day_Night_Cycle)
 			{
-				scope.sky.phi = scope.sky.phi + 0.01 * scope.params.Time_Scale;
-				if (!scope.params.Has_Night_Time && scope.sky.phi >= 180)
-				{
-					scope.sky.phi = 0;
-				}
-				else if (scope.params.Has_Night_Time && scope.sky.phi >= 360)
-				{
-					scope.sky.phi = 0;
-				}
+				let phi = scope.sky.phi + 0.01 * scope.params.Time_Scale;
+				if (!scope.params.Has_Night_Time && phi >= 180) phi = 0;
+				else if (scope.params.Has_Night_Time && phi >= 360) phi = 0;
+				scope.sky.phi = phi;
+				scope.params.Sun_Elevation = phi <= 180 ? phi : 360 - phi;
 			}
 		}, 10);
 
@@ -661,16 +659,8 @@ export class World
 			{
 				scope.sky.theta = value;
 			});
-		worldFolder.add(this.params, 'Has_Day_Night_Cycle').listen()
-			.onChange((value) =>
-			{
-				scope.params.Has_Day_Night_Cycle = value;
-			});
-		worldFolder.add(this.params, 'Has_Night_Time').listen()
-			.onChange((value) =>
-			{
-				scope.params.Has_Night_Time = value;
-			});
+		worldFolder.add(this.params, 'Has_Day_Night_Cycle');
+		worldFolder.add(this.params, 'Has_Night_Time');
 
 		// Input
 		let settingsFolder = gui.addFolder('Settings');
