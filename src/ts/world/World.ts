@@ -739,6 +739,42 @@ export class World
 				UIManager.setFPSVisible(enabled);
 			});
 
+		// Settings persistence (ported from Inthenew/Sketchbook).
+		// Snapshot defaults before restoring so Reset_World_Settings can
+		// fall back to them. lil-gui's controller.load() triggers onChange
+		// internally, so all side effects (sky.phi, shadows, sensitivity,
+		// ...) reapply automatically when the saved state is loaded.
+		const SETTINGS_KEY = 'sketchbook-settings';
+		const defaultWorldState = worldFolder.save();
+		const persist = () =>
+		{
+			localStorage.setItem(SETTINGS_KEY, JSON.stringify(gui.save()));
+		};
+
+		const savedSettings = localStorage.getItem(SETTINGS_KEY);
+		if (savedSettings)
+		{
+			try
+			{
+				gui.load(JSON.parse(savedSettings));
+			}
+			catch (e)
+			{
+				console.warn('[Sketchbook] Failed to load saved settings:', e);
+				localStorage.removeItem(SETTINGS_KEY);
+			}
+		}
+
+		gui.onFinishChange(persist);
+
+		worldFolder.add({
+			Reset_World_Settings: () =>
+			{
+				worldFolder.load(defaultWorldState);
+				persist();
+			},
+		}, 'Reset_World_Settings');
+
 		gui.open();
 	}
 }
