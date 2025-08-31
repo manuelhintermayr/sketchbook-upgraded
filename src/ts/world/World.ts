@@ -121,6 +121,14 @@ export class World
 		this.lapCounter.style.visibility = 'hidden';
 		document.body.appendChild(this.lapCounter);
 
+		// Z toggles the controls overlay (ported from Inthenew). Listened
+		// at document level so it works whichever input receiver is
+		// active — character, vehicle, or free camera.
+		document.addEventListener('keydown', (e) =>
+		{
+			if (e.code === 'KeyZ' && !e.repeat) this.toggleControlsOverlay();
+		});
+
 		// Auto window resize
 		function onWindowResize(): void
 		{
@@ -607,6 +615,13 @@ export class World
 			if (this.timeScaleTarget < timeScaleBottomLimit) this.timeScaleTarget = timeScaleBottomLimit;
 			this.timeScaleTarget = Math.min(this.timeScaleTarget, 1);
 		}
+	}
+
+	public toggleControlsOverlay(): void
+	{
+		const controls = document.getElementById('controls');
+		if (!controls) return;
+		controls.style.display = controls.style.display === 'none' ? '' : 'none';
 	}
 
 	public updateControls(controls: any): void

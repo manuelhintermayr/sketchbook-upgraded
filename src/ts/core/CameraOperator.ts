@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
 import * as Utils from './FunctionLibrary';
 import { World } from '../world/World';
 import { IInputReceiver } from '../interfaces/IInputReceiver';
@@ -117,6 +118,27 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 			{
 				this.world.inputManager.setInputReceiver(this.characterCaller);
 				this.characterCaller = undefined;
+			}
+		}
+		// Teleport: drop the character (or whatever they're driving) to
+		// the free-camera's current target. Ported from Inthenew.
+		else if (code === 'KeyT' && pressed === true && this.characterCaller !== undefined)
+		{
+			const t = this.target;
+			const controlled = this.characterCaller.controlledObject as { collision?: CANNON.Body } | undefined;
+			if (controlled?.collision)
+			{
+				const body = controlled.collision;
+				body.position.set(t.x, t.y, t.z);
+				body.interpolatedPosition.set(t.x, t.y, t.z);
+				body.velocity.setZero();
+				body.angularVelocity.setZero();
+			}
+			else
+			{
+				const body = this.characterCaller.characterCapsule.body;
+				body.position.set(t.x, t.y, t.z);
+				body.velocity.set(0, 0, 0);
 			}
 		}
 		else
