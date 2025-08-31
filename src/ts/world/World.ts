@@ -69,6 +69,7 @@ export class World
 	public airplanes: Airplane[] = [];
 	public ocean: Ocean | null = null;
 	public paths: Path[] = [];
+	public lapCounter: HTMLElement;
 	public scenarioGUIFolder: any;
 	public updatables: IUpdatable[] = [];
 
@@ -103,6 +104,17 @@ export class World
 		// Note: Soft shadows leads to animation errors with car tires
 
 		this.generateHTML();
+
+		// Lap counter overlay (Inthenew/Sketchbook). Initially hidden;
+		// Scenario.launch() flips visibility when a tracked race starts.
+		this.lapCounter = document.createElement('h1');
+		this.lapCounter.id = 'laps';
+		this.lapCounter.innerHTML = 'Lap: 0';
+		this.lapCounter.style.position = 'absolute';
+		this.lapCounter.style.top = '0';
+		this.lapCounter.style.left = '50px';
+		this.lapCounter.style.visibility = 'hidden';
+		document.body.appendChild(this.lapCounter);
 
 		// Auto window resize
 		function onWindowResize(): void
