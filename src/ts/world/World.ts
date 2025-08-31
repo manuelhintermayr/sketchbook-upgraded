@@ -100,6 +100,9 @@ export class World
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
 		this.renderer.toneMappingExposure = 1.0;
+		// Black space behind the Sky shell; Sky.update() hides the shell
+		// once the camera leaves Earth's atmosphere, revealing this color.
+		this.renderer.setClearColor(0x000000, 1);
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFShadowMap;
 		//this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;

@@ -146,6 +146,13 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		this.position.copy(this.world.camera.position);
 		this.refreshSunPosition();
 
+		// Hide the atmosphere shell once the camera leaves Earth so the
+		// player sees plain black space instead of the blue Sky shader.
+		// Threshold roughly matches Inthenew's launch apex — anything
+		// above there is in transit or on the moon.
+		const inSpace = this.world.onMoon || this.world.camera.position.y > 1500;
+		this.skyMesh.visible = !inSpace;
+
 		this.csm.update(); // Removed argument
 		this.csm.lightDirection = new THREE.Vector3(-this.sunPosition.x, -this.sunPosition.y, -this.sunPosition.z).normalize();
 	}
