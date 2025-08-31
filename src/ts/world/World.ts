@@ -437,6 +437,17 @@ export class World
 						this.ocean = new Ocean(child, this);
 						this.registerUpdatable(this.ocean);
 					}
+
+					// Inthenew's map tags the moon-surface mesh with name
+					// 'Layer0_001' (an Adobe Illustrator export artifact).
+					// Inthenew loaded an external Farmers Almanac photo here;
+					// we use the DALL-E moon-with-flowers texture instead.
+					if (child.name === 'Layer0_001')
+					{
+						const tex = new THREE.TextureLoader().load('src/img/moon-with-flowers.png');
+						tex.colorSpace = THREE.SRGBColorSpace;
+						child.material = new THREE.MeshBasicMaterial({ map: tex });
+					}
 				}
 
 				if (child.userData.hasOwnProperty('data'))
