@@ -18,6 +18,16 @@ export class Car extends Vehicle implements IControllable
 	}
 	private _speed: number = 0;
 
+	// Engine_Force slider value (default 10 = original feel). Scales the
+	// engine thrust and gear ladder linearly. Inthenew called this
+	// 'speed2'; renamed for clarity.
+	public engineForceFactor: number = 10;
+
+	public updateCarSpeed(speed: number): void
+	{
+		this.engineForceFactor = speed;
+	}
+
 	// private wheelsDebug: THREE.Mesh[] = [];
 	private steeringWheel: THREE.Object3D;
 	private airSpinTimer: number = 0;
@@ -94,17 +104,20 @@ export class Car extends Vehicle implements IControllable
 			this.airSpinTimer = 0;
 		}
 
-		// Engine
-		const engineForce = 500;
+		// Engine. Force and gear-ladder values scale linearly with
+		// engineForceFactor (Engine_Force slider, default 10) so the
+		// world GUI can retune the car without rebuilding.
+		const factor = this.engineForceFactor / 10;
+		const engineForce = 500 * factor;
 		const maxGears = 5;
 		const gearsMaxSpeeds = {
-			'R': -4,
+			'R': -4 * factor,
 			'0': 0,
-			'1': 5,
-			'2': 9,
-			'3': 13,
-			'4': 17,
-			'5': 22,
+			'1': 5 * factor,
+			'2': 9 * factor,
+			'3': 13 * factor,
+			'4': 17 * factor,
+			'5': 22 * factor,
 		};
 
 		if (this.shiftTimer > 0)

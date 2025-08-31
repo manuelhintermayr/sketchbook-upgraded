@@ -733,6 +733,13 @@ export class World
 			Has_Night_Time: false,
 			Gravity_Scale: 1,
 			Free_Cam_Speed: 25,
+			// Per-car raycast-vehicle tunables (defaults from Inthenew).
+			Friction_Slip: 0.8,
+			Suspension_Stiffness: 20,
+			Max_Suspension: 1,
+			Damping_Compression: 2,
+			Damping_Relaxation: 2,
+			Engine_Force: 10,
 		};
 
 		const gui = new GUI();
@@ -774,6 +781,35 @@ export class World
 		worldFolder.add(this.params, 'Gravity_Scale', 0, 2);
 		// Free_Cam_Speed is read by CameraOperator when in free-cam mode.
 		worldFolder.add(this.params, 'Free_Cam_Speed', 1, 100);
+
+		// Per-car raycast-vehicle tuning (ported from Inthenew). Each
+		// slider's onChange iterates the spawned cars and pushes the new
+		// value into their cannon wheelInfos / engine factor. Defaults
+		// match the constants the cars are constructed with.
+		const vehiclesFolder = gui.addFolder('Vehicles');
+		const applyToAllCars = (property: string, value: number, asEngineForce = false) =>
+		{
+			for (const v of scope.vehicles)
+			{
+				if (v instanceof Car)
+				{
+					if (asEngineForce) v.updateCarSpeed(value);
+					else v.updateWheelProps(property, value);
+				}
+			}
+		};
+		vehiclesFolder.add(this.params, 'Friction_Slip', 0, 5)
+			.onChange((v) => applyToAllCars('frictionSlip', v));
+		vehiclesFolder.add(this.params, 'Suspension_Stiffness', 0, 100)
+			.onChange((v) => applyToAllCars('suspensionStiffness', v));
+		vehiclesFolder.add(this.params, 'Max_Suspension', 0, 5)
+			.onChange((v) => applyToAllCars('maxSuspensionTravel', v));
+		vehiclesFolder.add(this.params, 'Damping_Compression', 0, 10)
+			.onChange((v) => applyToAllCars('dampingCompression', v));
+		vehiclesFolder.add(this.params, 'Damping_Relaxation', 0, 10)
+			.onChange((v) => applyToAllCars('dampingRelaxation', v));
+		vehiclesFolder.add(this.params, 'Engine_Force', 1, 50)
+			.onChange((v) => applyToAllCars('', v, true));
 
 		// Input
 		let settingsFolder = gui.addFolder('Settings');

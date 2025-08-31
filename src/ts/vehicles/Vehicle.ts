@@ -77,6 +77,26 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 		this.help = new THREE.AxesHelper(2);
 	}
 
+	// Vehicle-tuning hooks for the World GUI's Vehicles folder. Subclasses
+	// override updateCarSpeed when they want their gear ladder rescaled
+	// against an Engine_Force slider; updateWheelProps stays generic so
+	// Friction_Slip / Suspension_Stiffness / Damping_* / Max_Suspension
+	// flow into the cannon raycast wheel infos for every vehicle that
+	// has wheels.
+	public updateWheelProps(property: string, value: number): void
+	{
+		const wheelInfos = this.rayCastVehicle.wheelInfos;
+		for (let i = 0; i < wheelInfos.length; i++)
+		{
+			(wheelInfos[i] as any)[property] = value;
+		}
+	}
+
+	public updateCarSpeed(_speed: number): void
+	{
+		// override in Car
+	}
+
 	public noDirectionPressed(): boolean
 	{
 		return true;
