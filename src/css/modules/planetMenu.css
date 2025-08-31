@@ -1,0 +1,84 @@
+/* Planet selection modal shown after the rocketship reaches apogee.
+ * Two clickable cards: Earth and Moon. The .planet-menu-hidden class
+ * is the inactive state — World.ts toggles it on / off as the rocket
+ * lifts off and lands. */
+
+#planet-menu
+{
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 32px;
+	background: rgba(0, 0, 0, 0.65);
+	z-index: 100;
+	pointer-events: auto;
+}
+
+#planet-menu.planet-menu-hidden
+{
+	display: none;
+}
+
+.planet-heading
+{
+	color: white;
+	font-size: 2.5em;
+	margin: 0;
+	text-align: center;
+	font-family: 'Alfa Slab One', serif;
+}
+
+#planet-menu .planet-item
+{
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	cursor: pointer;
+	padding: 16px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.08);
+	transition: background 0.15s ease, transform 0.15s ease;
+}
+
+#planet-menu .planet-item:hover
+{
+	background: rgba(255, 255, 255, 0.18);
+	transform: scale(1.05);
+}
+
+#planet-menu .planet-item img
+{
+	width: 200px;
+	height: 200px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+#planet-menu .planet-item p
+{
+	color: white;
+	font-size: 1.5em;
+	margin: 12px 0 0 0;
+	font-family: 'Solway', serif;
+}
+
+/* Side-by-side on wider screens, stacked on narrow ones. */
+@media (min-width: 600px)
+{
+	#planet-menu
+	{
+		flex-direction: row;
+	}
+
+	.planet-heading
+	{
+		position: absolute;
+		top: 8%;
+	}
+}

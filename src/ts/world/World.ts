@@ -649,6 +649,24 @@ export class World
 			</div>
 		`);
 
+		// Planet selection modal (Inthenew/Sketchbook). RocketShip flips
+		// 'planet-menu-hidden' off once the liftoff sequence reaches
+		// apogee, then handles clicks via addEventListener (Inthenew used
+		// jQuery here, we do it in vanilla DOM during construction).
+		document.body.insertAdjacentHTML('beforeend', `
+			<div id="planet-menu" class="planet-menu-hidden">
+				<h1 class="planet-heading">Which planet do you want to go to?</h1>
+				<div class="planet-item" id="earth">
+					<img src="src/img/hemisphere-earth.png" alt="Earth">
+					<p>Earth</p>
+				</div>
+				<div class="planet-item" id="moon">
+					<img src="src/img/full-moon.png" alt="Moon">
+					<p>Moon</p>
+				</div>
+			</div>
+		`);
+
 		// Canvas
 		document.body.appendChild(this.renderer.domElement);
 		this.renderer.domElement.id = 'canvas';
