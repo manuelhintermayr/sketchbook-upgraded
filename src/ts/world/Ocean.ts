@@ -3,17 +3,11 @@ import * as THREE from 'three';
 import { World } from './World';
 import { IUpdatable } from '../interfaces/IUpdatable';
 
-// Wave-based ocean adapted from Inthenew/Sketchbook (MIT). Replaces the
-// original swift502 fragment-only WaterShader: the original was a flat
-// surface, this one displaces the existing ocean mesh in the vertex
-// stage and exposes getWaveHeightAt() so vehicles (boats) can ride the
-// waves.
-//
-// Inthenew's upstream tiles a 2x2 grid of 1000-unit planes around the
-// origin (their map is wider than the original level). We instead apply
-// the shader directly to the ocean mesh authored in world.glb so the
-// water stays exactly where the level designer placed it, in size and
-// position.
+// Wave-based ocean ported from Inthenew/Sketchbook (MIT). The shader is
+// applied via MeshStandardMaterial.onBeforeCompile so three's lighting
+// and normal-map pipeline are preserved. A 2x2 grid of plane tiles is
+// laid around the origin to extend the ocean past the small ocean
+// quad that ships in world.glb.
 //
 // IMPORTANT: the wave formula in moveWave() (GLSL injected via
 // onBeforeCompile below) and getWaveHeightAt() (TypeScript) MUST stay in
@@ -21,80 +15,97 @@ import { IUpdatable } from '../interfaces/IUpdatable';
 export class Ocean implements IUpdatable
 {
 	public updateOrder = 10;
-	public material: THREE.MeshStandardMaterial;
+	public material: THREE.MeshBasicMaterial;
 	public clock: THREE.Clock;
 
-	public mesh: THREE.Mesh;
-	public oceanY: number;
 	private world: World;
+
+	private readonly GrdSiz = 1000;
+	private readonly segNum = 200;
+	private readonly GrdRCs = 2;
+
+	private waveGeometry: THREE.PlaneGeometry | null = null;
+	private waveMaterial: THREE.MeshStandardMaterial | null = null;
 	private waterNormalMap: THREE.Texture | null = null;
+	private tiles: THREE.Mesh[] = [];
+	private tileXOffsets: number[] = [];
+	private tileZOffsets: number[] = [];
+	private loaded = false;
 
 	private readonly uniforms = {
 		time: { value: 0 },
-		// 'grid' controls horizontal wave wavelength: lower numbers tighten
-		// the waves. Inthenew used 1000 across a 1000-unit tile; we keep
-		// that ratio relative to whatever our ocean mesh's xz extent is.
 		grid: { value: 1000 },
 	};
 
 	constructor(object: THREE.Mesh, world: World)
 	{
 		this.world = world;
-		this.mesh = object;
 
-		const worldPos = new THREE.Vector3();
-		object.getWorldPosition(worldPos);
-		this.oceanY = worldPos.y;
-
-		this.clock = new THREE.Clock();
-		this.material = this.createWaveMaterial();
+		// Hide the original ocean plane carried in world.glb — we render
+		// the tiled wave grid on top of it.
+		this.material = new THREE.MeshBasicMaterial({
+			color: 'skyblue',
+			transparent: true,
+			opacity: 0,
+		});
 		object.material = this.material;
 
-		this.loadNormalMap();
+		this.clock = new THREE.Clock();
+		this.createOcean();
 	}
 
-	private loadNormalMap(): void
+	private createOcean(): void
 	{
-		const txtrLoader = new THREE.TextureLoader();
+		const loadingManager = new THREE.LoadingManager();
+		loadingManager.onLoad = () => { this.initTiles(); };
+
+		const txtrLoader = new THREE.TextureLoader(loadingManager);
 		txtrLoader.load('src/img/water/waternormals.jpg', (texture) =>
 		{
 			texture.magFilter = THREE.LinearFilter;
 			texture.minFilter = THREE.LinearMipmapLinearFilter;
 			texture.generateMipmaps = true;
 			texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-			texture.repeat.set(8, 8);
+			texture.offset.set(0, 0);
+			texture.repeat.set(1, 1);
 			texture.needsUpdate = true;
 			this.waterNormalMap = texture;
-			this.material.normalMap = texture;
-			this.material.needsUpdate = true;
 		});
 	}
 
-	private createWaveMaterial(): THREE.MeshStandardMaterial
+	private initTiles(): void
 	{
-		const mat = new THREE.MeshStandardMaterial({
-			color: 0x113355,
+		this.waveGeometry = new THREE.PlaneGeometry(this.GrdSiz, this.GrdSiz, this.segNum, this.segNum);
+		this.waveGeometry.rotateX(-Math.PI * 0.5);
+
+		this.waveMaterial = new THREE.MeshStandardMaterial({
+			normalMap: this.waterNormalMap,
 			metalness: 0.5,
 			roughness: 0.6,
 			name: 'ocean.001',
 		});
-		// Inject vertex displacement + height-based color via
-		// onBeforeCompile so we keep three's lighting and normal map
-		// pipeline.
-		mat.onBeforeCompile = (shader) =>
+		this.waveMaterial.onBeforeCompile = (shader) =>
 		{
 			shader.uniforms.time = this.uniforms.time;
 			shader.uniforms.grid = this.uniforms.grid;
+			shader.uniforms.noWaveCenter = { value: new THREE.Vector2(0.0, 0.0) };
+			shader.uniforms.noWaveHalfSize = { value: new THREE.Vector2(180.0, 140.0) };
+			shader.uniforms.noWaveHalfSize2 = { value: new THREE.Vector2(300.0, 330.0) };
 
 			shader.vertexShader = shader.vertexShader.replace(
 				'void main() {',
 				`
 				uniform float time;
 				uniform float grid;
+				uniform vec2 noWaveCenter;
+				uniform vec2 noWaveHalfSize;
+				uniform vec2 noWaveHalfSize2;
 				varying float vHeight;
+				varying float vInvisible;
 
 				vec3 moveWave(vec3 p) {
 					float num = 0.7;
+					vec4 worldPos = modelMatrix * vec4(p, 1.0);
 					vec3 retVal = p;
 					float ang;
 					float kzx = 360.0 / grid;
@@ -124,11 +135,23 @@ export class Ocean implements IUpdatable
 					ang = ang * 3.14159265 / 180.0;
 					retVal.y += num * 0.5 * sin(ang);
 
+					float inZone = 0.0;
+					if (abs(worldPos.x - noWaveCenter.x) < noWaveHalfSize.x &&
+							abs(worldPos.z - noWaveCenter.y) < noWaveHalfSize.y) {
+						inZone = 1.0;
+						retVal.y = -100.0;
+					} else if (abs(worldPos.x - noWaveCenter.x) < noWaveHalfSize2.x &&
+								abs(worldPos.z - noWaveCenter.y) < noWaveHalfSize2.y) {
+						retVal.y = 8.5;
+					} else {
+						retVal.y += 3.6;
+					}
+					vInvisible = inZone;
 					return retVal;
 				}
 
 				void main() {
-				`,
+				`
 			);
 
 			shader.vertexShader = shader.vertexShader.replace(
@@ -137,36 +160,73 @@ export class Ocean implements IUpdatable
 				#include <begin_vertex>
 				transformed = moveWave(transformed);
 				vHeight = transformed.y;
-				`,
+				`
 			);
 
-			shader.fragmentShader = 'varying float vHeight;\n' + shader.fragmentShader;
+			shader.fragmentShader = 'varying float vHeight;\nvarying float vInvisible;\n' + shader.fragmentShader;
 			shader.fragmentShader = shader.fragmentShader.replace(
 				'#include <color_fragment>',
 				`
 				#include <color_fragment>
-				diffuseColor.rgb = mix(vec3(0.03125, 0.0625, 0.5), vec3(0.1, 0.2, 0.6), smoothstep(-3.0, 3.0, vHeight));
-				`,
+				if(vInvisible > 0.5) { discard; }
+				diffuseColor.rgb = mix(vec3(0.03125, 0.0625, 0.5), vec3(0.1, 0.2, 0.6), smoothstep(0.0, 6.0, vHeight));
+				`
 			);
 		};
-		return mat;
+
+		// Lay out a GrdRCs x GrdRCs grid of tiles centered on origin.
+		let zx = -0.5 * this.GrdRCs * this.GrdSiz + 0.5 * this.GrdSiz;
+		for (let i = 0; i < this.GrdRCs; i++)
+		{
+			this.tileZOffsets[i] = zx;
+			this.tileXOffsets[i] = zx;
+			zx += this.GrdSiz;
+		}
+
+		let n = 0;
+		for (let z = 0; z < this.GrdRCs; z++)
+		{
+			for (let x = 0; x < this.GrdRCs; x++)
+			{
+				const tile = new THREE.Mesh(this.waveGeometry, this.waveMaterial);
+				tile.position.set(this.tileXOffsets[x], 12, -this.tileZOffsets[z]);
+				this.world.graphicsWorld.add(tile);
+				this.tiles[n] = tile;
+				n++;
+			}
+		}
+		this.loaded = true;
 	}
 
-	// CPU mirror of moveWave() above. Returns the world-space y at world
-	// coordinate (x, z) and time t. Note: the GLSL function works in the
-	// mesh's LOCAL space (modelMatrix is applied to verts before being fed
-	// to it, but the wave displacement is in local y), so we transform to
-	// the ocean mesh's local frame, sample, and add the mesh's world y.
-	public getWaveHeightAt(x: number, z: number, t: number): number
+	// Compute the water height at world coordinate (x, z) and time t. Uses
+	// the same multi-sine stack as the GLSL moveWave() above so boat
+	// physics can ride the visible waves. Returns 'inner-zone' if the
+	// sample is inside the no-wave dock area (caller decides what to do).
+	public getWaveHeightAt(x: number, z: number, t: number): number | 'inner-zone'
 	{
-		const localPos = new THREE.Vector3(x, 0, z);
-		this.mesh.worldToLocal(localPos);
-		// The plane geometry was rotated -PI/2 around X in Inthenew's
-		// upstream code so XZ became XY in local space. World.glb's ocean
-		// mesh keeps the plane's natural XY orientation, so 'z' here is
-		// actually the plane's local y. Use the right axes for the formula.
-		const localX = localPos.x;
-		const localZ = localPos.z;
+		const gridSize = this.GrdSiz;
+		const segmentSize = gridSize / this.segNum;
+		const totalSize = this.GrdRCs * gridSize;
+
+		const oceanX = x + totalSize / 2;
+		const oceanZ = z + totalSize / 2;
+		const tileXIndex = Math.floor(oceanX / gridSize);
+		const tileZIndex = Math.floor(oceanZ / gridSize);
+		const tileIndex = tileZIndex * this.GrdRCs + tileXIndex;
+
+		if (tileIndex < 0 || tileIndex >= this.tiles.length) return 12;
+		const tile = this.tiles[tileIndex];
+		if (!tile) return 12;
+
+		const localXFull = x - tile.position.x;
+		const localZFull = z - tile.position.z;
+		const vertexX = Math.round((localXFull + gridSize / 2) / segmentSize) * segmentSize - gridSize / 2;
+		const vertexZ = Math.round((localZFull + gridSize / 2) / segmentSize) * segmentSize - gridSize / 2;
+
+		if (!isFinite(vertexX) || !isFinite(vertexZ))
+		{
+			return 8.5 + tile.position.y + 0.1;
+		}
 
 		const num = 0.7;
 		const kzx = 360.0 / this.uniforms.grid.value;
@@ -176,20 +236,36 @@ export class Ocean implements IUpdatable
 			return angle * Math.PI / 180;
 		};
 
-		let y = num * 3.0 * Math.sin(toRadians(50.0 * t - 1.0 * localX * kzx - 2.0 * localZ * kzx));
-		y += num * 2.0 * Math.sin(toRadians(25.0 * t - 3.0 * localX * kzx));
-		y += num * 2.0 * Math.sin(toRadians(15.0 * t - 3.0 * localZ * kzx));
-		y += num * 0.5 * Math.sin(toRadians(50.0 * t + 4.0 * localX * kzx + 8.0 * localZ * kzx));
-		y += num * 0.5 * Math.sin(toRadians(50.0 * t + 8.0 * localX * kzx));
+		let y = num * 3.0 * Math.sin(toRadians(50.0 * t - 1.0 * vertexX * kzx - 2.0 * vertexZ * kzx));
+		y += num * 2.0 * Math.sin(toRadians(25.0 * t - 3.0 * vertexX * kzx));
+		y += num * 2.0 * Math.sin(toRadians(15.0 * t - 3.0 * vertexZ * kzx));
+		y += num * 0.5 * Math.sin(toRadians(50.0 * t + 4.0 * vertexX * kzx + 8.0 * vertexZ * kzx));
+		y += num * 0.5 * Math.sin(toRadians(50.0 * t + 8.0 * vertexX * kzx));
 
-		return y + this.oceanY;
+		const worldX = tile.position.x + vertexX;
+		const worldZ = tile.position.z + vertexZ;
+		const noWaveCenter = { x: 0.0, z: 0.0 };
+		const noWaveHalfSize = { x: 180.0, z: 140.0 };
+		const noWaveHalfSize2 = { x: 300.0, z: 330.0 };
+
+		if (Math.abs(worldX - noWaveCenter.x) < noWaveHalfSize.x
+			&& Math.abs(worldZ - noWaveCenter.z) < noWaveHalfSize.z)
+		{
+			return 'inner-zone';
+		}
+		if (Math.abs(worldX - noWaveCenter.x) < noWaveHalfSize2.x
+			&& Math.abs(worldZ - noWaveCenter.z) < noWaveHalfSize2.z)
+		{
+			return 8.5 + tile.position.y + 0.1;
+		}
+		return y + 3.6 + tile.position.y + 0.1;
 	}
 
 	public update(_timeStep: number): void
 	{
+		if (!this.loaded) return;
 		this.uniforms.time.value = this.clock.getElapsedTime();
 
-		// Subtle scroll on the normal map for additional surface motion.
 		if (this.waterNormalMap)
 		{
 			this.waterNormalMap.offset.x -= 0.00005;
