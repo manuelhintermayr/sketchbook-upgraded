@@ -404,7 +404,13 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 					}
 					if (child.userData.data === 'collision')
 					{
-						if (child.userData.shape === 'box')
+						// Some Inthenew GLBs (e.g. rocketship.glb) tag boxes as
+						// userData.type='box' rather than userData.shape='box',
+						// presumably because they were re-exported under a
+						// different Blender plugin. Accept either spelling so
+						// the rocket actually has a chassis to stand on.
+						const shape = child.userData.shape ?? child.userData.type;
+						if (shape === 'box')
 						{
 							child.visible = false;
 
@@ -412,7 +418,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 							phys.collisionFilterMask = ~CollisionGroups.TrimeshColliders;
 							this.collision.addShape(phys, new CANNON.Vec3(child.position.x, child.position.y, child.position.z));
 						}
-						else if (child.userData.shape === 'sphere')
+						else if (shape === 'sphere')
 						{
 							child.visible = false;
 
