@@ -30,6 +30,7 @@ import { Vehicle } from '../vehicles/Vehicle';
 import { Helicopter } from '../vehicles/Helicopter';
 import { Airplane } from '../vehicles/Airplane';
 import { Car } from '../vehicles/Car';
+import { Boat } from '../vehicles/Boat';
 import { Scenario } from './Scenario';
 import { Sky } from './Sky';
 import { Ocean } from './Ocean';
@@ -265,6 +266,9 @@ export class World
 			{
 				vehicle.physicsPreStep(vehicle.collision, vehicle)
 			} else if (vehicle instanceof Airplane)
+			{
+				vehicle.physicsPreStep(vehicle.collision, vehicle)
+			} else if (vehicle instanceof Boat)
 			{
 				vehicle.physicsPreStep(vehicle.collision, vehicle)
 			}
