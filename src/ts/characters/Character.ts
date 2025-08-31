@@ -677,7 +677,10 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	{
 		this.resetControls();
 
-		if (seat.door?.rotation < 0.5)
+		// Boats and rockets have no door animation, so don't try to play one.
+		const skipDoor = seat.vehicle.entityType === EntityType.Boat
+			|| seat.vehicle.entityType === EntityType.RocketShip;
+		if (seat.door?.rotation < 0.5 && !skipDoor)
 		{
 			this.setState(new OpenVehicleDoor(this, seat, entryPoint));
 		}

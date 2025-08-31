@@ -3,6 +3,7 @@ import * as Utils from '../../../core/FunctionLibrary';
 
 import { Character } from '../../Character';
 import { Side } from '../../../enums/Side';
+import { EntityType } from '../../../enums/EntityType';
 import { VehicleSeat } from '../../../vehicles/VehicleSeat';
 import { Idle } from '../Idle';
 import { CloseVehicleDoorOutside } from './CloseVehicleDoorOutside';
@@ -53,7 +54,9 @@ export class ExitingVehicle extends ExitingStateBase
 				this.character.setState(new DropRolling(this.character));
 				this.character.leaveSeat();
 			}
-			else if (this.anyDirection() || this.seat.door === undefined)
+			else if (this.anyDirection() || this.seat.door === undefined
+				|| this.seat.vehicle.entityType === EntityType.Boat
+				|| this.seat.vehicle.entityType === EntityType.RocketShip)
 			{
 				this.character.setState(new Idle(this.character));
 				this.character.leaveSeat();
