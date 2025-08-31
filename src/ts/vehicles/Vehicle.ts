@@ -34,6 +34,13 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 
 	public firstPerson: boolean = false;
 
+	// Camera tweaks read from the GLB camera-empty's userData (Inthenew):
+	// viewBack adds units to the third-person chase distance, centerHere
+	// shifts the chase target up to the camera-empty's Y so the camera
+	// looks at the middle of tall vehicles instead of the wheels.
+	public viewBack: number = 0;
+	public centerHere: boolean = false;
+
 	constructor(gltf: any, handlingSetup?: any)
 	{
 		super();
@@ -223,7 +230,9 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 		}
 		else
 		{
-			this.world.cameraOperator.setRadius(3, true);
+			// Inthenew's viewBack lets a tall vehicle's GLB add to the
+			// 3-unit default; e.g. rocketship.glb sets viewBack="1".
+			this.world.cameraOperator.setRadius(3 + this.viewBack, true);
 		}
 	}
 
@@ -283,24 +292,24 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	{
 		if (this.firstPerson)
 		{
-			// this.world.cameraOperator.target.set(
-			//     this.position.x + this.camera.position.x,
-			//     this.position.y + this.camera.position.y,
-			//     this.position.z + this.camera.position.z
-			// );
-
 			let temp = new THREE.Vector3().copy(this.camera.position);
 			temp.applyQuaternion(this.quaternion);
-			this.world.cameraOperator.target.copy(temp.add(this.position));
+			const target = temp.add(this.position);
+			// Inthenew's centerHere keeps the look-at point at the
+			// camera-empty's authored Y in world space, so the FP camera
+			// doesn't drift vertically as the chassis pitches.
+			if (this.centerHere) target.y = this.position.y + this.camera.position.y;
+			this.world.cameraOperator.target.copy(target);
 		}
 		else
 		{
-			// Position camera
-			this.world.cameraOperator.target.set(
-				this.position.x,
-				this.position.y + 0.5,
-				this.position.z
-			);
+			// Position camera. centerHere shifts the chase target up to
+			// the camera-empty's Y so a tall vehicle (e.g. rocketship)
+			// frames around its middle instead of its wheels.
+			const targetY = this.centerHere
+				? this.position.y + this.camera.position.y
+				: this.position.y + 0.5;
+			this.world.cameraOperator.target.set(this.position.x, targetY, this.position.z);
 		}
 	}
 
@@ -417,6 +426,9 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 					if (child.userData.data === 'camera')
 					{
 						this.camera = child;
+						const vb = Number(child.userData.viewBack);
+						if (!isNaN(vb)) this.viewBack = vb;
+						if (child.userData.centerHere === 'true') this.centerHere = true;
 					}
 					if (child.userData.data === 'wheel')
 					{

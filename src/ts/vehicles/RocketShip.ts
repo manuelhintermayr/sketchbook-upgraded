@@ -457,19 +457,9 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		}
 	}
 
-	public setFirstPersonView(value: boolean): void
-	{
-		super.setFirstPersonView(value);
-		// Vehicle base resets the chase distance to 3 in third person.
-		// The rocket is much taller than a car/heli, so keep the camera
-		// pulled back to ~10 instead.
-		if (!value) this.world.cameraOperator.setRadius(10, true);
-	}
-
 	public inputReceiverInit(): void
 	{
 		super.inputReceiverInit();
-		this.world.cameraOperator.setRadius(10, true);
 		this.world.updateControls([
 			{ keys: ['Space'], desc: 'Blast off' },
 			{ keys: ['V'], desc: 'View select' },
