@@ -257,6 +257,11 @@ export class World
 	{
 		this.updatePhysics(timeStep);
 
+		// Pipe Free_Cam_Speed (1..100, default 25 = upstream feel) into
+		// CameraOperator's movementSpeed scalar. The base of 0.06 was the
+		// original swift502 default at slider value 25; scale linearly.
+		this.cameraOperator.movementSpeed = (this.params.Free_Cam_Speed / 25) * 0.06;
+
 		// Update registred objects
 		this.updatables.forEach((entity) => {
 			entity.update(timeStep, unscaledTimeStep);
@@ -297,7 +302,18 @@ export class World
 				vehicle.physicsPreStep(vehicle.collision, vehicle)
 			}
 		})
-		
+
+		// Switch to lunar gravity while the player is on the moon. Moon
+		// surface gravity is ~1.62 m/s^2, ~1/6 of Earth's. Inthenew left
+		// this commented out as WIP; we activate it now that the rocket
+		// flight reliably sets/clears world.onMoon.
+		const baseG = this.onMoon ? -1.62 : -9.81;
+		const targetGravityY = baseG * (this.params?.Gravity_Scale ?? 1);
+		if (this.physicsWorld.gravity.y !== targetGravityY)
+		{
+			this.physicsWorld.gravity.set(0, targetGravityY, 0);
+		}
+
 		// Step the physics world
 		this.physicsWorld.step(this.physicsFrameTime, timeStep);
 
@@ -700,6 +716,8 @@ export class World
 			Sun_Rotation: 145,
 			Has_Day_Night_Cycle: false,
 			Has_Night_Time: false,
+			Gravity_Scale: 1,
+			Free_Cam_Speed: 25,
 		};
 
 		const gui = new GUI();
@@ -735,6 +753,12 @@ export class World
 			{
 				scope.params.Has_Night_Time = value;
 			});
+		// Gravity_Scale 0..2 lets the player toggle between zero-g and
+		// double-g without rebuilding. updatePhysics reads params.Gravity_Scale
+		// every step so this takes effect immediately.
+		worldFolder.add(this.params, 'Gravity_Scale', 0, 2);
+		// Free_Cam_Speed is read by CameraOperator when in free-cam mode.
+		worldFolder.add(this.params, 'Free_Cam_Speed', 1, 100);
 
 		// Input
 		let settingsFolder = gui.addFolder('Settings');
