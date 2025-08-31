@@ -31,6 +31,7 @@ import { Helicopter } from '../vehicles/Helicopter';
 import { Airplane } from '../vehicles/Airplane';
 import { Car } from '../vehicles/Car';
 import { Boat } from '../vehicles/Boat';
+import { RocketShip } from '../vehicles/RocketShip';
 import { Scenario } from './Scenario';
 import { Sky } from './Sky';
 import { Ocean } from './Ocean';
@@ -70,6 +71,7 @@ export class World
 	public ocean: Ocean | null = null;
 	public paths: Path[] = [];
 	public lapCounter: HTMLElement;
+	public onMoon: boolean = false;
 	public scenarioGUIFolder: any;
 	public updatables: IUpdatable[] = [];
 
@@ -285,6 +287,9 @@ export class World
 			{
 				vehicle.physicsPreStep(vehicle.collision, vehicle)
 			} else if (vehicle instanceof Boat)
+			{
+				vehicle.physicsPreStep(vehicle.collision, vehicle)
+			} else if (vehicle instanceof RocketShip)
 			{
 				vehicle.physicsPreStep(vehicle.collision, vehicle)
 			}
