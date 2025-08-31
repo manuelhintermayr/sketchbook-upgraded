@@ -8,21 +8,49 @@ import { KeyBinding } from '../core/KeyBinding';
 import { EntityType } from '../enums/EntityType';
 
 // Ported from Inthenew/Sketchbook (MIT). The rocketship reuses the
-// helicopter rotor scaffolding (it has rotor-marked children for the
-// engine glow / smoke nozzles) but is intentionally not pilotable in
-// the conventional sense — there are no manual ascend/yaw controls.
+// vehicle scaffolding (chassis collision shapes, seat, rotors marked in
+// the GLB) but isn't pilotable in the conventional sense — there are no
+// manual ascend/yaw controls. Pressing 'descend' (Space) triggers an
+// automated four-stage liftoff, after which a planet-selection modal
+// appears, and the chosen target is reached via a hand-keyed flight
+// animation that ends on a soft auto-landing.
 //
-// This file lands in three stages:
-//   Block 1 (this commit): vehicle plumbing, rotor visuals, exit/view
-//   Block 1 follow-up:     smoke particle system
-//   Block 3:               auto-flight + planet menu + landing
+// The physics behaviour mirrors Inthenew's exact timings, velocities
+// and coordinates so the trip to / from the moon plays identically.
+// What's cleaned up is shape, not function: nested setIntervals get
+// named handles and live on the instance, the planet menu is wired up
+// once via addEventListener instead of re-registered every liftoff
+// (Inthenew's upstream had a memory leak there), and the state machine
+// is named instead of being implicit in three booleans.
 type SmokeParticle = {
 	particle: THREE.Vector3;
 	lifetime: number;
 	age: number;
 };
 
+type FlightTarget = 'earth' | 'moon';
+
 const SMOKE_PARTICLE_COUNT = 200;
+
+// Apex altitude at which the liftoff sequence stops and the planet
+// menu appears. Below 5200 on earth-bound launches; for the return
+// trip from the moon Inthenew uses (rocketMaxY * 0.4) + moonHeight.
+const ROCKET_MAX_Y = 5200;
+const MOON_HEIGHT = 3852.67;
+
+// Hand-authored coordinates for the two landing pads in world.glb.
+const EARTH_LANDING = new CANNON.Vec3(15.1903, 16.1283, -491.721);
+const MOON_LANDING = new CANNON.Vec3(15.2758, 3852.67, -11696.4);
+
+// Liftoff is four stages of acceleration. Each stage runs 25 ticks of
+// 200ms (5s per stage), so a full launch takes 20 seconds.
+const LIFTOFF_STAGES = [5, 10, 15, 20];
+const LIFTOFF_TICKS_PER_STAGE = 25;
+const LIFTOFF_TICK_MS = 200;
+
+// Flight timer cadence — the interval that pushes the chassis toward
+// the chosen planet at constant velocity until the threshold is hit.
+const FLIGHT_TICK_MS = 200;
 
 export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 {
@@ -32,6 +60,26 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 	protected enginePower = 0;
 	protected smokeSystem!: THREE.Points;
 	private smokeParticles: SmokeParticle[] = [];
+
+	// Flight state. justBlasted is true from the moment the player
+	// presses Space until the auto-landing finishes. balancing kicks in
+	// at apex while the planet menu is open. landing kicks in once the
+	// chosen target's xz is reached and the rocket is dropping vertically.
+	private justBlasted = false;
+	private balancing = false;
+	private landing = false;
+	private goingTo: FlightTarget | null = null;
+
+	// Interval handles, kept on the instance so we can cancel cleanly if
+	// the player exits the rocket mid-sequence (Inthenew leaked these).
+	private liftoffTimer: ReturnType<typeof setInterval> | undefined;
+	private travelTimer: ReturnType<typeof setInterval> | undefined;
+	private dropTimer: ReturnType<typeof setInterval> | undefined;
+	private liftoffCheckTimer: ReturnType<typeof setInterval> | undefined;
+	private travelCheckTimer: ReturnType<typeof setInterval> | undefined;
+	private dropCheckTimer: ReturnType<typeof setInterval> | undefined;
+
+	private menuClickHandlersBound = false;
 
 	constructor(gltf: any)
 	{
@@ -59,8 +107,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		super.update(timeStep);
 
 		// Engine power ramps up while a character is in the seat, decays
-		// when they exit. Drives the rotor visuals and (later) the liftoff
-		// thrust.
+		// when they exit. Drives the rotor visuals and the liftoff thrust.
 		if (this.controllingCharacter !== undefined)
 		{
 			this.enginePower = Math.min(1, this.enginePower + timeStep * 0.2);
@@ -75,16 +122,291 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		{
 			rotor.rotateX(this.enginePower * timeStep * 30);
 		}
+
+		// Smoke is only visible while the engines are firing during
+		// liftoff. Inthenew's heuristic: justBlasted true and the cabin
+		// not yet stable / landed.
+		const burning = this.justBlasted && !this.balancing && !this.landing;
+		this.smokeSystem.visible = burning;
+		if (burning) this.updateSmoke(timeStep);
 	}
 
-	// Block 3 will replace this stub with the auto-flight + landing logic.
-	// World.updatePhysics dispatches per-vehicle physicsPreStep — left
-	// empty here so the cannon solver handles the rocketship as a regular
-	// chassis, parked on the launch pad, until Block 3 lands.
-	public physicsPreStep(_body: CANNON.Body, _rocket: RocketShip): void
+	public physicsPreStep(body: CANNON.Body, _rocket: RocketShip): void
 	{
-		// intentionally empty — see Block 3
+		// Trigger: Space pressed and we're not already mid-flight.
+		if (this.actions.descend.isPressed && !this.justBlasted)
+		{
+			this.bindPlanetMenuHandlers();
+			this.startLiftoff(body);
+		}
+
+		if (this.balancing)
+		{
+			this.applyVerticalStabilization(body);
+		}
+
+		// Positional damping (xz only, vertical handled by stabilization).
+		body.velocity.x *= THREE.MathUtils.lerp(1, 0.995, this.enginePower);
+		body.velocity.z *= THREE.MathUtils.lerp(1, 0.995, this.enginePower);
+		body.angularDamping = 1;
 	}
+
+	// --- Liftoff -----------------------------------------------------
+
+	private startLiftoff(body: CANNON.Body): void
+	{
+		this.justBlasted = true;
+		const localUp = new THREE.Vector3(0, 1, 0);
+
+		let stage = 0;
+		let ticksThisStage = 0;
+		this.liftoffTimer = setInterval(() =>
+		{
+			const quat = new THREE.Quaternion(
+				body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w,
+			);
+			const up = localUp.clone().applyQuaternion(quat);
+			const thrust = LIFTOFF_STAGES[stage] * this.enginePower;
+			body.velocity.x += up.x * thrust;
+			body.velocity.y += up.y * thrust;
+			body.velocity.z += up.z * thrust;
+
+			ticksThisStage++;
+			if (ticksThisStage >= LIFTOFF_TICKS_PER_STAGE)
+			{
+				stage++;
+				ticksThisStage = 0;
+			}
+
+			const targetY = (this.goingTo === 'earth' || this.goingTo === null)
+				? ROCKET_MAX_Y
+				: ROCKET_MAX_Y * 0.4 + MOON_HEIGHT;
+
+			if (body.position.y >= targetY)
+			{
+				this.stopLiftoff();
+				this.balancing = true;
+				if (this.controllingCharacter !== undefined)
+				{
+					this.showPlanetMenu();
+				}
+				else
+				{
+					// Auto-land if no driver — same fallback as upstream.
+					this.landing = true;
+				}
+			}
+		}, LIFTOFF_TICK_MS);
+	}
+
+	private stopLiftoff(): void
+	{
+		if (this.liftoffTimer !== undefined)
+		{
+			clearInterval(this.liftoffTimer);
+			this.liftoffTimer = undefined;
+		}
+	}
+
+	// --- Vertical stabilization (Inthenew's gravityCompensation) ----
+
+	private applyVerticalStabilization(body: CANNON.Body): void
+	{
+		const quat = new THREE.Quaternion(
+			body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w,
+		);
+		const up = new THREE.Vector3(0, 1, 0).applyQuaternion(quat);
+		const globalUp = new THREE.Vector3(0, 1, 0);
+
+		const gravity = this.world.physicsWorld.gravity;
+		let gravityCompensation = new CANNON.Vec3(-gravity.x, -gravity.y, -gravity.z).length();
+		gravityCompensation *= this.world.physicsFrameTime;
+		gravityCompensation *= 0.98;
+		const dot = globalUp.dot(up);
+		gravityCompensation *= Math.sqrt(THREE.MathUtils.clamp(dot, 0, 1));
+
+		const vertDamping = new THREE.Vector3(0, body.velocity.y, 0).multiplyScalar(-0.01);
+		const vertStab = up.clone().multiplyScalar(gravityCompensation).add(vertDamping);
+		vertStab.multiplyScalar(this.enginePower);
+
+		body.velocity.x += vertStab.x;
+		// Landing nudges the body downward at different rates per planet.
+		body.velocity.y += !this.landing
+			? vertStab.y
+			: vertStab.y - (this.goingTo === 'earth' ? 5 : 0.1);
+		body.velocity.z += vertStab.z;
+
+		// Touchdown checks — once vertical position dips below the pad
+		// height we consider the landing complete and reset state so
+		// another launch is possible.
+		if (body.position.y <= 16.1283 && this.goingTo === 'earth')
+		{
+			this.completeLanding();
+		}
+		else if (body.position.y <= MOON_HEIGHT - 97 && this.goingTo === 'moon')
+		{
+			this.completeLanding();
+		}
+	}
+
+	private completeLanding(): void
+	{
+		this.landing = false;
+		this.balancing = false;
+		setTimeout(() => { this.justBlasted = false; }, 1000);
+	}
+
+	// --- Planet menu -------------------------------------------------
+
+	private bindPlanetMenuHandlers(): void
+	{
+		if (this.menuClickHandlersBound) return;
+		this.menuClickHandlersBound = true;
+
+		document.getElementById('earth')?.addEventListener('click', () => this.flyTo('earth'));
+		document.getElementById('moon')?.addEventListener('click', () => this.flyTo('moon'));
+	}
+
+	private showPlanetMenu(): void
+	{
+		const menu = document.getElementById('planet-menu');
+		if (menu) menu.classList.remove('planet-menu-hidden');
+		document.exitPointerLock();
+	}
+
+	private hidePlanetMenu(): void
+	{
+		const menu = document.getElementById('planet-menu');
+		if (menu) menu.classList.add('planet-menu-hidden');
+	}
+
+	// --- Earth/Moon flight -------------------------------------------
+
+	private flyTo(target: FlightTarget): void
+	{
+		// Ignore stray clicks if the menu is closed (e.g. before liftoff).
+		if (!this.balancing) return;
+
+		this.hidePlanetMenu();
+		this.cancelTravelTimers();
+
+		const body = this.collision;
+		const fromMoon = body.position.z < -10000;
+		const toEarth = target === 'earth';
+
+		// Smooth long-distance travel only fires when the player is on
+		// the opposite planet. Otherwise (already-near-target click) we
+		// just snap to the landing pad and start descending.
+		if (toEarth && fromMoon)
+		{
+			this.smoothTravel(body, 'earth', new CANNON.Vec3(0, 0, 1000), -491.721, 'z',
+				(b) => b.position.z >= -491.721,
+				new CANNON.Vec3(15.1903, 6000, -491.721));
+		}
+		else if (!toEarth && !fromMoon)
+		{
+			this.smoothTravel(body, 'moon', new CANNON.Vec3(0, 0, -1000), -11696.4, 'z',
+				(b) => b.position.z <= -11696.4,
+				new CANNON.Vec3(15.2758, 6852.67, -11696.4));
+		}
+		else
+		{
+			// Already on or near the chosen planet — snap to the landing
+			// pad and let stabilization drop us down.
+			const pad = toEarth ? EARTH_LANDING : MOON_LANDING;
+			body.position.set(pad.x, pad.y, pad.z);
+			body.velocity.y = 0;
+			this.goingTo = target;
+			this.landing = true;
+			if (target === 'moon') this.world.onMoon = true;
+			else this.world.onMoon = false;
+		}
+	}
+
+	private smoothTravel(
+		body: CANNON.Body,
+		target: FlightTarget,
+		velocity: CANNON.Vec3,
+		_thresholdValue: number,
+		_axis: 'z',
+		thresholdReached: (body: CANNON.Body) => boolean,
+		afterPosition: CANNON.Vec3,
+	): void
+	{
+		body.angularDamping = 0.5;
+		// Inthenew rotates the rocket sideways for the trip; the axis
+		// flips depending on direction so the nose points at the target.
+		const axis = new CANNON.Vec3(target === 'earth' ? 1 : -1, 0, 0);
+		const tilt = new CANNON.Quaternion();
+		tilt.setFromAxisAngle(axis, Math.PI / 2);
+		body.quaternion.copy(tilt);
+
+		// Constant velocity push toward the target.
+		this.travelTimer = setInterval(() => { body.velocity.copy(velocity); }, FLIGHT_TICK_MS);
+
+		// Threshold check — when we cross over the target's xz, snap up
+		// to a high altitude and start the descent.
+		this.travelCheckTimer = setInterval(() =>
+		{
+			if (thresholdReached(body))
+			{
+				this.cancelTravelTimers();
+				body.velocity.set(0, 0, 0);
+				body.position.copy(afterPosition);
+				body.angularDamping = 1;
+				body.quaternion.set(0, 0, 0, 1);
+
+				// Start descent: constant downward velocity until the pad.
+				const descent = new CANNON.Vec3(0, -500, 0);
+				this.dropTimer = setInterval(() => { body.velocity.copy(descent); }, FLIGHT_TICK_MS);
+
+				const padY = target === 'earth' ? 16.1283 : MOON_HEIGHT;
+				const finalPad = target === 'earth' ? EARTH_LANDING : MOON_LANDING;
+				this.dropCheckTimer = setInterval(() =>
+				{
+					if (body.position.y <= padY)
+					{
+						this.cancelDropTimers();
+						body.velocity.set(0, 0, 0);
+						body.position.copy(finalPad);
+						this.goingTo = target;
+						this.landing = true;
+						this.world.onMoon = target === 'moon';
+					}
+				}, FLIGHT_TICK_MS);
+			}
+		}, FLIGHT_TICK_MS);
+	}
+
+	private cancelTravelTimers(): void
+	{
+		if (this.travelTimer !== undefined)
+		{
+			clearInterval(this.travelTimer);
+			this.travelTimer = undefined;
+		}
+		if (this.travelCheckTimer !== undefined)
+		{
+			clearInterval(this.travelCheckTimer);
+			this.travelCheckTimer = undefined;
+		}
+	}
+
+	private cancelDropTimers(): void
+	{
+		if (this.dropTimer !== undefined)
+		{
+			clearInterval(this.dropTimer);
+			this.dropTimer = undefined;
+		}
+		if (this.dropCheckTimer !== undefined)
+		{
+			clearInterval(this.dropCheckTimer);
+			this.dropCheckTimer = undefined;
+		}
+	}
+
+	// --- Input / housekeeping ---------------------------------------
 
 	public onInputChange(): void
 	{
@@ -133,9 +455,8 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		});
 	}
 
-	// Additive-blended point cloud parented to the rocket so the smoke
-	// drifts down relative to the chassis. Initially hidden — Block 3
-	// flips visibility on during the liftoff sequence.
+	// --- Smoke particle system --------------------------------------
+
 	private initSmoke(): void
 	{
 		const texture = new THREE.TextureLoader().load('src/img/smoke.png');
@@ -171,8 +492,6 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 				(Math.random() - 0.5) * 2 - 1,
 				Math.random() - 0.5,
 			),
-			// Particles live for 1-2 seconds. Inthenew's comment claimed
-			// 1-3s, but the source code is +1, so the range is 1-2.
 			lifetime: Math.random() + 1,
 			age: 0,
 		};
