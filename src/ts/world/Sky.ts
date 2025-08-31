@@ -74,6 +74,32 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		);
 		this.attach(this.skyMesh);
 
+		// Earth and Moon visuals (ported from Inthenew/Sketchbook).
+		// Both are FrontSide spheres, intentionally only visible from
+		// outside: the Earth sphere is centered at the world origin so
+		// the player only sees it once they land on the Moon, and the
+		// Moon sphere sits at Inthenew's hand-authored moon coordinates
+		// so it shows as a body in the sky from anywhere on Earth.
+		const textureLoader = new THREE.TextureLoader();
+		const earthMesh = new THREE.Mesh(
+			new THREE.SphereGeometry(5010, 24, 12),
+			new THREE.MeshBasicMaterial({
+				side: THREE.FrontSide,
+				map: textureLoader.load('src/img/equirectangular-earth.png'),
+			}),
+		);
+		world.graphicsWorld.add(earthMesh);
+
+		const moonMesh = new THREE.Mesh(
+			new THREE.SphereGeometry(1252.5, 24, 12),
+			new THREE.MeshBasicMaterial({
+				side: THREE.FrontSide,
+				map: textureLoader.load('src/img/equirectangular-moon.png'),
+			}),
+		);
+		moonMesh.position.set(15.2758, 3852.67, -11696.4);
+		world.graphicsWorld.add(moonMesh);
+
 		// Ambient light
 		this.hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 1.0 );
 		this.refreshHemiIntensity();
