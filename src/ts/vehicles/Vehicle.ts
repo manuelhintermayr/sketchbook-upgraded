@@ -32,7 +32,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	public spawnPoint: THREE.Object3D;
 	private modelContainer: THREE.Group;
 
-	private firstPerson: boolean = false;
+	public firstPerson: boolean = false;
 
 	constructor(gltf: any, handlingSetup?: any)
 	{
