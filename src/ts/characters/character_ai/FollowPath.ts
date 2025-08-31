@@ -6,6 +6,7 @@ import { FollowTarget } from './FollowTarget';
 import { ICharacterAI } from '../../interfaces/ICharacterAI';
 import { PathNode } from '../../world/PathNode';
 import { Vehicle } from '../../vehicles/Vehicle';
+import { EntityType } from '../../enums/EntityType';
 
 export class FollowPath extends FollowTarget implements ICharacterAI
 {
@@ -40,25 +41,33 @@ export class FollowPath extends FollowTarget implements ICharacterAI
 		let slowDownAngle = viewVector.clone().normalize().dot(targetToNextNode);
 		let speed = (this.character.controlledObject as unknown as Vehicle).collision.velocity.length();
 
+		const isBoat = this.character.controlledObject.entityType === EntityType.Boat;
+
 		// console.log(slowDownAngle, viewVector.length(), speed);
-		if ((slowDownAngle < 0.7 && viewVector.length() < 50 && speed > 10))
+		if (!isBoat && slowDownAngle < 0.7 && viewVector.length() < 50 && speed > 10)
 		{
 			this.character.controlledObject.triggerAction('reverse', true);
 			this.character.controlledObject.triggerAction('throttle', false);
 		}
 
-		if (speed < 1 || (this.character.controlledObject as unknown as Vehicle).rayCastVehicle.numWheelsOnGround === 0) this.staleTimer += timeStep;
-		else this.staleTimer = 0;
-		if (this.staleTimer > 5)
+		// Stuck-detection respawns the vehicle to the next path node. Boats
+		// are always 'off the ground' and slow, so the wheel/speed heuristic
+		// would teleport them constantly; skip it for Boat.
+		if (!isBoat)
 		{
-			let worldPos = new THREE.Vector3();
-			this.targetNode.object.getWorldPosition(worldPos);
-			worldPos.y += 3;
-			(this.character.controlledObject as unknown as Vehicle).collision.position = Utils.cannonVector(worldPos);
-			(this.character.controlledObject as unknown as Vehicle).collision.interpolatedPosition = Utils.cannonVector(worldPos);
-			(this.character.controlledObject as unknown as Vehicle).collision.angularVelocity = new CANNON.Vec3();
-			(this.character.controlledObject as unknown as Vehicle).collision.quaternion.copy((this.character.controlledObject as unknown as Vehicle).collision.initQuaternion);
-			this.staleTimer = 0;
+			if (speed < 1 || (this.character.controlledObject as unknown as Vehicle).rayCastVehicle.numWheelsOnGround === 0) this.staleTimer += timeStep;
+			else this.staleTimer = 0;
+			if (this.staleTimer > 5)
+			{
+				let worldPos = new THREE.Vector3();
+				this.targetNode.object.getWorldPosition(worldPos);
+				worldPos.y += 3;
+				(this.character.controlledObject as unknown as Vehicle).collision.position = Utils.cannonVector(worldPos);
+				(this.character.controlledObject as unknown as Vehicle).collision.interpolatedPosition = Utils.cannonVector(worldPos);
+				(this.character.controlledObject as unknown as Vehicle).collision.angularVelocity = new CANNON.Vec3();
+				(this.character.controlledObject as unknown as Vehicle).collision.quaternion.copy((this.character.controlledObject as unknown as Vehicle).collision.initQuaternion);
+				this.staleTimer = 0;
+			}
 		}
 
 		if (viewVector.length() < this.nodeRadius) 
