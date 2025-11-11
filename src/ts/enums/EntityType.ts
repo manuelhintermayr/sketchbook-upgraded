@@ -7,5 +7,6 @@ export enum EntityType {
 	RocketShip,
 	Decoration,
 	System,
-	Grass
+	Grass,
+	Speaker
 }

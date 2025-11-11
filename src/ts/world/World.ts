@@ -36,6 +36,7 @@ import { Scenario } from './Scenario';
 import { Sky } from './Sky';
 import { Ocean } from './Ocean';
 import { Grass } from './Grass';
+import { Speaker } from './Speaker';
 
 export class World
 {
@@ -557,6 +558,17 @@ export class World
 					if (child.userData.data === 'scenario')
 					{
 						this.scenarios.push(new Scenario(child, this));
+					}
+
+					// socketControl-style positional audio source. The map
+					// marker carries the audio asset path; Speaker handles
+					// the autoplay-policy gating so multiple sources start
+					// together on the first user gesture.
+					if (child.userData.data === 'speaker' && typeof child.userData.audio === 'string')
+					{
+						const sp = new Speaker(child.userData.audio, this);
+						sp.position.copy(child.getWorldPosition(new THREE.Vector3()));
+						this.add(sp);
 					}
 				}
 			}
