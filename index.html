@@ -8,10 +8,28 @@
 <body>
 	<script src="build/sketchbook.min.js"></script>
 	<script>
-		const map = localStorage.getItem('sketchbook.map') === 'socketcontrol'
-			? 'build/assets/world_socketcontrol.glb'
-			: 'build/assets/world.glb';
-		new Sketchbook.World(map);
+		(function () {
+			// Map registry: GLB paths get loaded via GLTFLoader, class
+			// names get instantiated as BaseScene subclasses (procedural
+			// sandboxes ported from socketControl).
+			const glbPaths = {
+				'inthenew': 'build/assets/world.glb',
+				'sc-v03':   'build/assets/world_sc_v03.glb',
+				'sc-v04':   'build/assets/world_sc_v04.glb',
+			};
+			const sceneClasses = {
+				'sc-test':    Sketchbook.TestScene,
+				'sc-test2':   Sketchbook.Test2Scene,
+				'sc-test3':   Sketchbook.Test3Scene,
+				'sc-example': Sketchbook.Example,
+			};
+			const choice = localStorage.getItem('sketchbook.map') || 'inthenew';
+			if (sceneClasses[choice]) {
+				new Sketchbook.World(new sceneClasses[choice]());
+			} else {
+				new Sketchbook.World(glbPaths[choice] || glbPaths['inthenew']);
+			}
+		})();
 	</script>
 	<script src="vendor/joycon/Joycon.min.js"></script>
 	<script src="Client.js"></script>

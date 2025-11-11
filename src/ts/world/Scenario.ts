@@ -108,8 +108,12 @@ export class Scenario
 						let sp = new CharacterSpawnPoint(child);
 						this.spawnPoints.push(sp);
 					}
-					else if (child.userData.type === 'npc')
+					else if (child.userData.type === 'npc' || child.userData.type === 'character_ai' || child.userData.type === 'character_follow')
 					{
+						// socketControl uses character_ai (path-following) and
+						// character_follow (follows the player); we collapse
+						// both into our NPCSpawnPoint, which already reads
+						// userData.first_node when present.
 						this.spawnPoints.push(new NPCSpawnPoint(child));
 					}
 					else if (child.userData.type === 'shape')

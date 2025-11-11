@@ -221,7 +221,10 @@ export class World
 			}
 		}, 10);
 
-		// Load scene if path is supplied
+		// Load scene if path is supplied. The argument is either a string
+		// path to a .glb (loaded async via GLTFLoader) or a BaseScene
+		// instance from src/ts/world/sandboxes (built synchronously in
+		// its constructor). Both paths funnel into loadScene().
 		if (worldScenePath !== undefined)
 		{
 			let loadingManager = new LoadingManager(this);
@@ -229,7 +232,7 @@ export class World
 			{
 				this.update(1, 1);
 				this.setTimeScale(1);
-	
+
 				Swal.fire({
 					title: 'Welcome to Sketchbook!',
 					text: 'Feel free to explore the world and interact with available vehicles. There are also various scenarios ready to launch from the right panel.',
@@ -242,11 +245,25 @@ export class World
 					}
 				})
 			};
-			loadingManager.loadGLTF(worldScenePath, (gltf) =>
+			if (typeof worldScenePath === 'string')
 			{
-				this.loadScene(loadingManager, gltf);
+				loadingManager.loadGLTF(worldScenePath, (gltf) =>
+				{
+					this.loadScene(loadingManager, gltf);
+				}
+				);
 			}
-			);
+			else if (worldScenePath && worldScenePath.scene instanceof THREE.Object3D)
+			{
+				// BaseScene instance — build a synthetic GLTF-shaped object
+				// and feed it through the same loadScene path. A throwaway
+				// tracker entry keeps the loading-screen accounting honest
+				// in case no other async loads (vehicle GLBs) follow.
+				const entry = loadingManager.addLoadingEntry('sandbox-scene');
+				const fakeGltf = { scene: worldScenePath.scene, animations: worldScenePath.sceneAnimations || [] };
+				this.loadScene(loadingManager, fakeGltf);
+				loadingManager.doneLoading(entry);
+			}
 		}
 		else
 		{
@@ -622,26 +639,40 @@ export class World
 
 	private addMapSwitcher(): void
 	{
-		const currentMap = localStorage.getItem('sketchbook.map') === 'socketcontrol' ? 'socketcontrol' : 'inthenew';
-		const otherMap = currentMap === 'inthenew' ? 'socketcontrol' : 'inthenew';
-		const otherLabel = currentMap === 'inthenew' ? 'SocketControl Map' : 'Inthenew Map';
-		const buttonName = `→ Switch to ${otherLabel}`;
-
-		this.params[buttonName] = () =>
-		{
-			localStorage.setItem('sketchbook.map', otherMap);
-			location.reload();
+		// Default = Inthenew (v0.6). Five socketControl maps follow:
+		// the two GLB-backed Sketchbook variants (v0.3 with grass material,
+		// v0.4 with their full scenario set), plus four code-built test
+		// sandboxes (test, test2, test3, example) that BaseScene
+		// subclasses construct procedurally at runtime.
+		const stored = localStorage.getItem('sketchbook.map');
+		const choices: { [label: string]: string } = {
+			'Inthenew (v0.6, default)': 'inthenew',
+			'sketchbook v0.3 (socketControl)': 'sc-v03',
+			'sketchbook v0.4 (socketControl)': 'sc-v04',
+			'test (socketControl sandbox)': 'sc-test',
+			'test2 (socketControl sandbox)': 'sc-test2',
+			'test3 (socketControl sandbox)': 'sc-test3',
+			'example (socketControl sandbox)': 'sc-example',
 		};
-		this.scenarioGUIFolder.add(this.params, buttonName);
+		const validValues: string[] = [];
+		for (const k in choices) validValues.push(choices[k]);
+		this.params.Map = (stored !== null && validValues.indexOf(stored) !== -1) ? stored : 'inthenew';
+
+		this.scenarioGUIFolder.add(this.params, 'Map', choices)
+			.onChange((value: string) =>
+			{
+				localStorage.setItem('sketchbook.map', value);
+				location.reload();
+			});
 	}
 
 	private injectDefaultSceneNPCs(): void
 	{
 		// Only the Inthenew map has the Default-spawn layout these
-		// coordinates were eyeballed against; SocketControl has its own
-		// scene topology and doesn't get NPCs here.
-		const onSocketControl = localStorage.getItem('sketchbook.map') === 'socketcontrol';
-		if (onSocketControl) return;
+		// coordinates were eyeballed against; SocketControl maps have
+		// their own scene topology and don't get NPCs here.
+		const stored = localStorage.getItem('sketchbook.map');
+		if (stored && stored !== 'inthenew') return;
 
 		const defaultScenario = this.scenarios.find((s) => s.id === 'default');
 		if (defaultScenario === undefined) return;

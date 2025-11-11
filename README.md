@@ -40,6 +40,17 @@ Mostly a playground for exploring how conventional third person gameplay mechani
 * Scenarios
 	* Free roam (default and aviation)
 	* Race tracks: Oval / Tunnel / Figure 8 with lap tracking, Boat Race
+* Maps (switchable from the **Scenarios** GUI panel, persists to `localStorage`, page reloads on change):
+	* `Inthenew (v0.6, default)` — the bundled `world.glb`
+	* `sketchbook v0.3 (socketControl)` — `world_v3.1.glb` from socketControl, the one with the `grass` material
+	* `sketchbook v0.4 (socketControl)` — `world_v4.glb` from socketControl, full scenario set
+	* Four code-built sandboxes ported from socketControl: `test`, `test2`, `test3`, `example` — `BaseScene` subclasses that build their world procedurally at runtime; editable as TypeScript (no GLB)
+* Map authoring conventions (any of the above triggers code-side features):
+	* `material.name === 'grass'` → instanced 300k-blade grass field with a 30-unit LOD
+	* `userData.data === 'speaker'` + `userData.audio` → 3D positional audio source with autoplay-policy gating
+	* `userData.type === 'cylinder'` (on physics empties) → CANNON cylinder collider
+	* `userData.type === 'shape'` + `subtype` `box`/`sphere` (on spawn empties) → dynamic CANNON body the player can knock around
+	* `userData.type === 'npc'` / `character_ai` / `character_follow` (on spawn empties) → standing or path-following Character (NPC)
 * Free camera (`Shift+C`)
 	* Adjustable speed via Free_Cam_Speed slider
 	* `T` teleports the player (or driven vehicle) to the camera target
@@ -76,6 +87,28 @@ const world = new Sketchbook.World('scene.glb');
 ---
 
 # Project timeline
+
+## May 2026 — external-features port ([manuelhintermayr](https://github.com/manuelhintermayr))
+
+Mines features that aren't gameplay-shipped by Inthenew but live in adjacent forks: [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl) (MIT) and [iErcann/Notblox](https://github.com/iErcann/Notblox). Multiplayer/networking layers are deliberately skipped — only the single-player-applicable systems land here. Each block ships as its own commit; where the upstream author is identifiable the commit is `--author="…"` to preserve attribution in `git log`.
+
+Highlights:
+
+- **Race-checkpoint system (Block 1).** Replaces the per-scenario hardcoded x/z lap zones and the linear-distance Boat-Race tracker with one curve-based system from socketControl: walks the AI driver's `first_node` through the path graph, fits a CatmullRom curve, drops a 40 × 14 trigger plane at every node, watches the camera for plane crossings. ~200 LOC of bespoke per-race code replaced by 273 LOC of generic system. (`src/ts/world/RaceCheckpoint.ts`, `RaceContent.ts`)
+- **Grass field (Block 2).** Instanced 300k-blade lawn from socketControl. Map authoring marks a flat patch with `material.name === 'grass'`. Custom vertex/fragment shader, Perlin noise, 30-unit LOD swap to an empty mesh past the threshold so the draw call costs nothing once the player walks away. Blade textures originally from Eddie Lee's 2010 "Realistic real-time grass rendering" demo. (`src/ts/world/Grass.ts` + `GrassShader.ts` + `Perlin.ts`)
+- **Speaker (Block 3).** 3D positional audio source. Spawn marker `userData.data === 'speaker'` with `userData.audio` URL spawns a yellow wireframe sphere with a `THREE.PositionalAudio` attached. Autoplay-policy gating queues sources on a single `pointerdown`/`keydown` listener so multiple speakers start in sync. socketControl's `HTMLMesh`-based per-speaker UI was dropped — single-player Sketchbook has no XR controller story. (`src/ts/world/Speaker.ts`)
+- **CylinderCollider (Block 6).** Mirrors `BoxCollider`/`TrimeshCollider` for `CANNON.Cylinder`. `World.loadScene` recognises `userData.type === 'cylinder'`. (`src/ts/physics/colliders/CylinderCollider.ts`)
+- **ShapeSpawnPoint (Block 7).** Dynamic box/sphere primitives. Spawn marker `userData.type === 'shape'` with `subtype` `box`/`sphere` becomes a CANNON-driven body the player can knock around. socketControl's three-class `ShapeEntityBase` / `BoxShapeEntity` / `SphereShapeEntity` hierarchy is collapsed into one `ShapeEntity` since we don't need their per-frame `Out()`/`Set()` snapshots. (`src/ts/world/ShapeEntity.ts`, `ShapeSpawnPoint.ts`, `physics/colliders/SphereCollider.ts`)
+- **TriggerCube + ProximityPrompt (Block 8).** Concept ported from iErcann/Notblox. `TriggerCube` is a per-frame AABB check against the player position with `onEnter`/`onExit` callbacks (no CANNON sensor body — cheaper for single-player). `ProximityPrompt` wraps it with a screen-space HUD label and a debounced `E`-key callback. The Notblox ECS architecture is dropped; both classes implement `IUpdatable` directly. (`src/ts/world/TriggerCube.ts`, `ProximityPrompt.ts`)
+- **NPCs (Block 9).** `NPCSpawnPoint` reuses `boxman.glb` but never calls `takeControl()` — the character lands in `Idle` and stays put. If `userData.first_node` is set the NPC gets a `FollowPath` behaviour instead, same convention as the AI vehicle drivers. Recognised types: `npc`, `character_ai`, `character_follow` (the latter two for compatibility with socketControl's procedural sandboxes). Four NPCs are programmatically injected around the Inthenew default-spawn area since neither map has authored NPC markers. (`src/ts/world/NPCSpawnPoint.ts`)
+- **Map switcher (Scenarios GUI dropdown).** The bundled `world.glb` (Inthenew, default) plus six socketControl additions: `world_v3.1.glb` (with the grass material baked in), `world_v4.glb` (full scenario set, no grass), and the four `BaseScene` sandboxes (`test`, `test2`, `test3`, `example`) that build their world procedurally at runtime. Choice persists to `localStorage`; selecting reloads the page. (`src/ts/world/sandboxes/`)
+- **THREE.js Editor compatibility.** socketControl mentions in its README that map files can be opened directly in the [official three.js editor](https://threejs.org/editor/). The `ThreejsEditor/project.json` from upstream is vendored as-is so that workflow keeps working from this fork.
+
+Block 4 (Water) was deliberately skipped — Inthenew already ships a wave-based ocean that supersedes socketControl's. Block 5 (Extended Character States) was a no-op — Sprint, JumpRunning, IdleRotateLeft/Right, etc. are all already in upstream Sketchbook.
+
+socketControl's grass / speaker / cylinder / shape / npc / trigger code paths exist in their codebase too but were never wired up to any of their `.glb` maps (e.g. `SpeakerClient` is commented out in `WorldClient.ts:477`). The systems sleep in the same way here: they activate when a map carries the right markers, and the four `BaseScene` sandboxes are the only ones with markers actually authored.
+
+Full technical details on branch `claude/external-features`.
 
 ## May 2026 — version 0.6.0 — Inthenew port ([manuelhintermayr](https://github.com/manuelhintermayr))
 
@@ -162,15 +195,15 @@ Many great changes happened across forks over the years, but they are spread out
 
 ### Other forks worth mining
 
-- Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).
-- Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
+- ~~Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).~~ Done — see the May 2026 external-features section above.
+- ~~Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer)~~ partially done (TriggerCube + ProximityPrompt). Outstanding: priority on moving from cannon to rapier.
 	- Evaluate controller integration from [pmndrs/ecctrl](https://github.com/pmndrs/ecctrl) or [pmndrs/BVHEcctrl](https://github.com/pmndrs/BVHEcctrl).
 
 ---
 
 ## Credits
 
-Big thank you to the original author [swift502](https://github.com/swift502), to [cjmott](https://github.com/cjmott) for the September 2024 toolchain revival, to [Inthenew](https://github.com/Inthenew) for the boats / wave ocean / races / day-night work that this fork adopts, to [Bar Hatsor](https://github.com/barhatsor) for the Joy-Con integration, and to the following github users for contributing to Sketchbook over the years:
+Big thank you to the original author [swift502](https://github.com/swift502), to [cjmott](https://github.com/cjmott) for the September 2024 toolchain revival, to [Inthenew](https://github.com/Inthenew) for the boats / wave ocean / races / day-night work that this fork adopts, to [Bar Hatsor](https://github.com/barhatsor) for the Joy-Con integration, to [tkkaushik369](https://github.com/tkkaushik369) for the socketControl features (race system, grass, speaker, cylinder, shape spawn, sandbox scenes) that the May 2026 external-features pass mines, to [iErcann](https://github.com/iErcann) for the Notblox TriggerCube + ProximityPrompt design, and to the following github users for contributing to Sketchbook over the years:
 
 - [aleqsunder](https://github.com/aleqsunder)
 - [barhatsor](https://github.com/barhatsor)
