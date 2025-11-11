@@ -64,7 +64,7 @@ export class Scenario
 	public isRace: boolean = false;
 	public race: keyof typeof RACE_LAYOUTS | undefined;
 
-	private rootNode: THREE.Object3D;
+	public rootNode: THREE.Object3D;
 	public spawnPoints: ISpawnPoint[] = [];
 	private invisible: boolean = false;
 	private initialCameraAngle: number;
