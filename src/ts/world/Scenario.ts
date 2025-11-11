@@ -1,6 +1,7 @@
 import { ISpawnPoint } from '../interfaces/ISpawnPoint';
 import { VehicleSpawnPoint } from './VehicleSpawnPoint';
 import { CharacterSpawnPoint } from './CharacterSpawnPoint';
+import { ShapeSpawnPoint } from './ShapeSpawnPoint';
 import { World } from '../world/World';
 import { LoadingManager } from '../core/LoadingManager';
 import { RaceContent } from './RaceContent';
@@ -105,6 +106,11 @@ export class Scenario
 					{
 						let sp = new CharacterSpawnPoint(child);
 						this.spawnPoints.push(sp);
+					}
+					else if (child.userData.type === 'shape')
+					{
+						const subtype = child.userData.subtype === 'sphere' ? 'sphere' : 'box';
+						this.spawnPoints.push(new ShapeSpawnPoint(child, subtype));
 					}
 				}
 			}

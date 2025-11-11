@@ -8,5 +8,6 @@ export enum EntityType {
 	Decoration,
 	System,
 	Grass,
-	Speaker
+	Speaker,
+	Shape
 }
