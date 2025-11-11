@@ -26,6 +26,7 @@ import { Path } from './Path';
 import { CollisionGroups } from '../enums/CollisionGroups';
 import { BoxCollider } from '../physics/colliders/BoxCollider';
 import { TrimeshCollider } from '../physics/colliders/TrimeshCollider';
+import { CylinderCollider } from '../physics/colliders/CylinderCollider';
 import { Vehicle } from '../vehicles/Vehicle';
 import { Helicopter } from '../vehicles/Helicopter';
 import { Airplane } from '../vehicles/Airplane';
@@ -543,6 +544,25 @@ export class World
 								//console.log("TriMesh: ");
 								//console.log(phys.body);
 
+								this.physicsWorld.addBody(phys.body);
+							}
+							else if (child.userData.type === 'cylinder')
+							{
+								// socketControl-style cylinder shape. Authored
+								// scale.x is read as radius, scale.y as height
+								// (Sketchbook convention — empties are
+								// uniformly scaled and rotated).
+								const phys = new CylinderCollider({
+									radius: child.scale.x,
+									height: child.scale.y,
+									segment: 12,
+								});
+								phys.body.position.copy(new CANNON.Vec3(child.position.x, child.position.y, child.position.z));
+								phys.body.quaternion.copy(new CANNON.Quaternion(child.quaternion.x, child.quaternion.y, child.quaternion.z, child.quaternion.w));
+								phys.body.updateAABB();
+								phys.body.shapes.forEach((shape) => {
+									shape.collisionFilterMask = ~CollisionGroups.TrimeshColliders;
+								});
 								this.physicsWorld.addBody(phys.body);
 							}
 
