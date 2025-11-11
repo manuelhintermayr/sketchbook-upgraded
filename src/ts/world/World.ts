@@ -35,6 +35,7 @@ import { RocketShip } from '../vehicles/RocketShip';
 import { Scenario } from './Scenario';
 import { Sky } from './Sky';
 import { Ocean } from './Ocean';
+import { Grass } from './Grass';
 
 export class World
 {
@@ -485,6 +486,16 @@ export class World
 					{
 						this.ocean = new Ocean(child, this);
 						this.registerUpdatable(this.ocean);
+					}
+
+					// socketControl-style instanced grass field. Any mesh in
+					// world.glb whose material is named 'grass' becomes a
+					// shimmering 300k-blade lawn anchored at the mesh's
+					// transform; the original mesh stays as the dark base.
+					if (child.material.name === 'grass')
+					{
+						const grass = new Grass(child, this);
+						this.add(grass);
 					}
 
 					// Inthenew's map tags the moon-surface mesh with name
