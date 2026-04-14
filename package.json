@@ -34,18 +34,18 @@
     "style-loader": "^4.0.0",
     "ts-loader": "^9.5.1",
     "typescript": "^5.5.4",
-    "webpack": "^5.94.0",
+    "webpack": "^5.106.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "5.0.4",
+    "webpack-dev-server": "^5.2.3",
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
     "jquery": "^3.7.1",
     "lodash": "^4.17.21",
-    "sweetalert2": "^11.12.4",
-    "three": "0.168.0",
+    "sweetalert2": "^11.26.24",
+    "three": "0.183.2",
     "three-csm": "4.2.1",
     "cannon-es": "0.20.0",
-    "three-to-cannon": "5.0.1"
+    "three-to-cannon": "5.0.2"
   }
 }

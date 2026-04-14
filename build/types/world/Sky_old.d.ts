@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { World } from './World';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { default as CSM } from 'three-csm';
-export declare class newSky extends THREE.Object3D implements IUpdatable {
+export declare class Sky extends THREE.Object3D implements IUpdatable {
     updateOrder: number;
     sunPosition: THREE.Vector3;
     csm: CSM;
@@ -13,7 +13,6 @@ export declare class newSky extends THREE.Object3D implements IUpdatable {
     private hemiLight;
     private maxHemiIntensity;
     private minHemiIntensity;
-    private sky;
     private skyMesh;
     private skyMaterial;
     private world;

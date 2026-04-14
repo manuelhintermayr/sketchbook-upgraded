@@ -1,5 +1,6 @@
 import { World } from '../world/World';
 import { LoadingManager } from '../core/LoadingManager';
+import * as THREE from 'three';
 export declare class Scenario {
     id: string;
     name: string;
