@@ -31,7 +31,7 @@ import { Helicopter } from '../vehicles/Helicopter';
 import { Airplane } from '../vehicles/Airplane';
 import { Car } from '../vehicles/Car';
 import { Scenario } from './Scenario';
-import { newSky } from './Sky';
+import { Sky } from './Sky';
 import { Ocean } from './Ocean';
 
 export class World
@@ -41,7 +41,7 @@ export class World
 	public composer: any;
 	public stats: Stats;
 	public graphicsWorld: THREE.Scene;
-	public sky: newSky;
+	public sky: Sky;
 	public physicsWorld: CANNON.World;
 	public parallelPairs: any[];
 	public physicsFrameRate: number;
@@ -157,7 +157,7 @@ export class World
 		// Initialization
 		this.inputManager = new InputManager(this, this.renderer.domElement);
 		this.cameraOperator = new CameraOperator(this, this.camera, this.params.Mouse_Sensitivity);
-		this.sky = new newSky(this);
+		this.sky = new Sky(this);
 		
 		// Load scene if path is supplied
 		if (worldScenePath !== undefined)

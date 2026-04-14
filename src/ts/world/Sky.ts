@@ -1,11 +1,11 @@
-import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { Sky as ThreeSky } from 'three/examples/jsm/objects/Sky.js';
 import * as THREE from 'three';
 import { World } from './World';
 import { EntityType } from '../enums/EntityType';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { default as CSM } from 'three-csm';
 
-export class newSky extends THREE.Object3D implements IUpdatable
+export class Sky extends THREE.Object3D implements IUpdatable
 {
 	public updateOrder: number = 5;
 
@@ -30,7 +30,7 @@ export class newSky extends THREE.Object3D implements IUpdatable
 	private maxHemiIntensity: number = 0.9;
 	private minHemiIntensity: number = 0.3;
 
-    private sky: Sky;
+    private sky: ThreeSky;
 	private skyMesh: THREE.Mesh;
 	private skyMaterial: THREE.ShaderMaterial;
 
@@ -43,7 +43,7 @@ export class newSky extends THREE.Object3D implements IUpdatable
 		this.world = world;
 
         // Create sky for material
-        const sky = new Sky();
+        const sky = new ThreeSky();
         sky.scale.setScalar( 450000 );
         //sky.material.uniforms['turbidity'].value = 10;
         //sky.material.uniforms['rayleigh'].value = 5;
