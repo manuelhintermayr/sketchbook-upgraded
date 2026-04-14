@@ -47,10 +47,10 @@ export class World
 	public physicsFrameRate: number;
 	public physicsFrameTime: number;
 	public physicsMaxPrediction: number;
-	public clock: THREE.Clock;
 	public renderDelta: number;
 	public logicDelta: number;
 	public requestDelta: number;
+	private stopwatchLastTime: number = performance.now();
 	public sinceLastFrame: number;
 	public justRendered: boolean;
 	public params: any;
@@ -143,7 +143,7 @@ export class World
 		this.physicsMaxPrediction = this.physicsFrameRate;
 
 		// RenderLoop
-		this.clock = new THREE.Clock();
+		this.stopwatchLastTime = performance.now();
 		this.renderDelta = 0;
 		this.logicDelta = 0;
 		this.sinceLastFrame = 0;
@@ -302,7 +302,7 @@ export class World
 	 */
 	public render(world: World): void
 	{
-		this.requestDelta = this.clock.getDelta();
+		this.requestDelta = this.stopwatchDelta();
 
 		requestAnimationFrame(() =>
 		{
@@ -318,7 +318,7 @@ export class World
 		world.update(timeStep, unscaledTimeStep);
 
 		// Measuring logic time
-		this.logicDelta = this.clock.getDelta();
+		this.logicDelta = this.stopwatchDelta();
 
 		// Frame limiting
 		let interval = 1 / 60;
@@ -334,7 +334,18 @@ export class World
 		else this.renderer.render(this.graphicsWorld, this.camera);
 
 		// Measuring render time
-		this.renderDelta = this.clock.getDelta();
+		this.renderDelta = this.stopwatchDelta();
+	}
+
+	// Returns seconds elapsed since the previous call. Replaces the
+	// now-deprecated THREE.Clock which was used the same way (three calls
+	// per frame to measure request/logic/render phases).
+	private stopwatchDelta(): number
+	{
+		const now = performance.now();
+		const delta = (now - this.stopwatchLastTime) / 1000;
+		this.stopwatchLastTime = now;
+		return delta;
 	}
 
 	public setTimeScale(value: number): void
