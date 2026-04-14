@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Swal from 'sweetalert2';
-import * as $ from 'jquery';
 
 import { CameraOperator } from '../core/CameraOperator';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
@@ -531,26 +530,37 @@ export class World
 	private generateHTML(): void
 	{
 		// Fonts
-		$('head').append('<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap" rel="stylesheet">');
-		$('head').append('<link href="https://fonts.googleapis.com/css2?family=Solway:wght@400;500;700&display=swap" rel="stylesheet">');
-		$('head').append('<link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap" rel="stylesheet">');
+		const fontHrefs = [
+			'https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap',
+			'https://fonts.googleapis.com/css2?family=Solway:wght@400;500;700&display=swap',
+			'https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap',
+		];
+		for (const href of fontHrefs)
+		{
+			const link = document.createElement('link');
+			link.rel = 'stylesheet';
+			link.href = href;
+			document.head.appendChild(link);
+		}
 
 		// Loader
-		$(`	<div id="loading-screen">
+		document.body.insertAdjacentHTML('beforeend', `
+			<div id="loading-screen">
 				<div id="loading-screen-background"></div>
 				<h1 id="main-title" class="sb-font">Sketchbook 0.4</h1>
 				<div class="cubeWrap">
 					<div class="cube">
 						<div class="faces1"></div>
-						<div class="faces2"></div>     
-					</div> 
-				</div> 
+						<div class="faces2"></div>
+					</div>
+				</div>
 				<div id="loading-text">Loading...</div>
 			</div>
-		`).appendTo('body');
+		`);
 
 		// UI
-		$(`	<div id="ui-container" style="display: none;">
+		document.body.insertAdjacentHTML('beforeend', `
+			<div id="ui-container" style="display: none;">
 				<div class="github-corner">
 					<a href="https://github.com/swift502/Sketchbook" target="_blank" title="Fork me on GitHub">
 						<svg viewbox="0 0 100 100" fill="currentColor">
@@ -566,7 +576,7 @@ export class World
 					<div id="controls" class="panel-segment flex-bottom"></div>
 				</div>
 			</div>
-		`).appendTo('body');
+		`);
 
 		// Canvas
 		document.body.appendChild(this.renderer.domElement);
