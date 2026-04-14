@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { World } from './World';
 import { EntityType } from '../enums/EntityType';
 import { IUpdatable } from '../interfaces/IUpdatable';
-import { default as CSM } from 'three-csm';
+import { CSM } from 'three/examples/jsm/csm/CSM.js';
 
 export class Sky extends THREE.Object3D implements IUpdatable
 {
@@ -74,27 +74,14 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		this.hemiLight.position.set( 0, 50, 0 );
 		this.world.graphicsWorld.add( this.hemiLight );
 
-		// CSM
-		// New version
-		// let splitsCallback = (amount, near, far, target) =>
-		// {
-		// 	for (let i = amount - 1; i >= 0; i--)
-		// 	{
-		// 		target.push(Math.pow(1 / 3, i));
-		// 	}
-		// };
-
-		// Legacy
-		let splitsCallback = (amount, near, far) =>
+		// CSM: split callback pushes into the target array (three's built-in
+		// CSM API, replacing the legacy `return arr` style of three-csm).
+		let splitsCallback = (amount: number, near: number, far: number, target: number[]) =>
 		{
-			let arr = [];
-
 			for (let i = amount - 1; i >= 0; i--)
 			{
-				arr.push(Math.pow(1 / 4, i));
+				target.push(Math.pow(1 / 4, i));
 			}
-
-			return arr;
 		};
 
 		this.csm = new CSM({
