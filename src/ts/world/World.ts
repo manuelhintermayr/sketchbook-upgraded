@@ -11,7 +11,7 @@ import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
 import Stats from 'stats.js';
 import GUI from 'lil-gui';
-import { CannonDebugRenderer } from '../../lib/cannon/CannonDebugRenderer';
+import CannonDebugger from 'cannon-es-debugger';
 import * as _ from 'lodash';
 
 import { InputManager } from '../core/InputManager';
@@ -58,7 +58,8 @@ export class World
 	public cameraOperator: CameraOperator;
 	public timeScaleTarget: number = 1;
 	public console: InfoStack;
-	public cannonDebugRenderer: CannonDebugRenderer | undefined;
+	public cannonDebugRenderer: ReturnType<typeof CannonDebugger> | undefined;
+	private cannonDebugMeshes: THREE.Mesh[] = [];
 	public scenarios: Scenario[] = [];
 	public characters: Character[] = [];
 	public vehicles: Vehicle[] = [];
@@ -226,7 +227,7 @@ export class World
 		this.params.Time_Scale = THREE.MathUtils.lerp(this.params.Time_Scale, this.timeScaleTarget, 0.2);
 
 		// Physics debug
-		if (this.params.Debug_Physics) this.cannonDebugRenderer.update();
+		if (this.params.Debug_Physics) this.cannonDebugRenderer?.update();
 	}
 
 	public updatePhysics(timeStep: number): void
@@ -676,11 +677,26 @@ export class World
 			{
 				if (enabled)
 				{
-					this.cannonDebugRenderer = new CannonDebugRenderer( this.graphicsWorld, this.physicsWorld );
+					// cannon-es-debugger adds meshes to the scene as the physics
+					// world changes but does not expose a cleanup method. Track
+					// them via onInit so we can remove them again when the user
+					// turns debug rendering back off.
+					this.cannonDebugMeshes = [];
+					this.cannonDebugRenderer = CannonDebugger(
+						this.graphicsWorld,
+						this.physicsWorld,
+						{
+							onInit: (_body, mesh) => this.cannonDebugMeshes.push(mesh),
+						},
+					);
 				}
 				else
 				{
-					this.cannonDebugRenderer.clearMeshes();
+					for (const mesh of this.cannonDebugMeshes)
+					{
+						this.graphicsWorld.remove(mesh);
+					}
+					this.cannonDebugMeshes = [];
 					this.cannonDebugRenderer = undefined;
 				}
 
