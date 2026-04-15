@@ -220,7 +220,7 @@ export function getRight(obj: THREE.Object3D, space: Space = Space.Global): THRE
 		matrix.elements[0],
 		matrix.elements[1],
 		matrix.elements[2]
-		);
+	);
 }
 
 export function getUp(obj: THREE.Object3D, space: Space = Space.Global): THREE.Vector3
@@ -230,7 +230,7 @@ export function getUp(obj: THREE.Object3D, space: Space = Space.Global): THREE.V
 		matrix.elements[4],
 		matrix.elements[5],
 		matrix.elements[6]
-		);
+	);
 }
 
 export function getForward(obj: THREE.Object3D, space: Space = Space.Global): THREE.Vector3
@@ -240,7 +240,7 @@ export function getForward(obj: THREE.Object3D, space: Space = Space.Global): TH
 		matrix.elements[8],
 		matrix.elements[9],
 		matrix.elements[10]
-		);
+	);
 }
 
 export function getBack(obj: THREE.Object3D, space: Space = Space.Global): THREE.Vector3
@@ -250,7 +250,7 @@ export function getBack(obj: THREE.Object3D, space: Space = Space.Global): THREE
 		-matrix.elements[8],
 		-matrix.elements[9],
 		-matrix.elements[10]
-		);
+	);
 }
 
 export function getMatrix(obj: THREE.Object3D, space: Space): THREE.Matrix4
@@ -308,7 +308,7 @@ export function getFaces(mesh: THREE.Mesh) {
 	   }
 	}
 	
-   for( let j = 0; j < faces.length; j ++ ) {
+	for( let j = 0; j < faces.length; j ++ ) {
 	   let face = faces[j];
 	   let pointA = new THREE.Vector3(
 		   position.getX(face.a),
@@ -333,7 +333,7 @@ export function getFaces(mesh: THREE.Mesh) {
 	   );
 	   
 	   faceTriangle.getNormal(faces[j].normal);
-   }
+	}
 	
 	return faces;
 }
@@ -350,9 +350,9 @@ export function getVertices(mesh: THREE.Mesh) {
 	   );
 	   
 	   vertices.push(vertex);
-   }
+	}
    
-   return vertices;
+	return vertices;
 }
 
 export function getFaceVertexUvs(mesh: THREE.Mesh) {

@@ -15,7 +15,8 @@
   "types": "build/types/sketchbook.d.ts",
   "scripts": {
     "dev": "webpack-dev-server --config webpack.dev.js",
-    "build": "webpack --config webpack.prod.js"
+    "build": "webpack --config webpack.prod.js",
+    "lint": "eslint src/ts"
   },
   "repository": {
     "type": "git",
@@ -28,21 +29,24 @@
   },
   "homepage": "https://github.com/swift502/Sketchbook",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/lodash": "^4.17.7",
     "css-loader": "^7.1.2",
+    "eslint": "^10.2.0",
     "style-loader": "^4.0.0",
     "ts-loader": "^9.5.1",
     "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.2",
     "webpack": "^5.106.1",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.2.3",
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
+    "cannon-es": "0.20.0",
     "lodash": "^4.18.1",
     "sweetalert2": "^11.26.24",
     "three": "0.183.2",
-    "cannon-es": "0.20.0",
     "three-to-cannon": "5.0.2"
   }
 }

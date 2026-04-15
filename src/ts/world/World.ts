@@ -181,9 +181,9 @@ export class World
 				})
 			};
 			loadingManager.loadGLTF(worldScenePath, (gltf) =>
-				{
-					this.loadScene(loadingManager, gltf);
-				}
+			{
+				this.loadScene(loadingManager, gltf);
+			}
 			);
 		}
 		else
@@ -223,7 +223,7 @@ export class World
 	{
 		// ADD PRE-STEPS for all characters and vehicles
 		this.characters.forEach((char) => {
-			if (typeof char.physicsPreStep == "function")
+			if (typeof char.physicsPreStep == 'function')
 			{
 				char.physicsPreStep(char.characterCapsule.body, char)
 			}
@@ -246,7 +246,7 @@ export class World
 		this.physicsWorld.step(this.physicsFrameTime, timeStep);
 
 		this.characters.forEach((char) => {
-			if (typeof char.physicsPostStep == "function")
+			if (typeof char.physicsPostStep == 'function')
 			{
 				char.physicsPostStep(char.characterCapsule.body, char)
 			}

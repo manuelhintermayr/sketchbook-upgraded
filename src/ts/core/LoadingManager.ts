@@ -29,22 +29,22 @@ export class LoadingManager
 		let trackerEntry = this.addLoadingEntry(path);
 
 		this.gltfLoader.load(path,
-		(gltf)  =>
-		{
-			onLoadingFinished(gltf);
-			this.doneLoading(trackerEntry);
-		},
-		(xhr) =>
-		{
-			if ( xhr.lengthComputable )
+			(gltf)  =>
 			{
-				trackerEntry.progress = xhr.loaded / xhr.total;
-			}
-		},
-		(error)  =>
-		{
-			console.error(error);
-		});
+				onLoadingFinished(gltf);
+				this.doneLoading(trackerEntry);
+			},
+			(xhr) =>
+			{
+				if ( xhr.lengthComputable )
+				{
+					trackerEntry.progress = xhr.loaded / xhr.total;
+				}
+			},
+			(error)  =>
+			{
+				console.error(error);
+			});
 	}
 
 	public addLoadingEntry(path: string): LoadingTrackerEntry

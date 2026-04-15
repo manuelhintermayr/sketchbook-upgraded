@@ -222,11 +222,11 @@ export class Car extends Vehicle implements IControllable
 			}
 		} else
 		// Left
-		if (this.actions.left.isPressed && !this.actions.right.isPressed) {
-			if (angVel.dot(spinVectorForward) > -maxAirSpinMagnitude) {
-				angVel.vsub(effectiveSpinVectorForward, angVel);
+			if (this.actions.left.isPressed && !this.actions.right.isPressed) {
+				if (angVel.dot(spinVectorForward) > -maxAirSpinMagnitude) {
+					angVel.vsub(effectiveSpinVectorForward, angVel);
+				}
 			}
-		}
 
 		// Forwards
 		if (this.canTiltForwards && this.actions.throttle.isPressed && !this.actions.reverse.isPressed) {
@@ -235,11 +235,11 @@ export class Car extends Vehicle implements IControllable
 			}
 		} else
 		// Backwards
-		if (this.actions.reverse.isPressed && !this.actions.throttle.isPressed) {
-			if (angVel.dot(spinVectorRight) > -maxAirSpinMagnitude) {
-				angVel.vsub(effectiveSpinVectorRight, angVel);
+			if (this.actions.reverse.isPressed && !this.actions.throttle.isPressed) {
+				if (angVel.dot(spinVectorRight) > -maxAirSpinMagnitude) {
+					angVel.vsub(effectiveSpinVectorRight, angVel);
+				}
 			}
-		}
 
 		// Steering
 		const velocity = new CANNON.Vec3().copy(this.collision.velocity);

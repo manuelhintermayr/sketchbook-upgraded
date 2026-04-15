@@ -28,17 +28,16 @@ export class ConvexCollider implements ICollider
 		mat.friction = options.friction;
 		// mat.restitution = 0.7;
 
+		let vertices: THREE.Vector3[];
+		let faces: {a:number, b:number, c:number}[];
+
 		if (this.mesh.geometry.isBufferGeometry)
 		{
-			var vertices: THREE.Vector3[] = Utils.getVertices(this.mesh);
-			var faces: {a:number, b:number, c:number}[] = Utils.getFaces(this.mesh);
-
-
+			vertices = Utils.getVertices(this.mesh);
+			faces = Utils.getFaces(this.mesh);
 		} else {
-
-			var vertices: THREE.Vector3[]  = this.mesh.geometry.vertices;
-			var faces: {a:number, b:number, c:number}[] = this.mesh.geometry.faces
-		
+			vertices = this.mesh.geometry.vertices;
+			faces = this.mesh.geometry.faces;
 		}
 
 		let cannonPoints: CANNON.Vec3[] = vertices.map((v: Vector3) => {
