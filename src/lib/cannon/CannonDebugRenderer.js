@@ -199,7 +199,7 @@ CannonDebugRenderer.prototype = {
             }
             geometry.setFromPoints(points);
             geometry.computeBoundingSphere()
-            geometry.computeFaceNormals()
+            geometry.computeVertexNormals()
             mesh = new THREE.Mesh(geometry, purple);
             shape.id = geometry.id;
             break;
