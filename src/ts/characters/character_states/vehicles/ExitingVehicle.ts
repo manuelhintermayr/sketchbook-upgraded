@@ -6,7 +6,7 @@ import { Side } from '../../../enums/Side';
 import { VehicleSeat } from '../../../vehicles/VehicleSeat';
 import { Idle } from '../Idle';
 import { CloseVehicleDoorOutside } from './CloseVehicleDoorOutside';
-import { Vehicle } from 'src/ts/vehicles/Vehicle';
+import { Vehicle } from '../../../vehicles/Vehicle';
 import { Falling } from '../Falling';
 import { DropRolling } from '../DropRolling';
 import { ExitingStateBase } from './ExitingStateBase';

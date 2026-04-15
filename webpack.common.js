@@ -11,9 +11,6 @@ module.exports = {
         path: path.resolve(__dirname)
     },
     resolve: {
-        alias: {
-          cannon: path.resolve(__dirname, './src/lib/cannon/cannon.js')
-        },
         extensions: [ '.tsx', '.ts', '.js' ],
     },
     module: {
