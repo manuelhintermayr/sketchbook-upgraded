@@ -58,7 +58,7 @@ export class World
 	public cameraOperator: CameraOperator;
 	public timeScaleTarget: number = 1;
 	public console: InfoStack;
-	public cannonDebugRenderer: CannonDebugRenderer;
+	public cannonDebugRenderer: CannonDebugRenderer | undefined;
 	public scenarios: Scenario[] = [];
 	public characters: Character[] = [];
 	public vehicles: Vehicle[] = [];
