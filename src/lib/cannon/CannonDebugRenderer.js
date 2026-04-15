@@ -1,7 +1,6 @@
 
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { Detector } from '../utils/Detector';
 
 /**
  * Adds Three.js primitives into the scene where all the Cannon bodies and shapes are.

@@ -7,8 +7,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader  } from 'three/examples/jsm/shaders/FXAAShader.js';
+import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
-import { Detector } from '../../lib/utils/Detector';
 import { Stats } from '../../lib/utils/Stats';
 import * as GUI from '../../lib/utils/dat.gui';
 import { CannonDebugRenderer } from '../../lib/cannon/CannonDebugRenderer';
@@ -75,13 +75,13 @@ export class World
 	{
 		const scope = this;
 
-		// WebGL not supported
-		if (!Detector.webgl)
+		// WebGL 2 not supported
+		if (!WebGL.isWebGL2Available())
 		{
 			Swal.fire({
 				icon: 'warning',
 				title: 'WebGL compatibility',
-				text: 'This browser doesn\'t seem to have the required WebGL capabilities. The application may not work correctly.',
+				text: 'This browser doesn\'t seem to have the required WebGL 2 capabilities. The application may not work correctly.',
 				footer: '<a href="https://get.webgl.org/" target="_blank">Click here for more information</a>',
 				showConfirmButton: false,
 				buttonsStyling: false
