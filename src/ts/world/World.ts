@@ -10,7 +10,7 @@ import { FXAAShader  } from 'three/examples/jsm/shaders/FXAAShader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
 import Stats from 'stats.js';
-import * as GUI from '../../lib/utils/dat.gui';
+import GUI from 'lil-gui';
 import { CannonDebugRenderer } from '../../lib/cannon/CannonDebugRenderer';
 import * as _ from 'lodash';
 
@@ -618,7 +618,7 @@ export class World
 			Sun_Rotation: 145,
 		};
 
-		const gui = new GUI.GUI();
+		const gui = new GUI();
 
 		// Scenario
 		this.scenarioGUIFolder = gui.addFolder('Scenarios');
