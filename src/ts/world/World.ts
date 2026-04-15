@@ -9,7 +9,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader  } from 'three/examples/jsm/shaders/FXAAShader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
-import { Stats } from '../../lib/utils/Stats';
+import Stats from 'stats.js';
 import * as GUI from '../../lib/utils/dat.gui';
 import { CannonDebugRenderer } from '../../lib/cannon/CannonDebugRenderer';
 import * as _ from 'lodash';
@@ -149,8 +149,18 @@ export class World
 		this.sinceLastFrame = 0;
 		this.justRendered = false;
 
-		// Stats (FPS, Frame time, Memory)
-		this.stats = Stats();
+		// Stats (FPS, Frame time, Memory). Upstream stats.js shows one panel
+		// at a time and toggles on click; Sketchbook historically rendered
+		// FPS + MS + MB side-by-side inside the UI container, hidden by
+		// default until the Debug_FPS toggle is flipped. Replicate that.
+		this.stats = new Stats();
+		this.stats.dom.id = 'statsBox';
+		this.stats.dom.style.display = 'none';
+		document.getElementById('ui-container').appendChild(this.stats.dom);
+		for (const panel of Array.from(this.stats.dom.children) as HTMLElement[])
+		{
+			panel.style.display = 'inline-block';
+		}
 		// Create right panel GUI
 		this.createParamsGUI(scope);
 
