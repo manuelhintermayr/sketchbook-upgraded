@@ -5,14 +5,17 @@
     "compilerOptions": {
         "module": "esnext",
         "target": "ES6",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
+        "strict": false,
         "declaration": true,
         "declarationDir": "build/types",
+        "rootDir": "src/ts",
         "baseUrl": ".",
         "paths": {
             "cannon" : ["src/lib/cannon/cannon"]
-        }
+        },
+        "ignoreDeprecations": "6.0"
     }
 }
