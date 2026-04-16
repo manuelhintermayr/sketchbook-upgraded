@@ -57,6 +57,18 @@ const world = new Sketchbook.World('scene.glb');
 5. `npm run dev` and open <http://localhost:8080>
 6. `npm run lint` to run ESLint over `src/ts/`
 
+## TODO (centralized roadmap)
+
+Many great changes happened across forks over the years, but they are spread out and hard to track in one place. The items below collect the next major integration targets.
+
+- Bring over features from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook).
+	- Replace that fork's sea/water approach with the implementation from [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map).
+- Bring over features from [friuns2/SketchbookAI](https://github.com/friuns2/SketchbookAI) (excluding AI features).
+- Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).
+- Add Joy-Con support inspired by [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook?tab=readme-ov-file).
+- Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
+	- Evaluate controller integration from [pmndrs/ecctrl](https://github.com/pmndrs/ecctrl) or [pmndrs/BVHEcctrl](https://github.com/pmndrs/BVHEcctrl).
+
 ---
 
 # Project timeline
