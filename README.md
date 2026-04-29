@@ -22,20 +22,22 @@ Mostly a playground for exploring how conventional third person gameplay mechani
 	* Frame skipping
 	* FXAA anti-aliasing
 	* Cascaded shadow maps (via three.js' built-in CSM)
+	* Wave-based ocean with vertex displacement and a height query for buoyancy
+	* Day / night cycle (toggle in the World GUI folder)
+	* GUI settings persisted to localStorage with a reset button
 * Characters
 	* Third-person camera
 	* Raycast character controller with capsule collisions
 	* General state system
-	* Character AI
+	* Character AI (path-following for cars and boats)
 * Vehicles
 	* Cars
 	* Airplanes
 	* Helicopters
 	* Boats (with wave-riding physics)
-* World
-	* Wave-based ocean with vertex displacement and a height query for buoyancy
-	* Race scenarios with lap tracking (Oval / Tunnel / Figure 8)
-	* AI path-following for cars and boats
+* Scenarios
+	* Free roam (default and aviation)
+	* Race tracks: Oval / Tunnel / Figure 8 with lap tracking, Boat Race
 * Input
 	* Keyboard and mouse
 	* Joy-Con / gamepad via [benhatsor/joycon.js](https://github.com/benhatsor/joycon.js)
@@ -69,8 +71,24 @@ const world = new Sketchbook.World('scene.glb');
 
 Many great changes happened across forks over the years, but they are spread out and hard to track in one place. The items below collect the next major integration targets.
 
-- Bring over remaining features from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook). Boats, wave ocean, race scenarios, lap tracking and AI path-following for boats are integrated; rocketship, moon, day/night cycle settings save, free-cam-speed slider, teleport, and hide-controls are still pending.
-	- Optional: explore replacing the wave ocean with [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map) for GPGPU-based normals.
+### Remaining Inthenew/Sketchbook features
+
+[Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) is partially integrated. What we already have: day/night cycle, settings persistence with reset, boats with wave-riding physics, the wave-based ocean, three lap-tracked car races, the Boat Race scenario, and AI path-following for boats. Pending:
+
+- **Rocketship vehicle.** The rocketship mesh is already in `world.glb` (came with the map import) but no `RocketShip.ts` vehicle class exists yet, so it renders as static decoration.
+- **Moon scenario.** Moon mesh and the rocket-island launch pad are in the map; the moon-gravity scenario, the rocket flight path (Inthenew animates a position curve from earth to moon), and the rocketship's "press F by the window to board" behaviour are not ported.
+- **Vehicle settings GUI.** Inthenew exposes `Friction_Slip`, `Suspension_Stiffness`, `Max_Suspension`, `Damping_Compression`, `Damping_Relaxation`, `Engine_Force` and a per-folder reset button — none of those tunables are in our `lil-gui` panel yet.
+- **`Gravity_Scale` slider** (0–2× world gravity, persisted via the existing settings system).
+- **`Free_Cam_Speed` slider** for the no-clip free camera.
+- **Teleport (`T` in free camera)** to the camera's current target spot.
+- **Hide / show controls overlay (`Z`)** to clear the keymap legend without toggling the whole UI.
+- **First-person camera relative to vehicle orientation** (their bug-fix: original camera drifted independently of the chassis in first person).
+- **"Look around" vehicle camera** that returns to the chase position when released.
+- **Boat-lap tracking** beyond what Inthenew shipped: their Boat Race has AI racers but no lap counter (their own README notes "for now only oval races track laps"). A generic path-node-pass-tracker would make Boat Race a real race against the AI.
+- Optional: replace the wave ocean with [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map) for GPGPU-driven normals.
+
+### Other forks worth mining
+
 - Bring over features from [friuns2/SketchbookAI](https://github.com/friuns2/SketchbookAI) (excluding AI features).
 - Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).
 - Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
@@ -94,7 +112,7 @@ Highlights:
 - Removed outdated or unused code paths and old build artifacts from version control.
 - Kept behavior and architecture largely the same, but made the project easier to maintain.
 - Integrated the Joy-Con / gamepad layer from [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). The original commits were preserved via `git format-patch` / `git am`, so [Bar Hatsor](https://github.com/barhatsor)'s authorship and timestamps remain intact in `git log`. The controller layer (`joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`, `audio/horn.wav`) is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched. The previously external `cdn.cde.run/Joycon.min.js` dependency was vendored under `vendor/joycon/` to remove the unpinned CDN reference.
-- Adopted boats, the wave-based ocean, three race scenarios with lap tracking, and AI path-following for boats from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) (also MIT). Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible; instead each feature ports as its own commit with `--author=inthenew` and the original date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, and the race-track path nodes line up with the ocean shader's hand-tuned constants.
+- Began porting features from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) (also MIT). Done so far: day/night cycle, settings persistence (`localStorage`) with a Reset_World_Settings button, wave-based ocean, boats with wave-riding physics, three lap-tracked car races (Oval / Tunnel / Figure 8), the Boat Race scenario, and AI path-following for boats. Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible; instead each feature ports as its own commit with `--author=inthenew <matthew@slocum.io>` and the original commit date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, and the race-track path nodes line up with the ocean shader's hand-tuned constants. Rocketship and moon meshes ride along in the map but render as static decoration until the corresponding vehicle/scenario code is ported (see TODO).
 
 Full technical details are available in the commit history on branches `claude/migrate-libraries-ZsEcJ`, `claude/joycon-integration`, `claude/inthenew-day-night-extras`, and `claude/inthenew-boats-water`.
 
@@ -118,8 +136,9 @@ Full technical details are available in the commit history on branches `claude/m
 
 ## Credits
 
-Big thank you to the original author [swift502](https://github.com/swift502), to [cjmott](https://github.com/cjmott) for the September 2024 toolchain revival, and to the following github users for contributing to Sketchbook over the years:
+Big thank you to the original author [swift502](https://github.com/swift502), to [cjmott](https://github.com/cjmott) for the September 2024 toolchain revival, to [Inthenew](https://github.com/Inthenew) for the boats / wave ocean / races / day-night work that this fork adopts, to [Bar Hatsor](https://github.com/barhatsor) for the Joy-Con integration, and to the following github users for contributing to Sketchbook over the years:
 
 - [aleqsunder](https://github.com/aleqsunder)
 - [barhatsor](https://github.com/barhatsor)
 - [danshuri](https://github.com/danshuri)
+- [Inthenew](https://github.com/Inthenew)
