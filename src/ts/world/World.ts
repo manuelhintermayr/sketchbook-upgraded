@@ -66,6 +66,7 @@ export class World
 	public cars: Car[] = [];
 	public helicopters: Helicopter[] = [];
 	public airplanes: Airplane[] = [];
+	public ocean: Ocean | null = null;
 	public paths: Path[] = [];
 	public scenarioGUIFolder: any;
 	public updatables: IUpdatable[] = [];
@@ -417,7 +418,8 @@ export class World
 
 					if (child.material.name === 'ocean')
 					{
-						this.registerUpdatable(new Ocean(child, this));
+						this.ocean = new Ocean(child, this);
+						this.registerUpdatable(this.ocean);
 					}
 				}
 
