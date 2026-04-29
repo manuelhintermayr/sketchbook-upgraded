@@ -31,6 +31,11 @@ Mostly a playground for exploring how conventional third person gameplay mechani
 	* Cars
 	* Airplanes
 	* Helicopters
+	* Boats (with wave-riding physics)
+* World
+	* Wave-based ocean with vertex displacement and a height query for buoyancy
+	* Race scenarios with lap tracking (Oval / Tunnel / Figure 8)
+	* AI path-following for cars and boats
 * Input
 	* Keyboard and mouse
 	* Joy-Con / gamepad via [benhatsor/joycon.js](https://github.com/benhatsor/joycon.js)
@@ -64,8 +69,8 @@ const world = new Sketchbook.World('scene.glb');
 
 Many great changes happened across forks over the years, but they are spread out and hard to track in one place. The items below collect the next major integration targets.
 
-- Bring over features from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook).
-	- Replace that fork's sea/water approach with the implementation from [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map).
+- Bring over remaining features from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook). Boats, wave ocean, race scenarios, lap tracking and AI path-following for boats are integrated; rocketship, moon, day/night cycle settings save, free-cam-speed slider, teleport, and hide-controls are still pending.
+	- Optional: explore replacing the wave ocean with [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map) for GPGPU-based normals.
 - Bring over features from [friuns2/SketchbookAI](https://github.com/friuns2/SketchbookAI) (excluding AI features).
 - Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).
 - Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
@@ -89,8 +94,9 @@ Highlights:
 - Removed outdated or unused code paths and old build artifacts from version control.
 - Kept behavior and architecture largely the same, but made the project easier to maintain.
 - Integrated the Joy-Con / gamepad layer from [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). The original commits were preserved via `git format-patch` / `git am`, so [Bar Hatsor](https://github.com/barhatsor)'s authorship and timestamps remain intact in `git log`. The controller layer (`joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`, `audio/horn.wav`) is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched. The previously external `cdn.cde.run/Joycon.min.js` dependency was vendored under `vendor/joycon/` to remove the unpinned CDN reference.
+- Adopted boats, the wave-based ocean, three race scenarios with lap tracking, and AI path-following for boats from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) (also MIT). Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible; instead each feature ports as its own commit with `--author=inthenew` and the original date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, and the race-track path nodes line up with the ocean shader's hand-tuned constants.
 
-Full technical details are available in the commit history on branch `claude/migrate-libraries-ZsEcJ` and on `claude/joycon-integration` for the controller work.
+Full technical details are available in the commit history on branches `claude/migrate-libraries-ZsEcJ`, `claude/joycon-integration`, `claude/inthenew-day-night-extras`, and `claude/inthenew-boats-water`.
 
 ## September 2024 update — [cjmott](https://github.com/cjmott) ([commit](https://github.com/cjmott/Sketchbook/commit/088fffc743818d13babeecd87c8ba3165cf13fcb))
 
