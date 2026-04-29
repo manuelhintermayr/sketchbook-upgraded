@@ -31,6 +31,9 @@ Mostly a playground for exploring how conventional third person gameplay mechani
 	* Cars
 	* Airplanes
 	* Helicopters
+* Input
+	* Keyboard and mouse
+	* Joy-Con / gamepad via [benhatsor/joycon.js](https://github.com/benhatsor/joycon.js)
 
 ## Usage
 
@@ -65,7 +68,6 @@ Many great changes happened across forks over the years, but they are spread out
 	- Replace that fork's sea/water approach with the implementation from [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map).
 - Bring over features from [friuns2/SketchbookAI](https://github.com/friuns2/SketchbookAI) (excluding AI features).
 - Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).
-- ~~Add Joy-Con support inspired by [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook?tab=readme-ov-file).~~ Integrated — see `joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`. The controller layer is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched.
 - Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
 	- Evaluate controller integration from [pmndrs/ecctrl](https://github.com/pmndrs/ecctrl) or [pmndrs/BVHEcctrl](https://github.com/pmndrs/BVHEcctrl).
 
@@ -86,8 +88,9 @@ Highlights:
 - Fixed a few runtime and compatibility issues discovered during the upgrade.
 - Removed outdated or unused code paths and old build artifacts from version control.
 - Kept behavior and architecture largely the same, but made the project easier to maintain.
+- Integrated the Joy-Con / gamepad layer from [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). The original commits were preserved via `git format-patch` / `git am`, so [Bar Hatsor](https://github.com/barhatsor)'s authorship and timestamps remain intact in `git log`. The controller layer (`joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`, `audio/horn.wav`) is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched. The previously external `cdn.cde.run/Joycon.min.js` dependency was vendored under `vendor/joycon/` to remove the unpinned CDN reference.
 
-Full technical details are available in the commit history on branch `claude/migrate-libraries-ZsEcJ`.
+Full technical details are available in the commit history on branch `claude/migrate-libraries-ZsEcJ` and on `claude/joycon-integration` for the controller work.
 
 ## September 2024 update — [cjmott](https://github.com/cjmott) ([commit](https://github.com/cjmott/Sketchbook/commit/088fffc743818d13babeecd87c8ba3165cf13fcb))
 
