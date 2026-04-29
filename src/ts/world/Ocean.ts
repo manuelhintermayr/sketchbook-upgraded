@@ -31,7 +31,7 @@ export class Ocean implements IUpdatable
 	private tiles: THREE.Mesh[] = [];
 	private tileXOffsets: number[] = [];
 	private tileZOffsets: number[] = [];
-	private tileBaseY: number;
+	public tileBaseY: number;
 	private loaded = false;
 
 	private readonly uniforms = {
