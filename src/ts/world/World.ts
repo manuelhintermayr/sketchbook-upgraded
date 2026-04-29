@@ -420,7 +420,7 @@ export class World
 					Utils.setupMeshProperties(child);
 					this.sky.csm.setupMaterial(child.material);
 
-					if (child.material.name === 'ocean')
+					if (child.material.name === 'ocean' || child.material.name === 'ocean.001')
 					{
 						this.ocean = new Ocean(child, this);
 						this.registerUpdatable(this.ocean);
