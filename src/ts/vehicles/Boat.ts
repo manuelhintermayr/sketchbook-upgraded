@@ -220,12 +220,9 @@ export class Boat extends Vehicle implements IControllable
 		{
 			const time = ocean.clock.getElapsedTime();
 			const sampled = ocean.getWaveHeightAt(body.position.x, body.position.z, time);
-			if (sampled !== 'inner-zone')
-			{
-				const lerpFactor = 0.6;
-				body.position.y += (sampled - body.position.y) * lerpFactor;
-				body.velocity.y = Math.max(body.velocity.y, 0);
-			}
+			const lerpFactor = 0.6;
+			body.position.y += (sampled - body.position.y) * lerpFactor;
+			body.velocity.y = Math.max(body.velocity.y, 0);
 		}
 	}
 

@@ -495,17 +495,24 @@ export class World
 		if (defaultScenarioID !== undefined) this.launchScenario(defaultScenarioID, loadingManager);
 	}
 
-	// world.glb has no boat spawn marker yet, so synthesise one at a calm
-	// spot on the wave grid (inside Inthenew's outer buffer where the wave
-	// is clamped to 8.5) and attach it to every non-invisible scenario.
-	// Once the level is rebuilt in Blender with a real userData.type='boat'
-	// marker this method can go away.
+	// world.glb has no boat spawn marker yet, so synthesise one over the
+	// existing ocean mesh (a few units inside its bounding box edge so the
+	// boat doesn't intersect the shoreline) and attach it to every
+	// scenario. Once the level is rebuilt in Blender with a real
+	// userData.type='boat' marker this method can go away.
 	private attachProgrammaticBoatSpawn(): void
 	{
 		if (!this.ocean) return;
 
+		// Spawn at the center of the ocean mesh so we land on water no
+		// matter where the level designer placed it.
+		const oceanMesh = this.ocean.mesh;
+		oceanMesh.geometry.computeBoundingBox();
+		const center = oceanMesh.geometry.boundingBox.getCenter(new THREE.Vector3());
+		oceanMesh.localToWorld(center);
+
 		const marker = new THREE.Object3D();
-		marker.position.set(250, this.ocean.tileBaseY + 2, 200);
+		marker.position.set(center.x, this.ocean.oceanY + 1.5, center.z);
 		this.graphicsWorld.add(marker);
 
 		const sp = new VehicleSpawnPoint(marker);
