@@ -97,7 +97,18 @@ Highlights:
 
 How the port is structured: Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible. Instead each feature ports as its own commit with `--author=inthenew <matthew@slocum.io>` and the original commit date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, the race-track path nodes, the rocketship spawn and the rocket-island launch pad all line up with the ocean shader's hand-tuned constants and the rocketship's flight coordinates.
 
-**Asset re-creation:** Inthenew's upstream hotlinks several third-party images that couldn't legally be vendored (DeviantArt fan-art for the Earth sphere, an Adobe Stock smoke particle, Future plc / Wikipedia / Farmers Almanac photos for the Earth and Moon, an anonymous Imgur upload, a dead Glitch CDN). All were replaced with DALL-E generated equivalents shipped in `src/img/` (`equirectangular-earth.png`, `equirectangular-moon.png`, `hemisphere-earth.png`, `full-moon.png`, `moon-with-flowers.png`, `smoke.png`). Visual style is comparable; licensing is clean.
+**Asset re-creation:** Inthenew's upstream hotlinks several third-party images that couldn't legally be vendored. To keep the visuals while clearing the licence problems, each was replaced with a DALL-E generated equivalent shipped under `src/img/`:
+
+| Local file | Replaces | Used for |
+|---|---|---|
+| `equirectangular-earth.png` | DeviantArt fan-art (`wixmp.com`, JWT-signed hotlink, "all rights reserved") | Earth sphere texture in `Sky.ts`, mapped onto the radius-5010 globe at the world origin |
+| `equirectangular-moon.png` | Anonymous Imgur upload (`i.imgur.com/KnkC177.jpg`, lifecycle uncertain) | Moon sphere texture in `Sky.ts`, mapped onto the radius-626 sphere at the moon position |
+| `moon-with-flowers.png` | Farmers Almanac article photo (`farmersalmanac.com/wp-content/uploads/...`, proprietary) | Moon-surface mesh material in `world.glb` (Inthenew named the mesh `Layer0_001`) |
+| `hemisphere-earth.png` | Future plc CDN (`cdn.mos.cms.futurecdn.net`, Space.com asset, proprietary) | Earth icon in the planet-selection modal that opens during the rocketship's apogee |
+| `full-moon.png` | Wikimedia Commons photo by Gregory H. Revera (CC-BY-SA-3.0; usable, but requires attribution that we can avoid by re-generating) | Moon icon in the planet-selection modal |
+| `smoke.png` | Adobe Stock asset (`ftcdn.net/.../541631242`, proprietary, hotlinking violates Adobe Stock terms) | Additive-blended particle texture for the rocketship's liftoff smoke |
+
+DALL-E prompts targeted the same intent and visual style (equirectangular world maps for the spheres, hemispheric "blue marble" framing for the modal icon, white smoke on pure black for additive blending). Cube352 — a small map mesh Inthenew textured from a Glitch CDN that has since gone dead — was dropped entirely; the upstream URL is unreachable and the user confirmed the case was unused.
 
 Full technical details on branches `claude/inthenew-day-night-extras`, `claude/inthenew-boats-water`, and `claude/inthenew-rocketship-moon`.
 
