@@ -37,6 +37,7 @@ This fork pulls in the features from later community forks that I felt were wort
 - Airplanes, helicopters.
 - Boats with wave-riding physics and wave-aware AI path-following.
 - Rocketship — 4-stage liftoff, smoke particle trail, planet-selection modal, automated Earth↔Moon transfer with soft auto-landing.
+- Stuck / flip auto-recovery for player vehicles (lifts and yaw-resets after 6s of no movement under throttle, or 3s upside-down). Boats / Rocket opt out; air vehicles use flip-only.
 
 ### Scenarios & Maps
 
@@ -98,6 +99,7 @@ Sketchbook needs to run on a local server (e.g. `npm run dev`) to load assets.
 Adopts the highest-value pieces of [manuelhintermayr/portfolio three-js](https://github.com/manuelhintermayr/portfolio) — a separate React Three Fiber project with stronger feel/polish than this fork shipped with. Each feature ships as its own commit, ported from the React/Zustand idiom into Sketchbook's vanilla TypeScript + lil-gui idiom (Allman braces, IUpdatable pattern, lil-gui controllers as the source of truth).
 
 - **Camera Shake** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b9dd34c550f8da366970f9a0009558fa77af45f7)) — sineNoise-based per-frame camera offset triggered by vehicle hard landings; static fire-and-forget API, three presets (collision / land / boost), quadratic decay envelope, toggle in Settings.
+- **Stuck / flip auto-recovery** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/cf9cb1060d441713e23e4e8630a817a46bf12c72)) — Vehicle base method that watches a per-frame distance-traveled window and an upside-down timer; lifts and yaw-resets when either threshold trips, fires a `collision` camera shake on recovery. Per-subclass opt-out (boats / rockets fully off, air vehicles flip-only).
 
 ## May 2026 — UI design system & in-game shell ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb))
 
