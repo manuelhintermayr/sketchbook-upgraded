@@ -73,6 +73,7 @@ Map markers in `userData` light up code-side features automatically:
 - Keyboard + mouse, free camera (`Shift+C`, `T` to teleport, `Z` to toggle the controls overlay).
 - Joy-Con / gamepad via [benhatsor/joycon.js](https://github.com/benhatsor/joycon.js).
 - On-screen touch controls (virtual joystick, jump / action / sprint buttons, drag-to-look) — auto-mounted on touch devices, dispatches synthesised keyboard + mouse events so the engine stays input-source-agnostic.
+- i18n: English / Deutsch / Español with a language picker on the title screen; choice persists in `localStorage`. Pause menu, settings modal, error overlay and title-screen prompt are translated.
 
 ## Usage
 
@@ -114,6 +115,7 @@ Adopts the highest-value pieces of [manuelhintermayr/portfolio three-js](https:/
 - **Wandering animals** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/4c5a13e8c121fa5c4d1663de764b4526f375e1e5)) — 8 dogs + 10 cats spawned deterministically around the Inthenew spawn, each running a small state machine (idle / wander / approach / bark / flee / tame). Geometry merges primitive shapes — no GLTF asset; ground height is queried per-frame via cannon raycast so the animals adapt to any map.
 - **Star field at night** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/5037501e5807a68853d608bf735ad90802bd4f33)) — 2000 points on the upper hemisphere of a camera-anchored shell with a twinkle shader. nightFactor is derived from sun position, so they fade in at dusk and stay full in space.
 - **Touch controls** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/3dd1be5548ec0cc77cafd45141b0bb04498d2bba)) — virtual joystick + jump / action / sprint buttons + drag-to-look camera area, auto-mounted on touch devices. Synthesises KeyboardEvent / MouseEvent pairs so InputManager handles them as if from a hardware keyboard / mouse.
+- **i18n + language picker** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/dbbe34030fe6384fd22953899fecb31d730fef3f)) — flat translation table (en / de / es), `t(key, vars)` lookup, persisted to `localStorage`. Title screen shows a language picker at the bottom; pause menu, settings modal, and error overlay are translated.
 
 ## May 2026 — UI design system & in-game shell ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb))
 
