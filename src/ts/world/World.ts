@@ -47,6 +47,7 @@ import { SettingsModal } from './SettingsModal';
 import { IrisTransition } from './IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './AmbientSound';
+import { WanderingAnimals } from './WanderingAnimals';
 
 export class World
 {
@@ -699,6 +700,11 @@ export class World
 		// it and get cleared on switch like other entities.
 		this.injectDefaultSceneNPCs();
 
+		// Wandering dogs / cats around the spawn area — only on the
+		// Inthenew map (the sandboxes are testing zones with their own
+		// flat layouts, animals would just walk off the edge).
+		this.injectWanderingAnimals();
+
 		// Launch default scenario
 		let defaultScenarioID: string;
 		for (const scenario of this.scenarios) {
@@ -807,6 +813,18 @@ export class World
 					: undefined),
 			);
 		}
+	}
+
+	private injectWanderingAnimals(): void
+	{
+		// Same map gate as injectDefaultSceneNPCs — sandboxes are testing
+		// zones with their own minimal layouts, animals would just walk
+		// off the edge or into shapes.
+		const stored = localStorage.getItem('sketchbook.map');
+		if (stored !== null && stored !== 'inthenew') return;
+
+		const animals = new WanderingAnimals();
+		this.add(animals);
 	}
 
 	public launchScenario(scenarioID: string, loadingManager?: LoadingManager): void
