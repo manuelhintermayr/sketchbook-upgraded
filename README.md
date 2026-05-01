@@ -92,7 +92,7 @@ Sketchbook needs to run on a local server (e.g. `npm run dev`) to load assets.
 
 > **Attribution policy:** every port below tries to preserve the original commits or at least the original authors via `git format-patch` / `git am` or `git commit --author="…" --date="…"`. The intent is to honour each upstream author's work — and only their work — in `git log`.
 
-## May 2026 — external-features port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commits](https://github.com/manuelhintermayr/sketchbook-upgraded/compare/3968319...c37b6f3))
+## May 2026 — external-features port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/c37b6f35b46354c8abaa7589a4a2a2d7a63d31c9))
 
 Mines features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl) (MIT) and [iErcann/Notblox](https://github.com/iErcann/Notblox), skipping their multiplayer layers entirely. Each feature ships as its own commit attributed to the upstream author where identifiable.
 
@@ -100,7 +100,7 @@ What landed: curve-based race tracking with checkpoint planes; instanced grass f
 
 Skipped: water (Inthenew's wave ocean is better), extended character states (already in upstream), all multiplayer/ECS/networking plumbing.
 
-## May 2026 — version 0.6.0 — Inthenew port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commits](https://github.com/manuelhintermayr/sketchbook-upgraded/compare/0f1971a...3968319))
+## May 2026 — version 0.6.0 — Inthenew port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/39683190407013aafda257406287e162f0363f2d))
 
 Pulls in [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook): day/night cycle, wave-based ocean replacing the original flat water, boats with wave-aware physics + Boat Race scenario, lap tracking on the three car races, the full Rocketship feature (chassis, smoke particles, planet-select modal, Earth↔Moon flight + auto-landing), Earth + Moon as celestial bodies, lunar gravity, Vehicles GUI tuning sliders, Free-camera quality-of-life (`T` teleport, `Z` overlay toggle, return-to-forward slerp).
 
@@ -108,7 +108,7 @@ Inthenew squashes upstream commits, so each feature was re-ported individually w
 
 **Asset re-creation:** Inthenew's upstream hotlinked six third-party images that couldn't legally be vendored (DeviantArt fan-art, an anonymous Imgur upload, Farmers Almanac and Adobe Stock photos, a Future plc CDN asset, and a Wikimedia photo with attribution requirements). All were dropped and replaced with DALL-E generated equivalents shipped under `src/img/` — same intent and visual style, no licence baggage.
 
-## May 2026 — version 0.5.0 — Joy-Con port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commits](https://github.com/manuelhintermayr/sketchbook-upgraded/compare/1a99803...afff1ec))
+## May 2026 — version 0.5.0 — Joy-Con port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/afff1ec38b1768a85ee0c8e53cc1b3540cc04042))
 
 Adds Joy-Con / gamepad support originally written by [Bar Hatsor](https://github.com/barhatsor) in [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). Original commits preserved via `format-patch` / `am`. The controller layer only synthesises keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` was vendored under `vendor/joycon/`.
 
@@ -116,7 +116,7 @@ Adds Joy-Con / gamepad support originally written by [Bar Hatsor](https://github
 
 > I plan to use Sketchbook as a basis to develop another project, so I have updated the code to run on the latest version of all the packages and switched from cannon.js, which is no longer maintained, to cannon-es.js. […] The biggest change has involved updating to the new version of THREE.js, which no longer supports the object types `Geometry` and `Face3`, replacing both with `BufferGeometry`. Note that I have also updated the sky shaders to use an example provided on the THREE.js website.
 
-### April 2026 follow-up — toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commits](https://github.com/manuelhintermayr/sketchbook-upgraded/compare/088fffc...1a99803))
+### April 2026 follow-up — toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1a99803b366f49385dfac80c76ab86371f154915))
 
 A second pass on top of cjmott's work: dependencies updated to current versions (TypeScript 6, ESLint, three.js r183, webpack 5), legacy in-repo utility copies replaced with maintained npm packages (lil-gui, stats.js, cannon-es-debugger), unused legacy files dropped. Behaviour and architecture preserved — gameplay changes start in May.
 
