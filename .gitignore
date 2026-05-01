@@ -6,3 +6,4 @@ node_modules
 build/sketchbook.min.js
 build/sketchbook.min.js.LICENSE.txt
 build/types/
+.claude/settings.local.json
