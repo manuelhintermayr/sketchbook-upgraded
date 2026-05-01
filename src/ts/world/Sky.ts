@@ -42,6 +42,12 @@ export class Sky extends THREE.Object3D implements IUpdatable
 	private skyMesh: THREE.Mesh;
 	private skyMaterial: THREE.ShaderMaterial;
 
+	// Star field — only visible when the sun has dropped below the
+	// horizon or the player is in space. The shader uses a nightFactor
+	// uniform that we drive from the sun position each frame.
+	private starsPoints: THREE.Points;
+	private starsMaterial: THREE.ShaderMaterial;
+
 	private world: World;
 
 	constructor(world: World)
@@ -104,6 +110,18 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		moonMesh.position.set(15.2758, 3852.67, -11696.4);
 		world.graphicsWorld.add(moonMesh);
 
+		// Stars — 2000 points on the upper hemisphere of a 800-unit
+		// shell. Camera-anchored each frame (this object's position
+		// follows world.camera), so the star field always surrounds the
+		// player. The shader fades them in as nightFactor goes up and
+		// adds a per-vertex twinkle phase. Pattern from
+		// manuelhintermayr-portfolio/three-js DayNightCycle Stars
+		// sub-component.
+		this.starsMaterial = this.buildStarsMaterial();
+		this.starsPoints = new THREE.Points(this.buildStarsGeometry(), this.starsMaterial);
+		this.starsPoints.frustumCulled = false;
+		this.attach(this.starsPoints);
+
 		// Ambient light
 		this.hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 1.0 );
 		this.refreshHemiIntensity();
@@ -153,6 +171,17 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		const inSpace = this.world.onMoon || this.world.camera.position.y > 1500;
 		this.skyMesh.visible = !inSpace;
 
+		// Stars: ramp up as the sun drops below the horizon (sunPosition.y
+		// goes negative). Squared so the fade-in is gentle near dusk and
+		// fully on by deep night. In space we want them at full brightness
+		// regardless of sun position.
+		const sunY = this.sunPosition.y;
+		const SUN_DISTANCE = 10;
+		const horizonNight = THREE.MathUtils.clamp(-sunY / SUN_DISTANCE, 0, 1);
+		const nightFactor = inSpace ? 1.0 : horizonNight * horizonNight;
+		this.starsMaterial.uniforms.nightFactor.value = nightFactor;
+		this.starsMaterial.uniforms.time.value += timeScale;
+
 		this.csm.update(); // Removed argument
 		this.csm.lightDirection = new THREE.Vector3(-this.sunPosition.x, -this.sunPosition.y, -this.sunPosition.z).normalize();
 	}
@@ -173,5 +202,85 @@ export class Sky extends THREE.Object3D implements IUpdatable
 	public refreshHemiIntensity(): void
 	{
 		this.hemiLight.intensity = this.minHemiIntensity + Math.pow(1 - (Math.abs(this._phi - 90) / 90), 0.25) * (this.maxHemiIntensity - this.minHemiIntensity);
+	}
+
+	private buildStarsGeometry(): THREE.BufferGeometry
+	{
+		const STAR_COUNT = 2000;
+		const SHELL_RADIUS = 800;
+
+		const positions = new Float32Array(STAR_COUNT * 3);
+		const sizes = new Float32Array(STAR_COUNT);
+		const phases = new Float32Array(STAR_COUNT);
+
+		for (let i = 0; i < STAR_COUNT; i++)
+		{
+			// Distribute on the upper hemisphere — stars below the horizon
+			// would clip through the terrain anyway.
+			const theta = Math.random() * Math.PI * 2;
+			const phi = Math.acos(Math.random());
+			let y = SHELL_RADIUS * Math.cos(phi);
+			if (y < 0) y = -y;
+			const x = SHELL_RADIUS * Math.sin(phi) * Math.cos(theta);
+			const z = SHELL_RADIUS * Math.sin(phi) * Math.sin(theta);
+
+			positions[i * 3] = x;
+			positions[i * 3 + 1] = y;
+			positions[i * 3 + 2] = z;
+			sizes[i] = 1 + Math.random() * 3;
+			phases[i] = Math.random() * Math.PI * 2;
+		}
+
+		const geo = new THREE.BufferGeometry();
+		geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+		geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+		geo.setAttribute('twinklePhase', new THREE.BufferAttribute(phases, 1));
+		return geo;
+	}
+
+	private buildStarsMaterial(): THREE.ShaderMaterial
+	{
+		return new THREE.ShaderMaterial({
+			vertexShader: `
+				attribute float size;
+				attribute float twinklePhase;
+				uniform float nightFactor;
+				varying float vAlpha;
+				varying float vTwinkle;
+
+				void main()
+				{
+					vTwinkle = twinklePhase;
+					vAlpha = nightFactor;
+					vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+					gl_PointSize = size * (300.0 / -mvPosition.z) * nightFactor;
+					gl_Position = projectionMatrix * mvPosition;
+				}
+			`,
+			fragmentShader: `
+				uniform float time;
+				varying float vAlpha;
+				varying float vTwinkle;
+
+				void main()
+				{
+					if (vAlpha < 0.01) discard;
+					vec2 center = gl_PointCoord - 0.5;
+					float dist = length(center);
+					if (dist > 0.5) discard;
+					float twinkle = 0.7 + 0.3 * sin(time * 3.0 + vTwinkle * 10.0);
+					float alpha = (1.0 - dist * 2.0) * vAlpha * twinkle;
+					gl_FragColor = vec4(1.0, 1.0, 0.95, alpha);
+				}
+			`,
+			uniforms:
+			{
+				time: { value: 0 },
+				nightFactor: { value: 0 },
+			},
+			transparent: true,
+			blending: THREE.AdditiveBlending,
+			depthWrite: false,
+		});
 	}
 }
