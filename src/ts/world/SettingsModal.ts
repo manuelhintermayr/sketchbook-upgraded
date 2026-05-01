@@ -56,6 +56,8 @@ export class SettingsModal
 		this.setToggle('Engine_Sound', p.Engine_Sound);
 		this.setToggle('Ambient_Sound', p.Ambient_Sound);
 		this.setToggle('Outlines', p.Outlines);
+		this.setToggle('Bloom', p.Bloom);
+		this.setToggle('Depth_Of_Field', p.Depth_Of_Field);
 	}
 
 	private build(): HTMLDivElement
@@ -80,6 +82,8 @@ export class SettingsModal
 					${this.toggleRow('FXAA', 'Anti-aliasing', 'FXAA post-process')}
 					${this.toggleRow('Has_Day_Night_Cycle', 'Day / night cycle', 'Sun moves automatically')}
 					${this.toggleRow('Outlines', 'Outlines', 'Depth-edge Sobel overlay (toon look)')}
+					${this.toggleRow('Bloom', 'Bloom', 'Glow on bright pixels (stronger at night)')}
+					${this.toggleRow('Depth_Of_Field', 'Depth of field', 'Bokeh blur — tighter focus while driving')}
 					${this.toggleRow('Debug_FPS', 'FPS counter', 'Show stats.js box')}
 				</div>
 
