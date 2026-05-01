@@ -53,6 +53,7 @@ export class SettingsModal
 		this.setToggle('Debug_FPS', p.Debug_FPS);
 		this.setToggle('Camera_Shake', p.Camera_Shake);
 		this.setToggle('Engine_Sound', p.Engine_Sound);
+		this.setToggle('Ambient_Sound', p.Ambient_Sound);
 		this.setToggle('Outlines', p.Outlines);
 	}
 
@@ -80,6 +81,7 @@ export class SettingsModal
 					<h3>Audio</h3>
 					${this.rangeRow('Master_Volume', 'Master volume', 0, 100, 1, 'All in-world positional + procedural audio')}
 					${this.toggleRow('Engine_Sound', 'Engine sound', 'Procedural Web Audio engine while driving')}
+					${this.toggleRow('Ambient_Sound', 'Ambient sound', 'Wind, birds, water (procedural)')}
 					${this.rangeRow('Music_Volume', 'Music', 0, 100, 1, 'Reserved — no separate music bus yet')}
 					${this.rangeRow('SFX_Volume', 'Sound effects', 0, 100, 1, 'Reserved — no SFX bus yet')}
 				</div>

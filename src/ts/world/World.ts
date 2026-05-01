@@ -46,6 +46,7 @@ import { DefaultDialogs } from './defaultDialogs';
 import { SettingsModal } from './SettingsModal';
 import { IrisTransition } from './IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
+import { AmbientSound } from './AmbientSound';
 
 export class World
 {
@@ -92,6 +93,7 @@ export class World
 	public gui: any;
 	public cameraShake: CameraShake;
 	public outlineEffect: OutlineEffect;
+	public ambientSound: AmbientSound;
 
 	private lastScenarioID: string;
 
@@ -252,6 +254,12 @@ export class World
 		// render pipeline can call its renderPass after the composer pass.
 		// No-op when params.Outlines is false.
 		this.outlineEffect = new OutlineEffect(this);
+
+		// Ambient soundscape — wind / birds / water. Lazily creates an
+		// AudioContext when first enabled (browser autoplay policy is
+		// satisfied by the title-screen gesture).
+		this.ambientSound = new AmbientSound(this);
+		this.registerUpdatable(this.ambientSound);
 
 		// Day / night cycle (ported from Inthenew/Sketchbook).
 		// Mirror sky.phi back into params.Sun_Elevation (folded over 180 so
@@ -1011,6 +1019,7 @@ export class World
 			SFX_Volume: 75,
 			Camera_Shake: true,
 			Engine_Sound: true,
+			Ambient_Sound: true,
 			Outlines: false,
 		};
 
@@ -1153,6 +1162,7 @@ export class World
 			});
 		settingsFolder.add(this.params, 'Camera_Shake');
 		settingsFolder.add(this.params, 'Engine_Sound');
+		settingsFolder.add(this.params, 'Ambient_Sound');
 		settingsFolder.add(this.params, 'Outlines');
 
 		// Settings persistence (ported from Inthenew/Sketchbook).
