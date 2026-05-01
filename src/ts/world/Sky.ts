@@ -90,8 +90,12 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		);
 		world.graphicsWorld.add(earthMesh);
 
+		// Inthenew uses radius 1252.5 (matching their gravity sphere).
+		// That makes the moon dominate the sky at its authored distance;
+		// halve the visual radius so it reads as a far-away body. Block 4
+		// will keep the original 1252.5 for the gravity sphere.
 		const moonMesh = new THREE.Mesh(
-			new THREE.SphereGeometry(1252.5, 24, 12),
+			new THREE.SphereGeometry(626.25, 24, 12),
 			new THREE.MeshBasicMaterial({
 				side: THREE.FrontSide,
 				map: textureLoader.load('src/img/equirectangular-moon.png'),

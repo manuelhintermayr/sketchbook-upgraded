@@ -618,7 +618,7 @@ export class World
 		document.body.insertAdjacentHTML('beforeend', `
 			<div id="loading-screen">
 				<div id="loading-screen-background"></div>
-				<h1 id="main-title" class="sb-font">Sketchbook 0.4</h1>
+				<h1 id="main-title" class="sb-font">Sketchbook 0.5</h1>
 				<div class="cubeWrap">
 					<div class="cube">
 						<div class="faces1"></div>
