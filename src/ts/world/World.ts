@@ -50,6 +50,7 @@ import { IrisTransition } from './IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './AmbientSound';
 import { WanderingAnimals } from './WanderingAnimals';
+import { WorldLabels } from './WorldLabels';
 
 export class World
 {
@@ -99,6 +100,7 @@ export class World
 	public ambientSound: AmbientSound;
 	public bloomPass: UnrealBloomPass;
 	public bokehPass: BokehPass;
+	public worldLabels: WorldLabels;
 
 	private lastScenarioID: string;
 
@@ -289,6 +291,12 @@ export class World
 		// satisfied by the title-screen gesture).
 		this.ambientSound = new AmbientSound(this);
 		this.registerUpdatable(this.ambientSound);
+
+		// World labels — registry + distance culling for CSS2D tags.
+		// Constructed early so attachNameLabel calls from later spawn
+		// code go through it.
+		this.worldLabels = new WorldLabels(this);
+		this.registerUpdatable(this.worldLabels);
 
 		// Day / night cycle (ported from Inthenew/Sketchbook).
 		// Mirror sky.phi back into params.Sun_Elevation (folded over 180 so
@@ -1093,6 +1101,7 @@ export class World
 			Outlines: false,
 			Bloom: false,
 			Depth_Of_Field: false,
+			Animal_Labels: false,
 		};
 
 		const gui = new GUI();
@@ -1238,6 +1247,7 @@ export class World
 		settingsFolder.add(this.params, 'Outlines');
 		settingsFolder.add(this.params, 'Bloom');
 		settingsFolder.add(this.params, 'Depth_Of_Field');
+		settingsFolder.add(this.params, 'Animal_Labels');
 
 		// Settings persistence (ported from Inthenew/Sketchbook).
 		// Snapshot defaults before restoring so Reset_World_Settings can

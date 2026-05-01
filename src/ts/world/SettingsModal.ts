@@ -58,6 +58,7 @@ export class SettingsModal
 		this.setToggle('Outlines', p.Outlines);
 		this.setToggle('Bloom', p.Bloom);
 		this.setToggle('Depth_Of_Field', p.Depth_Of_Field);
+		this.setToggle('Animal_Labels', p.Animal_Labels);
 	}
 
 	private build(): HTMLDivElement
@@ -84,6 +85,7 @@ export class SettingsModal
 					${this.toggleRow('Outlines', 'Outlines', 'Depth-edge Sobel overlay (toon look)')}
 					${this.toggleRow('Bloom', 'Bloom', 'Glow on bright pixels (stronger at night)')}
 					${this.toggleRow('Depth_Of_Field', 'Depth of field', 'Bokeh blur — tighter focus while driving')}
+					${this.toggleRow('Animal_Labels', 'Animal labels', 'Show floating Hund / Katze tags above animals')}
 					${this.toggleRow('Debug_FPS', 'FPS counter', 'Show stats.js box')}
 				</div>
 

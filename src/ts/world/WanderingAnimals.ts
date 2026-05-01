@@ -6,6 +6,7 @@ import { World } from './World';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { EntityType } from '../enums/EntityType';
 import { CollisionGroups } from '../enums/CollisionGroups';
+import { attachNameLabel } from './NameLabel';
 
 // Wandering dogs and cats around the player spawn. Each animal runs
 // a small state machine — dogs notice the player and approach to bark,
@@ -58,6 +59,10 @@ interface Animal
 	scale: number;
 	interactionCount: number;
 	homePosition: THREE.Vector3;
+	// Empty Object3D added to graphicsWorld; its position is updated
+	// each frame to match the instanced animal so its CSS2D label
+	// follows along. The label itself lives as a child of this anchor.
+	labelAnchor: THREE.Object3D;
 }
 
 // Mulberry32 — small deterministic PRNG so spawn placement is the same
@@ -162,12 +167,32 @@ export class WanderingAnimals implements IWorldEntity
 		world.graphicsWorld.add(this.catMesh);
 		world.sky.csm.setupMaterial(this.dogMesh.material as THREE.Material);
 		world.sky.csm.setupMaterial(this.catMesh.material as THREE.Material);
+
+		// Attach label anchors + CSS2D tags. WorldLabels distance-culls
+		// at 30 units and feature-gates on params.Animal_Labels (off by
+		// default — opt-in via the Settings panel, otherwise the spawn
+		// looks busy).
+		for (const animal of this.animals)
+		{
+			world.graphicsWorld.add(animal.labelAnchor);
+			const text = animal.kind === 'dog' ? 'Hund' : 'Katze';
+			const className = animal.kind === 'dog' ? 'name-label animal dog' : 'name-label animal cat';
+			attachNameLabel(animal.labelAnchor, text, false, {
+				className,
+				maxDistance: 30,
+				feature: 'Animal_Labels',
+			});
+		}
 	}
 
 	public removeFromWorld(world: World): void
 	{
 		world.graphicsWorld.remove(this.dogMesh);
 		world.graphicsWorld.remove(this.catMesh);
+		for (const animal of this.animals)
+		{
+			world.graphicsWorld.remove(animal.labelAnchor);
+		}
 		this.world = null;
 	}
 
@@ -221,6 +246,15 @@ export class WanderingAnimals implements IWorldEntity
 
 			animal.position.addScaledVector(animal.velocity, dt);
 
+			// Keep the label anchor on top of the animal. CSS2DObject
+			// uses the world position of its parent, so updating the
+			// anchor each frame is what makes the tag follow.
+			animal.labelAnchor.position.set(
+				animal.position.x,
+				animal.position.y + 0.7,
+				animal.position.z,
+			);
+
 			// Stick to terrain. Ocean would pull the y to a low number;
 			// if the raycast misses (animal wandered off the map edge),
 			// nudge them back home.
@@ -267,6 +301,9 @@ export class WanderingAnimals implements IWorldEntity
 				const scale = kind === 'dog' ? 0.8 + rng() * 0.4 : 0.5 + rng() * 0.3;
 				const pos = new THREE.Vector3(x, y, z);
 
+				const labelAnchor = new THREE.Object3D();
+				labelAnchor.position.copy(pos);
+
 				this.animals.push(
 				{
 					kind,
@@ -280,6 +317,7 @@ export class WanderingAnimals implements IWorldEntity
 					scale,
 					interactionCount: 0,
 					homePosition: pos.clone(),
+					labelAnchor,
 				});
 				placed++;
 			}

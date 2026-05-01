@@ -26,3 +26,22 @@
 	color: #ffffff;
 	font-weight: var(--weight-bold);
 }
+
+/* Animal labels — hidden by default via Animal_Labels feature gate
+ * (WorldLabels toggles display:none). The kind sub-classes give each
+ * species a distinct background so dogs and cats are easy to scan. */
+.name-label.animal
+{
+	font-size: var(--text-overline);
+	padding: 1px var(--space-2);
+}
+
+.name-label.animal.dog
+{
+	background: rgba(139, 90, 43, 0.85);
+}
+
+.name-label.animal.cat
+{
+	background: rgba(120, 120, 130, 0.85);
+}
