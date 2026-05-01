@@ -45,6 +45,7 @@ import { PauseMenu } from './PauseMenu';
 import { DefaultDialogs } from './defaultDialogs';
 import { SettingsModal } from './SettingsModal';
 import { IrisTransition } from './IrisTransition';
+import { OutlineEffect } from './OutlineEffect';
 
 export class World
 {
@@ -90,6 +91,7 @@ export class World
 	public audioListener: THREE.AudioListener | null = null;
 	public gui: any;
 	public cameraShake: CameraShake;
+	public outlineEffect: OutlineEffect;
 
 	private lastScenarioID: string;
 
@@ -245,6 +247,11 @@ export class World
 		// world reference.
 		this.cameraShake = new CameraShake(this);
 		this.registerUpdatable(this.cameraShake);
+
+		// Outline effect — depth-based Sobel edges. Owned by World so the
+		// render pipeline can call its renderPass after the composer pass.
+		// No-op when params.Outlines is false.
+		this.outlineEffect = new OutlineEffect(this);
 
 		// Day / night cycle (ported from Inthenew/Sketchbook).
 		// Mirror sky.phi back into params.Sun_Elevation (folded over 180 so
@@ -475,6 +482,10 @@ export class World
 		// Actual rendering with a FXAA ON/OFF switch
 		if (this.params.FXAA) this.composer.render();
 		else this.renderer.render(this.graphicsWorld, this.camera);
+
+		// Depth-Sobel outline overlay — internally guarded by params.Outlines
+		// so a disabled toggle costs one branch per frame.
+		this.outlineEffect.renderPass();
 
 		// CSS2D pass projects each name-label div above its anchor
 		// world position. Cheap; no perf concerns at the scale of
@@ -1000,6 +1011,7 @@ export class World
 			SFX_Volume: 75,
 			Camera_Shake: true,
 			Engine_Sound: true,
+			Outlines: false,
 		};
 
 		const gui = new GUI();
@@ -1141,6 +1153,7 @@ export class World
 			});
 		settingsFolder.add(this.params, 'Camera_Shake');
 		settingsFolder.add(this.params, 'Engine_Sound');
+		settingsFolder.add(this.params, 'Outlines');
 
 		// Settings persistence (ported from Inthenew/Sketchbook).
 		// Snapshot defaults before restoring so Reset_World_Settings can
