@@ -77,12 +77,12 @@ const world = new Sketchbook.World('scene.glb');
 
 Many great changes happened across forks over the years, but they are spread out and hard to track in one place. The items below collect the next major integration targets.
 
-### Remaining Inthenew/Sketchbook features
+### Beyond Inthenew/Sketchbook
 
-[Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) is largely integrated. What we already have: day/night cycle, settings persistence with reset, boats with wave-riding physics, the wave-based ocean, three lap-tracked car races, the Boat Race scenario, AI path-following for boats, the rocketship vehicle, the planet-selection modal, the Earth↔Moon auto-flight + landing sequence, the Earth and Moon spheres in the sky, lunar gravity, the Gravity_Scale and Free_Cam_Speed sliders, free-camera teleport (`T`), and the controls-overlay toggle (`Z`). Pending:
+[Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) is fully integrated as of May 2026. The only items left are quality-of-life ideas that go beyond what their fork shipped:
 
-- **Vehicle settings GUI.** Inthenew exposes `Friction_Slip`, `Suspension_Stiffness`, `Max_Suspension`, `Damping_Compression`, `Damping_Relaxation`, `Engine_Force` and a per-folder reset button — none of those tunables are in our `lil-gui` panel yet.
-- **Boat-lap tracking** beyond what Inthenew shipped: their Boat Race has AI racers but no lap counter (their own README notes "for now only oval races track laps"). A generic path-node-pass-tracker would make Boat Race a real race against the AI.
+- **Boat-lap tracking.** Inthenew's Boat Race has AI racers but no lap counter (their README explicitly says "for now only oval races track laps"). A generic path-node-pass tracker — applicable to any race scenario — would turn Boat Race into a real race against the AI.
+- **`viewBack` / `centerHere` userData on vehicle camera empties.** Inthenew lets the level designer override the chase camera's distance and Y offset per vehicle via Blender custom properties. We currently hardcode the rocketship's larger chase distance; reading the GLB userData would generalise that to any vehicle.
 - Optional: replace the wave ocean with [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map) for GPGPU-driven normals.
 
 ### Other forks worth mining
@@ -96,24 +96,45 @@ Many great changes happened across forks over the years, but they are spread out
 
 # Project timeline
 
+## May 2026 update — [manuelhintermayr](https://github.com/manuelhintermayr)
+
+Bumped to **0.5.0**. With the toolchain stable from the April work, this round was a feature push: the boats / ocean / races, Joy-Con support, and finally the full rocketship + moon system from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook). Inthenew is now fully integrated.
+
+Highlights:
+
+- **Day/night cycle** with two GUI toggles, settings persistence to `localStorage`, and a Reset_World_Settings button.
+- **Wave-based ocean** (vertex displacement, height query for buoyancy) replacing the original flat fragment-shader water.
+- **Boats** with wave-riding physics, AI path-following adapted to wave height, and a Boat Race scenario.
+- **Lap tracking** for the three car races (Oval / Tunnel / Figure 8) with an on-screen counter.
+- **Rocketship vehicle**: chassis collision, rotor visuals, additive smoke particle system, four-stage automated liftoff, planet-selection modal, Earth↔Moon flight animation, soft auto-landing on either pad.
+- **Earth and Moon** as celestial bodies in the sky; the moon-surface mesh in the map gets its own texture; the sky shader hides above the launch apex so space reads as black.
+- **Lunar gravity** kicks in on the moon (~1.62 m/s², matching the real moon).
+- **Vehicles GUI folder** with six per-car tuning sliders (Friction_Slip, Suspension_Stiffness, Max_Suspension, Damping_Compression, Damping_Relaxation, Engine_Force) that apply to currently spawned cars and to any future spawns.
+- **World GUI extras**: Gravity_Scale slider (0–2×), Free_Cam_Speed slider (1–100).
+- **Free-camera quality-of-life**: `T` teleports the player (or driven vehicle) to the camera target, `Z` toggles the on-screen controls overlay, and the in-vehicle first-person camera slerps back to face forward after ~400 ms of no mouse movement.
+- **Joy-Con / gamepad** integration via [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). The original commits were preserved via `git format-patch` / `git am`, so [Bar Hatsor](https://github.com/barhatsor)'s authorship and timestamps remain intact in `git log`. The controller layer (`joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`, `audio/horn.wav`) is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` dependency was vendored under `vendor/joycon/`.
+
+How the Inthenew port is structured: Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible. Instead each feature ports as its own commit with `--author=inthenew <matthew@slocum.io>` and the original commit date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, the race-track path nodes, the rocketship spawn and the rocket-island launch pad all line up with the ocean shader's hand-tuned constants and the rocketship's flight coordinates.
+
+**Asset re-creation:** Inthenew's upstream hotlinks several third-party images that we couldn't legally vendor (DeviantArt fan-art for the Earth sphere, an Adobe Stock smoke particle, Future plc / Wikipedia / Farmers Almanac photos for the Earth and Moon, an anonymous Imgur upload, a dead Glitch CDN). All of those were replaced with DALL-E generated equivalents shipped in `src/img/` (`equirectangular-earth.png`, `equirectangular-moon.png`, `hemisphere-earth.png`, `full-moon.png`, `moon-with-flowers.png`, `smoke.png`). Visual style is comparable; licensing is clean.
+
+Full technical details are available in the commit history on branches `claude/joycon-integration`, `claude/inthenew-day-night-extras`, `claude/inthenew-boats-water`, and `claude/inthenew-rocketship-moon`.
+
 ## April 2026 update — [manuelhintermayr](https://github.com/manuelhintermayr)
 
-Continuing from [cjmott](https://github.com/cjmott)'s September 2024 work, this update focuses on modernization, cleanup, and long-term maintainability.
+Continuing from [cjmott](https://github.com/cjmott)'s September 2024 work, this update focused on modernization, cleanup, and long-term maintainability.
 
 In short: dependencies were updated, old vendored code was replaced with maintained npm packages, and unused legacy files were removed. The goal was to keep Sketchbook stable on current tooling while reducing technical debt.
 
 Highlights:
 
-- Updated core libraries and the build/lint toolchain to current versions.
-- Replaced legacy in-repo utility copies with actively maintained packages.
+- Updated core libraries and the build/lint toolchain to current versions (TypeScript 6, ESLint, three.js r183, webpack 5).
+- Replaced legacy in-repo utility copies with actively maintained packages (lil-gui, stats.js, three's WebGL helper, cannon-es-debugger).
 - Fixed a few runtime and compatibility issues discovered during the upgrade.
 - Removed outdated or unused code paths and old build artifacts from version control.
 - Kept behavior and architecture largely the same, but made the project easier to maintain.
-- Integrated the Joy-Con / gamepad layer from [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). The original commits were preserved via `git format-patch` / `git am`, so [Bar Hatsor](https://github.com/barhatsor)'s authorship and timestamps remain intact in `git log`. The controller layer (`joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`, `audio/horn.wav`) is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched. The previously external `cdn.cde.run/Joycon.min.js` dependency was vendored under `vendor/joycon/` to remove the unpinned CDN reference.
-- Bumped to 0.5.0 (loading screen, package.json, package-lock.json, production banner).
-- Ported most of [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) (also MIT). Done so far: day/night cycle; settings persistence (`localStorage`) with a Reset_World_Settings button; wave-based ocean; boats with wave-riding physics; three lap-tracked car races (Oval / Tunnel / Figure 8); the Boat Race scenario; AI path-following for boats; the rocketship vehicle with smoke particles; the four-stage automated liftoff and Earth↔Moon flight + auto-landing sequence; the Earth and Moon spheres in the sky and the moon-surface mesh in the map; lunar gravity via `world.onMoon`; Gravity_Scale and Free_Cam_Speed sliders; free-camera teleport (`T`); the controls-overlay toggle (`Z`). Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible; instead each feature ports as its own commit with `--author=inthenew <matthew@slocum.io>` and the original commit date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, the race-track path nodes, the rocketship spawn, and the rocket-island launch pad all line up with the ocean shader's hand-tuned constants and the rocketship flight coordinates. Several texture URLs Inthenew hotlinked from third parties (DeviantArt, Adobe Stock, Future plc CDN, farmersalmanac, an anonymous Imgur, a dead Glitch upload) were replaced with DALL-E generated equivalents under `src/img/`, and the smoke particle replaced an Adobe Stock asset.
 
-Full technical details are available in the commit history on branches `claude/migrate-libraries-ZsEcJ`, `claude/joycon-integration`, `claude/inthenew-day-night-extras`, `claude/inthenew-boats-water`, and `claude/inthenew-rocketship-moon`.
+Full technical details are available in the commit history on branch `claude/migrate-libraries-ZsEcJ`.
 
 ## September 2024 update — [cjmott](https://github.com/cjmott) ([commit](https://github.com/cjmott/Sketchbook/commit/088fffc743818d13babeecd87c8ba3165cf13fcb))
 
