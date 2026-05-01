@@ -7,6 +7,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader  } from 'three/examples/jsm/shaders/FXAAShader.js';
+import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
 import Stats from 'stats.js';
@@ -43,6 +44,7 @@ import { NPCSpawnPoint } from './NPCSpawnPoint';
 export class World
 {
 	public renderer: THREE.WebGLRenderer;
+	public labelRenderer: CSS2DRenderer;
 	public camera: THREE.PerspectiveCamera;
 	public composer: any;
 	public stats: Stats;
@@ -141,8 +143,21 @@ export class World
 			scope.renderer.setSize(window.innerWidth, window.innerHeight);
 			fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * pixelRatio), 1 / (window.innerHeight * pixelRatio));
 			scope.composer.setSize(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
+			scope.labelRenderer.setSize(window.innerWidth, window.innerHeight);
 		}
 		window.addEventListener('resize', onWindowResize, false);
+
+		// CSS2D label overlay — drives the name tags above each character.
+		// Pattern is the one socketControl uses (a parallel renderer that
+		// projects HTML divs to screen-space at the object's world
+		// position). pointerEvents=none so labels never eat clicks.
+		this.labelRenderer = new CSS2DRenderer();
+		this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+		this.labelRenderer.domElement.id = 'labelRenderer';
+		this.labelRenderer.domElement.style.position = 'absolute';
+		this.labelRenderer.domElement.style.top = '0';
+		this.labelRenderer.domElement.style.pointerEvents = 'none';
+		document.body.appendChild(this.labelRenderer.domElement);
 
 		// Three.js scene
 		this.graphicsWorld = new THREE.Scene();
@@ -434,6 +449,11 @@ export class World
 		if (this.params.FXAA) this.composer.render();
 		else this.renderer.render(this.graphicsWorld, this.camera);
 
+		// CSS2D pass projects each name-label div above its anchor
+		// world position. Cheap; no perf concerns at the scale of
+		// "a few NPCs and a player".
+		this.labelRenderer.render(this.graphicsWorld, this.camera);
+
 		// Measuring render time
 		this.renderDelta = this.stopwatchDelta();
 	}
@@ -677,27 +697,50 @@ export class World
 		const defaultScenario = this.scenarios.find((s) => s.id === 'default');
 		if (defaultScenario === undefined) return;
 
-		// Picked from poking around the Inthenew default spawn — a few
-		// figures standing in a loose arc near the player spawn, plus one
-		// further out so the world doesn't look empty after walking.
-		const npcPositions: { x: number, y: number, z: number, faceX?: number, faceZ?: number }[] = [
-			{ x: 5, y: 18, z: -5, faceX: -1, faceZ: 0 },
-			{ x: -5, y: 18, z: -5, faceX: 1, faceZ: 0 },
-			{ x: 0, y: 18, z: 1, faceX: 0, faceZ: -1 },
-			{ x: -2, y: 18, z: -12, faceX: 0, faceZ: 1 },
+		// Build a synthetic 4-node loop near the spawn and register it
+		// as a Path so two NPCs can FollowPath their way around it.
+		// Same pattern Test3Scene uses (data:'pathNode', nextNode/
+		// previousNode userData wiring) so we don't need a new code
+		// path on the consumer side.
+		const pathRoot = new THREE.Object3D();
+		pathRoot.userData = { data: 'path', name: 'default_npc_loop' };
+		const loopNodes: { name: string, prev: string, next: string, x: number, z: number }[] = [
+			{ name: 'npc_node_1', prev: 'npc_node_4', next: 'npc_node_2', x:  8, z:  5 },
+			{ name: 'npc_node_2', prev: 'npc_node_1', next: 'npc_node_3', x:  8, z: -5 },
+			{ name: 'npc_node_3', prev: 'npc_node_2', next: 'npc_node_4', x: -8, z: -5 },
+			{ name: 'npc_node_4', prev: 'npc_node_3', next: 'npc_node_1', x: -8, z:  5 },
+		];
+		for (const n of loopNodes)
+		{
+			const node = new THREE.Object3D();
+			node.name = n.name;
+			node.position.set(n.x, 18, n.z);
+			node.userData = { data: 'pathNode', name: n.name, previousNode: n.prev, nextNode: n.next };
+			pathRoot.add(node);
+		}
+		defaultScenario.rootNode.add(pathRoot);
+		this.paths.push(new Path(pathRoot));
+
+		// Two walking NPCs (Anna, Ben) trace the loop in opposite
+		// directions; two standing NPCs (Carla, Dieter) flank the
+		// player spawn so the area still has visible occupants.
+		const npcSpawns: { x: number, y: number, z: number, faceX?: number, faceZ?: number, name: string, firstNode?: string }[] = [
+			{ x:  8, y: 18, z:  5, name: 'Anna',   firstNode: 'npc_node_1' },
+			{ x: -8, y: 18, z: -5, name: 'Ben',    firstNode: 'npc_node_3' },
+			{ x:  3, y: 18, z:  1, faceX: 0,  faceZ: -1, name: 'Carla'  },
+			{ x: -3, y: 18, z:  1, faceX: 0,  faceZ: -1, name: 'Dieter' },
 		];
 
-		for (const p of npcPositions)
+		for (const s of npcSpawns)
 		{
 			const marker = new THREE.Object3D();
-			marker.position.set(p.x, p.y, p.z);
-			if (p.faceX !== undefined && p.faceZ !== undefined)
+			marker.position.set(s.x, s.y, s.z);
+			if (s.faceX !== undefined && s.faceZ !== undefined)
 			{
-				// Sketchbook's getForward reads the marker's local -Z;
-				// orient the marker so its forward matches our desired
-				// facing.
-				marker.lookAt(p.x + p.faceX, p.y, p.z + p.faceZ);
+				marker.lookAt(s.x + s.faceX, s.y, s.z + s.faceZ);
 			}
+			marker.userData.name = s.name;
+			if (s.firstNode !== undefined) marker.userData.first_node = s.firstNode;
 			defaultScenario.rootNode.add(marker);
 			defaultScenario.spawnPoints.push(new NPCSpawnPoint(marker));
 		}

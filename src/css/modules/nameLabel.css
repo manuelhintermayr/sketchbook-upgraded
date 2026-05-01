@@ -1,0 +1,24 @@
+/* CSS2D name tags above characters. Pattern from tkkaushik369/socketControl
+   (the .label / .label.me distinction is theirs). pointer-events:none so
+   labels never eat clicks; transform:translate(-50%,-100%) anchors the
+   tag's bottom-center on its world position. */
+
+.name-label {
+	position: absolute;
+	transform: translate(-50%, -100%);
+	padding: 2px 8px;
+	background: rgba(0, 0, 0, 0.55);
+	color: #ffffff;
+	font-family: system-ui, sans-serif;
+	font-size: 12px;
+	font-weight: 500;
+	border-radius: 4px;
+	white-space: nowrap;
+	pointer-events: none;
+	user-select: none;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.name-label.me {
+	background: rgba(40, 100, 200, 0.65);
+}

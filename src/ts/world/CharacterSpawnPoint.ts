@@ -4,6 +4,7 @@ import { World } from './World';
 import { Character } from '../characters/Character';
 import { LoadingManager } from '../core/LoadingManager';
 import * as Utils from '../core/FunctionLibrary';
+import { attachNameLabel } from './NameLabel';
 
 export class CharacterSpawnPoint implements ISpawnPoint
 {
@@ -29,6 +30,7 @@ export class CharacterSpawnPoint implements ISpawnPoint
 			
 			world.add(player);
 			player.takeControl();
+			attachNameLabel(player, 'Du', true);
 		});
 	}
 }

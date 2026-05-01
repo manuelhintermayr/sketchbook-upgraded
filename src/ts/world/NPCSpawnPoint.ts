@@ -5,6 +5,9 @@ import { Character } from '../characters/Character';
 import { FollowPath } from '../characters/character_ai/FollowPath';
 import { LoadingManager } from '../core/LoadingManager';
 import * as Utils from '../core/FunctionLibrary';
+import { attachNameLabel } from './NameLabel';
+
+let anonymousNpcCounter = 1;
 
 // Static "multiplayer-style" NPC. Spawns the same boxman model the
 // player uses but never calls takeControl(), so the character settles
@@ -43,6 +46,14 @@ export class NPCSpawnPoint implements ISpawnPoint
 			npc.setOrientation(forward, true);
 
 			world.add(npc);
+
+			// Name tag — userData.name from the marker if authored,
+			// otherwise auto-numbered NPC#1/NPC#2/… so the player can
+			// still distinguish them.
+			const tag = (typeof this.object.userData.name === 'string' && this.object.userData.name.length > 0)
+				? this.object.userData.name
+				: `NPC #${anonymousNpcCounter++}`;
+			attachNameLabel(npc, tag, false);
 
 			// Path-following NPC. Speed parameter mirrors the AI vehicle
 			// drivers — see VehicleSpawnPoint where it picks 10 too.

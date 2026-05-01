@@ -7,205 +7,143 @@
 
 # 📒 Sketchbook
 
-Originally created by [swift502](https://github.com/swift502). This repository is a maintained fork with later updates from the community.
+A maintained extension of the original [swift502/Sketchbook](https://github.com/swift502) — a small web-based game engine on [three.js](https://github.com/mrdoob/three.js) and [cannon-es](https://github.com/pmndrs/cannon-es) with a focus on third-person controls, vehicles and scripted scenarios.
 
-Simple web based game engine built on [three.js](https://github.com/mrdoob/three.js) and [cannon-es](https://github.com/pmndrs/cannon-es) focused on third-person character controls and related gameplay mechanics.
-
-Mostly a playground for exploring how conventional third person gameplay mechanics found in modern games work and recreating them in a general way.
+This fork pulls in the features from later community forks that I felt were worth keeping, rebuilds the project on current tooling (TypeScript, three.js r183, webpack 5; dependency baseline as of **1 May 2026**) and exposes everything through one engine. See the [project timeline](#project-timeline) for who did what.
 
 ## Features
 
-* World
-	* Three.js scene
-	* Cannon-es physics with adjustable Gravity_Scale (0–2×) and lunar gravity on the moon
-	* Variable timescale
-	* Frame skipping
-	* FXAA anti-aliasing
-	* Cascaded shadow maps (via three.js' built-in CSM)
-	* Wave-based ocean with vertex displacement and a height query for buoyancy
-	* Day / night cycle (toggle in the World GUI folder)
-	* Earth and Moon visible as celestial bodies; sky shader hides above the launch apex so space reads as black
-	* GUI settings persisted to localStorage with a reset button
-* Characters
-	* Third-person camera
-	* Raycast character controller with capsule collisions
-	* General state system
-	* Character AI (path-following for cars and boats)
-* Vehicles
-	* Cars
-	* Airplanes
-	* Helicopters
-	* Boats (with wave-riding physics)
-	* RocketShip with smoke particles and a planet-select modal that flies the player Earth↔Moon
-* Scenarios
-	* Free roam (default and aviation)
-	* Race tracks: Oval / Tunnel / Figure 8 with lap tracking, Boat Race
-* Maps (switchable from the **Scenarios** GUI panel, persists to `localStorage`, page reloads on change):
-	* `Inthenew (v0.6, default)` — the bundled `world.glb`
-	* `sketchbook v0.3 (socketControl)` — `world_v3.1.glb` from socketControl, the one with the `grass` material
-	* `sketchbook v0.4 (socketControl)` — `world_v4.glb` from socketControl, full scenario set
-	* Four code-built sandboxes ported from socketControl: `test`, `test2`, `test3`, `example` — `BaseScene` subclasses that build their world procedurally at runtime; editable as TypeScript (no GLB)
-* Map authoring conventions (any of the above triggers code-side features):
-	* `material.name === 'grass'` → instanced 300k-blade grass field with a 30-unit LOD
-	* `userData.data === 'speaker'` + `userData.audio` → 3D positional audio source with autoplay-policy gating
-	* `userData.type === 'cylinder'` (on physics empties) → CANNON cylinder collider
-	* `userData.type === 'shape'` + `subtype` `box`/`sphere` (on spawn empties) → dynamic CANNON body the player can knock around
-	* `userData.type === 'npc'` / `character_ai` / `character_follow` (on spawn empties) → standing or path-following Character (NPC)
-* Free camera (`Shift+C`)
-	* Adjustable speed via Free_Cam_Speed slider
-	* `T` teleports the player (or driven vehicle) to the camera target
-	* `Z` toggles the on-screen controls overlay
-* Input
-	* Keyboard and mouse
-	* Joy-Con / gamepad via [benhatsor/joycon.js](https://github.com/benhatsor/joycon.js)
+### World
+
+- Day / night cycle with a sky shader, sun position controls, and a black space backdrop above the launch apex.
+- Earth and Moon visible as celestial bodies; lunar gravity (~1.62 m/s²) kicks in on the moon.
+- Wave-based ocean with vertex displacement and a height query that boats actually ride.
+- Procedural [300k-blade grass field](https://www.eddietree.com/grass) (instanced, 30-unit LOD) — wired to any map material called `grass`.
+- 3D positional audio sources ("Speaker") with browser-autoplay handling.
+- Variable timescale, FXAA, cascaded shadow maps, adjustable gravity (0–2×).
+- All settings persist to `localStorage` with a one-click reset.
+
+### Characters & NPCs
+
+- Third-person camera, raycast capsule controller, full state machine (Sprint, Walk, Idle, Jump, Falling, Drop variants…).
+- AI path-following — same convention used by both the AI vehicle drivers and standing/wandering NPCs.
+- Name labels float above every character via a CSS2D pass; the player is tagged "Du" and stands out in blue.
+- Two example NPCs walk a small loop at the default spawn, two more flank the player on idle.
+
+### Vehicles
+
+- Cars (with per-vehicle tuning sliders for friction, suspension, damping and engine force).
+- Airplanes, helicopters.
+- Boats with wave-riding physics and wave-aware AI path-following.
+- Rocketship — 4-stage liftoff, smoke particle trail, planet-selection modal, automated Earth↔Moon transfer with soft auto-landing.
+
+### Scenarios & Maps
+
+- Free-roam (default and aviation), Oval / Tunnel / Figure-8 car races, Boat Race, stunt ramps.
+- Curve-based race-checkpoint system with a HUD lap counter.
+- Switchable maps from the **Scenarios** GUI panel (persists across reloads):
+	- `Inthenew (v0.6, default)` — the bundled extended map
+	- `sketchbook v0.3 (socketControl)` — original Sketchbook map with the grass material
+	- `sketchbook v0.4 (socketControl)` — original Sketchbook map, full scenario set
+	- Four code-built sandboxes from socketControl: `test`, `test2`, `test3`, `example` (TypeScript, editable directly)
+- Compatibility with the [official three.js editor](https://threejs.org/editor/) — the sandbox project file is vendored under `ThreejsEditor/`.
+
+### Authoring & extensibility
+
+Map markers in `userData` light up code-side features automatically:
+
+| Marker | Effect |
+|---|---|
+| `material.name === 'grass'` | Instanced grass field |
+| `userData.data === 'speaker'` + `audio` | 3D positional audio source |
+| `userData.type === 'cylinder'` | CANNON cylinder collider |
+| `userData.type === 'shape'` + `subtype: box`/`sphere` | Dynamic physics primitive |
+| `userData.type === 'npc'` / `character_ai` / `character_follow` | Standing or path-following NPC |
+
+### Input
+
+- Keyboard + mouse, free camera (`Shift+C`, `T` to teleport, `Z` to toggle the controls overlay).
+- Joy-Con / gamepad via [benhatsor/joycon.js](https://github.com/benhatsor/joycon.js).
 
 ## Usage
 
-You can define your own scenes in Blender, and then read them with Sketchbook. Sketchbook needs to run on a local server such as [http-server](https://www.npmjs.com/package/http-server) or [webpack-dev-server](https://github.com/webpack/webpack-dev-server) to be able to load external assets.
-
-1. Import:
+Sketchbook needs to run on a local server (e.g. `npm run dev`) to load assets.
 
 ```html
 <script src="sketchbook.min.js"></script>
-```
-
-2. Load a glb scene defined in Blender:
-
-```javascript
-const world = new Sketchbook.World('scene.glb');
+<script>
+	const world = new Sketchbook.World('scene.glb');
+	// or pass a sandbox instance:
+	// const world = new Sketchbook.World(new Sketchbook.Test3Scene());
+</script>
 ```
 
 ## Running locally
 
-1. Install a current LTS version of [Node.js](https://nodejs.org/en/)
-2. [Fork this repository](https://help.github.com/en/github/getting-started-with-github/fork-a-repo)
-3. `npm install`
-4. `npm run build` (produces `build/sketchbook.min.js`; required before the first `npm run dev` because the bundle is no longer committed)
-5. `npm run dev` and open <http://localhost:8080>
-6. `npm run lint` to run ESLint over `src/ts/`
+1. Install a current LTS version of [Node.js](https://nodejs.org/en/).
+2. `npm install`
+3. `npm run build` — required before the first `npm run dev` because `build/sketchbook.min.js` is no longer committed.
+4. `npm run dev` and open <http://localhost:8080>.
+5. `npm run lint` to run ESLint over `src/ts/`.
 
 ---
 
 # Project timeline
 
+> **Attribution policy:** every port below tries to preserve the original commits or at least the original authors via `git format-patch` / `git am` or `git commit --author="…" --date="…"`. The intent is to honour each upstream author's work — and only their work — in `git log`.
+
 ## May 2026 — external-features port ([manuelhintermayr](https://github.com/manuelhintermayr))
 
-Mines features that aren't gameplay-shipped by Inthenew but live in adjacent forks: [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl) (MIT) and [iErcann/Notblox](https://github.com/iErcann/Notblox). Multiplayer/networking layers are deliberately skipped — only the single-player-applicable systems land here. Each block ships as its own commit; where the upstream author is identifiable the commit is `--author="…"` to preserve attribution in `git log`.
+Mines features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl) (MIT) and [iErcann/Notblox](https://github.com/iErcann/Notblox), skipping their multiplayer layers entirely. Each feature ships as its own commit attributed to the upstream author where identifiable.
 
-Highlights:
+What landed: curve-based race tracking with checkpoint planes; instanced grass field with LOD; 3D positional audio Speaker; CylinderCollider + SphereCollider; ShapeSpawnPoint for dynamic box/sphere primitives; TriggerCube + ProximityPrompt; NPC system (standing or path-following) with floating name tags via a CSS2D pass; sketchbook v0.3 + v0.4 maps from socketControl plus four code-built sandbox scenes (`test`, `test2`, `test3`, `example`); Scenarios-panel map switcher; THREE.js Editor compatibility (`ThreejsEditor/project.json`).
 
-- **Race-checkpoint system (Block 1).** Replaces the per-scenario hardcoded x/z lap zones and the linear-distance Boat-Race tracker with one curve-based system from socketControl: walks the AI driver's `first_node` through the path graph, fits a CatmullRom curve, drops a 40 × 14 trigger plane at every node, watches the camera for plane crossings. ~200 LOC of bespoke per-race code replaced by 273 LOC of generic system. (`src/ts/world/RaceCheckpoint.ts`, `RaceContent.ts`)
-- **Grass field (Block 2).** Instanced 300k-blade lawn from socketControl. Map authoring marks a flat patch with `material.name === 'grass'`. Custom vertex/fragment shader, Perlin noise, 30-unit LOD swap to an empty mesh past the threshold so the draw call costs nothing once the player walks away. Blade textures originally from Eddie Lee's 2010 "Realistic real-time grass rendering" demo. (`src/ts/world/Grass.ts` + `GrassShader.ts` + `Perlin.ts`)
-- **Speaker (Block 3).** 3D positional audio source. Spawn marker `userData.data === 'speaker'` with `userData.audio` URL spawns a yellow wireframe sphere with a `THREE.PositionalAudio` attached. Autoplay-policy gating queues sources on a single `pointerdown`/`keydown` listener so multiple speakers start in sync. socketControl's `HTMLMesh`-based per-speaker UI was dropped — single-player Sketchbook has no XR controller story. (`src/ts/world/Speaker.ts`)
-- **CylinderCollider (Block 6).** Mirrors `BoxCollider`/`TrimeshCollider` for `CANNON.Cylinder`. `World.loadScene` recognises `userData.type === 'cylinder'`. (`src/ts/physics/colliders/CylinderCollider.ts`)
-- **ShapeSpawnPoint (Block 7).** Dynamic box/sphere primitives. Spawn marker `userData.type === 'shape'` with `subtype` `box`/`sphere` becomes a CANNON-driven body the player can knock around. socketControl's three-class `ShapeEntityBase` / `BoxShapeEntity` / `SphereShapeEntity` hierarchy is collapsed into one `ShapeEntity` since we don't need their per-frame `Out()`/`Set()` snapshots. (`src/ts/world/ShapeEntity.ts`, `ShapeSpawnPoint.ts`, `physics/colliders/SphereCollider.ts`)
-- **TriggerCube + ProximityPrompt (Block 8).** Concept ported from iErcann/Notblox. `TriggerCube` is a per-frame AABB check against the player position with `onEnter`/`onExit` callbacks (no CANNON sensor body — cheaper for single-player). `ProximityPrompt` wraps it with a screen-space HUD label and a debounced `E`-key callback. The Notblox ECS architecture is dropped; both classes implement `IUpdatable` directly. (`src/ts/world/TriggerCube.ts`, `ProximityPrompt.ts`)
-- **NPCs (Block 9).** `NPCSpawnPoint` reuses `boxman.glb` but never calls `takeControl()` — the character lands in `Idle` and stays put. If `userData.first_node` is set the NPC gets a `FollowPath` behaviour instead, same convention as the AI vehicle drivers. Recognised types: `npc`, `character_ai`, `character_follow` (the latter two for compatibility with socketControl's procedural sandboxes). Four NPCs are programmatically injected around the Inthenew default-spawn area since neither map has authored NPC markers. (`src/ts/world/NPCSpawnPoint.ts`)
-- **Map switcher (Scenarios GUI dropdown).** The bundled `world.glb` (Inthenew, default) plus six socketControl additions: `world_v3.1.glb` (with the grass material baked in), `world_v4.glb` (full scenario set, no grass), and the four `BaseScene` sandboxes (`test`, `test2`, `test3`, `example`) that build their world procedurally at runtime. Choice persists to `localStorage`; selecting reloads the page. (`src/ts/world/sandboxes/`)
-- **THREE.js Editor compatibility.** socketControl mentions in its README that map files can be opened directly in the [official three.js editor](https://threejs.org/editor/). The `ThreejsEditor/project.json` from upstream is vendored as-is so that workflow keeps working from this fork.
+Skipped: water (Inthenew's wave ocean is better), extended character states (already in upstream), all multiplayer/ECS/networking plumbing.
 
-Block 4 (Water) was deliberately skipped — Inthenew already ships a wave-based ocean that supersedes socketControl's. Block 5 (Extended Character States) was a no-op — Sprint, JumpRunning, IdleRotateLeft/Right, etc. are all already in upstream Sketchbook.
-
-socketControl's grass / speaker / cylinder / shape / npc / trigger code paths exist in their codebase too but were never wired up to any of their `.glb` maps (e.g. `SpeakerClient` is commented out in `WorldClient.ts:477`). The systems sleep in the same way here: they activate when a map carries the right markers, and the four `BaseScene` sandboxes are the only ones with markers actually authored.
-
-Full technical details on branch `claude/external-features`.
+Branch: `claude/external-features`.
 
 ## May 2026 — version 0.6.0 — Inthenew port ([manuelhintermayr](https://github.com/manuelhintermayr))
 
-Ports the bulk of [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) into this fork. The "0.6.0" label tracks the upstream feature set — the credit for the gameplay design and original implementation belongs to [Inthenew](https://github.com/Inthenew); this entry is about pulling that work in cleanly.
+Pulls in [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook): day/night cycle, wave-based ocean replacing the original flat water, boats with wave-aware physics + Boat Race scenario, lap tracking on the three car races, the full Rocketship feature (chassis, smoke particles, planet-select modal, Earth↔Moon flight + auto-landing), Earth + Moon as celestial bodies, lunar gravity, Vehicles GUI tuning sliders, Free-camera quality-of-life (`T` teleport, `Z` overlay toggle, return-to-forward slerp).
 
-Highlights:
+Inthenew squashes upstream commits, so each feature was re-ported individually with `--author="inthenew <matthew@slocum.io>"` and the original date. The level (`build/assets/world.glb`) was replaced with Inthenew's so all the hand-tuned coordinates (no-wave dock zone, race paths, rocket island) stay in sync.
 
-- **Day/night cycle** with two GUI toggles, settings persistence to `localStorage`, and a Reset_World_Settings button.
-- **Wave-based ocean** (vertex displacement, height query for buoyancy) replacing the original flat fragment-shader water.
-- **Boats** with wave-riding physics, AI path-following adapted to wave height, and a Boat Race scenario.
-- **Lap tracking** for the three car races (Oval / Tunnel / Figure 8) with an on-screen counter.
-- **Rocketship vehicle**: chassis collision, rotor visuals, additive smoke particle system, four-stage automated liftoff, planet-selection modal, Earth↔Moon flight animation, soft auto-landing on either pad.
-- **Earth and Moon** as celestial bodies in the sky; the moon-surface mesh in the map gets its own texture; the sky shader hides above the launch apex so space reads as black.
-- **Lunar gravity** kicks in on the moon (~1.62 m/s², matching the real moon).
-- **Vehicles GUI folder** with six per-car tuning sliders (Friction_Slip, Suspension_Stiffness, Max_Suspension, Damping_Compression, Damping_Relaxation, Engine_Force) that apply to currently spawned cars and to any future spawns.
-- **World GUI extras**: Gravity_Scale slider (0–2×), Free_Cam_Speed slider (1–100).
-- **Free-camera quality-of-life**: `T` teleports the player (or driven vehicle) to the camera target, `Z` toggles the on-screen controls overlay, and the in-vehicle first-person camera slerps back to face forward after ~400 ms of no mouse movement.
-- **Per-vehicle camera tweaks** via `viewBack` and `centerHere` userData on the GLB camera empty.
+**Asset re-creation:** Inthenew's upstream hotlinked six third-party images that couldn't legally be vendored (DeviantArt fan-art, an anonymous Imgur upload, Farmers Almanac and Adobe Stock photos, a Future plc CDN asset, and a Wikimedia photo with attribution requirements). All were dropped and replaced with DALL-E generated equivalents shipped under `src/img/` — same intent and visual style, no licence baggage.
 
-How the port is structured: Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible. Instead each feature ports as its own commit with `--author=inthenew <matthew@slocum.io>` and the original commit date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, the race-track path nodes, the rocketship spawn and the rocket-island launch pad all line up with the ocean shader's hand-tuned constants and the rocketship's flight coordinates.
-
-**Asset re-creation:** Inthenew's upstream hotlinks several third-party images that couldn't legally be vendored. To keep the visuals while clearing the licence problems, each was replaced with a DALL-E generated equivalent shipped under `src/img/`:
-
-| Local file | Replaces | Used for |
-|---|---|---|
-| `equirectangular-earth.png` | DeviantArt fan-art (`wixmp.com`, JWT-signed hotlink, "all rights reserved") | Earth sphere texture in `Sky.ts`, mapped onto the radius-5010 globe at the world origin |
-| `equirectangular-moon.png` | Anonymous Imgur upload (`i.imgur.com/KnkC177.jpg`, lifecycle uncertain) | Moon sphere texture in `Sky.ts`, mapped onto the radius-626 sphere at the moon position |
-| `moon-with-flowers.png` | Farmers Almanac article photo (`farmersalmanac.com/wp-content/uploads/...`, proprietary) | Moon-surface mesh material in `world.glb` (Inthenew named the mesh `Layer0_001`) |
-| `hemisphere-earth.png` | Future plc CDN (`cdn.mos.cms.futurecdn.net`, Space.com asset, proprietary) | Earth icon in the planet-selection modal that opens during the rocketship's apogee |
-| `full-moon.png` | Wikimedia Commons photo by Gregory H. Revera (CC-BY-SA-3.0; usable, but requires attribution that we can avoid by re-generating) | Moon icon in the planet-selection modal |
-| `smoke.png` | Adobe Stock asset (`ftcdn.net/.../541631242`, proprietary, hotlinking violates Adobe Stock terms) | Additive-blended particle texture for the rocketship's liftoff smoke |
-
-DALL-E prompts targeted the same intent and visual style (equirectangular world maps for the spheres, hemispheric "blue marble" framing for the modal icon, white smoke on pure black for additive blending). Cube352 — a small map mesh Inthenew textured from a Glitch CDN that has since gone dead — was dropped entirely; the upstream URL is unreachable and the user confirmed the case was unused.
-
-Full technical details on branches `claude/inthenew-day-night-extras`, `claude/inthenew-boats-water`, and `claude/inthenew-rocketship-moon`.
+Branches: `claude/inthenew-day-night-extras`, `claude/inthenew-boats-water`, `claude/inthenew-rocketship-moon`.
 
 ## May 2026 — version 0.5.0 — Joy-Con port ([manuelhintermayr](https://github.com/manuelhintermayr))
 
-Adds the Joy-Con / gamepad support originally written by [Bar Hatsor](https://github.com/barhatsor) in [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). The "0.5.0" label tracks Bar Hatsor's upstream feature; this entry is about integrating it cleanly.
+Adds Joy-Con / gamepad support originally written by [Bar Hatsor](https://github.com/barhatsor) in [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). Original commits preserved via `format-patch` / `am`. The controller layer only synthesises keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` was vendored under `vendor/joycon/`.
 
-The original commits were preserved via `git format-patch` / `git am`, so Bar Hatsor's authorship and timestamps remain intact in `git log`. The controller layer (`joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`, `audio/horn.wav`) is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` dependency was vendored under `vendor/joycon/`.
-
-Full technical details on branch `claude/joycon-integration`.
-
-## April 2026 update — toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr))
-
-A second pass over the toolchain on top of [cjmott](https://github.com/cjmott)'s September 2024 work. Dependencies were updated, old vendored utilities were replaced with maintained npm packages, and unused legacy files were removed. The goal was to keep Sketchbook stable on current tooling while reducing technical debt — no gameplay changes here, those start in May.
-
-Highlights:
-
-- Updated core libraries and the build/lint toolchain to current versions (TypeScript 6, ESLint, three.js r183, webpack 5).
-- Replaced legacy in-repo utility copies with actively maintained packages (lil-gui, stats.js, three's WebGL helper, cannon-es-debugger).
-- Fixed a few runtime and compatibility issues discovered during the upgrade.
-- Removed outdated or unused code paths and old build artifacts from version control.
-- Kept behavior and architecture largely the same, but made the project easier to maintain.
-
-Full technical details on branch `claude/migrate-libraries-ZsEcJ`.
+Branch: `claude/joycon-integration`.
 
 ## September 2024 — version 0.4.1 — [cjmott](https://github.com/cjmott) ([commit](https://github.com/cjmott/Sketchbook/commit/088fffc743818d13babeecd87c8ba3165cf13fcb))
 
-> I plan to use Sketchbook as a basis to develop another project, so I have updated the code to run on the latest version of all the packages and switched from cannon.js, which is no longer maintained, to cannon-es.js. This version should build and run locally using `npm`.
->
-> The biggest change has involved updating to the new version of THREE.js, which no longer supports the object types `Geometry` and `Face3`, replacing both with `BufferGeometry`. If playing around with the code, it is very important to keep in mind that indexed and non-indexed objects of type BufferGeometry behave very differently. The shape of a non-indexed BufferGeometry is fully defined by its vertices. That is *not* the case for an indexed BufferGeometry.
->
-> Note that I have also updated the sky shaders to use an example provided on the THREE.js website. I may do the same with the water shaders, which now look very good but are very resource-intensive.
->
-> I do not plan to make regular updates to this fork at the moment, but I may do so in the future.
+> I plan to use Sketchbook as a basis to develop another project, so I have updated the code to run on the latest version of all the packages and switched from cannon.js, which is no longer maintained, to cannon-es.js. […] The biggest change has involved updating to the new version of THREE.js, which no longer supports the object types `Geometry` and `Face3`, replacing both with `BufferGeometry`. Note that I have also updated the sky shaders to use an example provided on the THREE.js website.
+
+### April 2026 follow-up — toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr))
+
+A second pass on top of cjmott's work: dependencies updated to current versions (TypeScript 6, ESLint, three.js r183, webpack 5), legacy in-repo utility copies replaced with maintained npm packages (lil-gui, stats.js, cannon-es-debugger), unused legacy files dropped. Behaviour and architecture preserved — gameplay changes start in May. Branch: `claude/migrate-libraries-ZsEcJ`.
 
 ## February 2023 — version 0.4 — [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook-upgraded/commit/62f4b7986fd1ce1e4f91daba89ef032c20a6ce55)), final update from the original author
 
-> As I have no more interest in developing this project, it comes to a conclusion. In order to remain honest about the true state of the project, I am archiving this repository.
->
-> - If you wish to modify Sketchbook feel free to fork it.
-> - To see if someone is currently maintaining a fork, check out the [Network Graph](https://github.com/swift502/Sketchbook/network).
-> - The [NPM package](https://www.npmjs.com/package/sketchbook) name is available, and I'll give it away to anyone who asks for it. The package has never worked properly.
+> As I have no more interest in developing this project, it comes to a conclusion. […] If you wish to modify Sketchbook feel free to fork it. The [NPM package](https://www.npmjs.com/package/sketchbook) name is available, and I'll give it away to anyone who asks for it. The package has never worked properly.
 
-## TODO (centralized roadmap)
+---
 
-Many great changes happened across forks over the years, but they are spread out and hard to track in one place. The items below collect the next major integration targets.
+## TODO
 
-### Quality-of-life ideas beyond what's shipped
-
-- Optional: replace the wave ocean with [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map) for GPGPU-driven normals.
-
-### Other forks worth mining
-
-- ~~Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).~~ Done — see the May 2026 external-features section above.
-- ~~Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer)~~ partially done (TriggerCube + ProximityPrompt). Outstanding: priority on moving from cannon to rapier.
+- Bring over remaining features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
 	- Evaluate controller integration from [pmndrs/ecctrl](https://github.com/pmndrs/ecctrl) or [pmndrs/BVHEcctrl](https://github.com/pmndrs/BVHEcctrl).
 
 ---
 
 ## Credits
 
-Big thank you to the original author [swift502](https://github.com/swift502), to [cjmott](https://github.com/cjmott) for the September 2024 toolchain revival, to [Inthenew](https://github.com/Inthenew) for the boats / wave ocean / races / day-night work that this fork adopts, to [Bar Hatsor](https://github.com/barhatsor) for the Joy-Con integration, to [tkkaushik369](https://github.com/tkkaushik369) for the socketControl features (race system, grass, speaker, cylinder, shape spawn, sandbox scenes) that the May 2026 external-features pass mines, to [iErcann](https://github.com/iErcann) for the Notblox TriggerCube + ProximityPrompt design, and to the following github users for contributing to Sketchbook over the years:
-
-- [aleqsunder](https://github.com/aleqsunder)
-- [barhatsor](https://github.com/barhatsor)
-- [danshuri](https://github.com/danshuri)
-- [Inthenew](https://github.com/Inthenew)
+- [swift502](https://github.com/swift502) — original Sketchbook engine.
+- [cjmott](https://github.com/cjmott) — September 2024 toolchain revival (cannon-es, modern three.js).
+- [Inthenew](https://github.com/Inthenew) — boats, wave ocean, races, day/night cycle, rocketship + moon, lunar gravity (v0.6.0 feature set).
+- [Bar Hatsor (barhatsor)](https://github.com/barhatsor) — Joy-Con / gamepad integration.
+- [tkkaushik369](https://github.com/tkkaushik369) — socketControl: race-checkpoint system, instanced grass field, Speaker, CylinderCollider, ShapeSpawnPoint, the four sandbox scenes, and the THREE.js editor workflow.
+- [iErcann](https://github.com/iErcann) — Notblox: TriggerCube + ProximityPrompt design.
