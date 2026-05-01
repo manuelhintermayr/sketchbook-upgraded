@@ -129,7 +129,11 @@ export class World
 
 		// Three.js scene
 		this.graphicsWorld = new THREE.Scene();
-		this.camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1010);
+		// far=1010 (swift502 default) clips the moon at distance ~12320 and
+		// the rocketship's max-Y plane at 5200. Inthenew sets far=2e10;
+		// 50000 is plenty for the authored geometry while still keeping
+		// the depth buffer well-conditioned.
+		this.camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 50000);
 
 		// Passes
 		let renderPass = new RenderPass( this.graphicsWorld, this.camera );
