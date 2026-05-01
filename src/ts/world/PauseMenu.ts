@@ -1,4 +1,5 @@
 import { World } from './World';
+import { IrisTransition } from './IrisTransition';
 
 // Pause overlay driven by Esc. Pauses gameplay (timeScale → 0),
 // exits pointer lock so the cursor is usable, and offers Resume,
@@ -129,7 +130,7 @@ export class PauseMenu
 				this.world.restartScenario();
 				break;
 			case 'reload':
-				location.reload();
+				IrisTransition.getInstance().close().then(() => location.reload());
 				break;
 		}
 	}

@@ -44,6 +44,7 @@ import { NPCSpawnPoint } from './NPCSpawnPoint';
 import { PauseMenu } from './PauseMenu';
 import { DefaultDialogs } from './defaultDialogs';
 import { SettingsModal } from './SettingsModal';
+import { IrisTransition } from './IrisTransition';
 
 export class World
 {
@@ -715,7 +716,9 @@ export class World
 			.onChange((value: string) =>
 			{
 				localStorage.setItem('sketchbook.map', value);
-				location.reload();
+				// Cover the canvas before reloading so the page-reload flash
+				// happens behind a black iris instead of a white flicker.
+				IrisTransition.getInstance().close().then(() => location.reload());
 			});
 	}
 
@@ -813,7 +816,16 @@ export class World
 		if (this.lastScenarioID !== undefined)
 		{
 			document.exitPointerLock();
-			this.launchScenario(this.lastScenarioID);
+			// Hide the chaotic teardown / respawn flash behind the iris,
+			// then re-open it once the new scenario's spawn points have
+			// run. clearEntities + scenario.launch are synchronous so the
+			// open() comes immediately after launchScenario returns.
+			const iris = IrisTransition.getInstance();
+			iris.close().then(() =>
+			{
+				this.launchScenario(this.lastScenarioID);
+				iris.open();
+			});
 		}
 		else
 		{
