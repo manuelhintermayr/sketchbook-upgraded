@@ -438,6 +438,19 @@ export class World
 	{
 		worldEntity.addToWorld(this);
 		this.registerUpdatable(worldEntity);
+
+		// Apply the current Vehicles-folder tuning to freshly spawned cars
+		// so settings restored from localStorage (or changed mid-session
+		// before this car existed) take effect immediately.
+		if (worldEntity instanceof Car && this.params)
+		{
+			worldEntity.updateWheelProps('frictionSlip', this.params.Friction_Slip);
+			worldEntity.updateWheelProps('suspensionStiffness', this.params.Suspension_Stiffness);
+			worldEntity.updateWheelProps('maxSuspensionTravel', this.params.Max_Suspension);
+			worldEntity.updateWheelProps('dampingCompression', this.params.Damping_Compression);
+			worldEntity.updateWheelProps('dampingRelaxation', this.params.Damping_Relaxation);
+			worldEntity.updateCarSpeed(this.params.Engine_Force);
+		}
 	}
 
 	public registerUpdatable(registree: IUpdatable): void
