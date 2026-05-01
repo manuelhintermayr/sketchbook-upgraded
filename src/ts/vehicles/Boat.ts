@@ -7,6 +7,7 @@ import { KeyBinding } from '../core/KeyBinding';
 import * as Utils from '../core/FunctionLibrary';
 import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import { EntityType } from '../enums/EntityType';
+import { ENGINE_PROFILES } from '../world/EngineSound';
 
 // Ported from Inthenew/Sketchbook (MIT). The boat reuses the cannon
 // raycast vehicle base for collision and wheel contacts, but drives
@@ -66,6 +67,8 @@ export class Boat extends Vehicle implements IControllable
 		// gates would teleport them constantly. Disable both.
 		this.stuckRecoveryEnabled = false;
 		this.flipRecoveryEnabled = false;
+
+		this.engineSoundProfile = ENGINE_PROFILES.boat;
 	}
 
 	public noDirectionPressed(): boolean

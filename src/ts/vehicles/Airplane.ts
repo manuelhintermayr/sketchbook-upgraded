@@ -8,6 +8,7 @@ import { KeyBinding } from '../core/KeyBinding';
 import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import * as Utils from '../core/FunctionLibrary';
 import { EntityType } from '../enums/EntityType';
+import { ENGINE_PROFILES } from '../world/EngineSound';
 
 export class Airplane extends Vehicle implements IControllable, IWorldEntity
 {
@@ -66,7 +67,9 @@ export class Airplane extends Vehicle implements IControllable, IWorldEntity
 
 		// Slow flight is intentional, so don't flag it as stuck. Flip
 		// recovery still helps after a crash-landing on the wing.
-	this.stuckRecoveryEnabled = false;
+		this.stuckRecoveryEnabled = false;
+
+		this.engineSoundProfile = ENGINE_PROFILES.airplane;
 	}
 
 	public noDirectionPressed(): boolean

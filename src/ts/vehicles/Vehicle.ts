@@ -13,6 +13,7 @@ import { SwitchingSeats } from '../characters/character_states/vehicles/Switchin
 import { EntityType } from '../enums/EntityType';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { CameraShake } from '../core/CameraShake';
+import { EngineSound, EngineProfile } from '../world/EngineSound';
 
 export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 {
@@ -62,6 +63,12 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	private stuckInitialized: boolean = false;
 	private flipTimer: number = 0;
 	private recoveryCooldown: number = 0;
+
+	// Procedural engine sound. Subclasses pick a profile from
+	// ENGINE_PROFILES in their constructor; null = silent. The instance
+	// is created in addToWorld so it can register as a world updatable.
+	protected engineSoundProfile: EngineProfile | null = null;
+	private engineSound: EngineSound | null = null;
 
 	constructor(gltf: any, handlingSetup?: any)
 	{
@@ -532,6 +539,12 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			{
 				world.sky.csm.setupMaterial(mat);
 			});
+
+			if (this.engineSoundProfile !== null)
+			{
+				this.engineSound = new EngineSound(this, world, this.engineSoundProfile);
+				world.registerUpdatable(this.engineSound);
+			}
 		}
 	}
 
@@ -553,6 +566,13 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			{
 				world.graphicsWorld.remove(wheel.wheelObject);
 			});
+
+			if (this.engineSound !== null)
+			{
+				world.unregisterUpdatable(this.engineSound);
+				this.engineSound.dispose();
+				this.engineSound = null;
+			}
 		}
 	}
 

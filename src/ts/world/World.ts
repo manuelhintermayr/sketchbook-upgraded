@@ -987,6 +987,7 @@ export class World
 			Music_Volume: 60,
 			SFX_Volume: 75,
 			Camera_Shake: true,
+			Engine_Sound: true,
 		};
 
 		const gui = new GUI();
@@ -1127,6 +1128,7 @@ export class World
 				UIManager.setFPSVisible(enabled);
 			});
 		settingsFolder.add(this.params, 'Camera_Shake');
+		settingsFolder.add(this.params, 'Engine_Sound');
 
 		// Settings persistence (ported from Inthenew/Sketchbook).
 		// Snapshot defaults before restoring so Reset_World_Settings can

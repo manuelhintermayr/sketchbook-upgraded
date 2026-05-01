@@ -8,6 +8,7 @@ import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { KeyBinding } from '../core/KeyBinding';
 import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
+import { ENGINE_PROFILES } from '../world/EngineSound';
 
 export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 {
@@ -41,6 +42,8 @@ export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 		// Helis hover deliberately, so low-movement is intentional. Flip
 		// recovery still helps when one crashes on its side.
 		this.stuckRecoveryEnabled = false;
+
+		this.engineSoundProfile = ENGINE_PROFILES.heli;
 	}
 
 	public noDirectionPressed(): boolean

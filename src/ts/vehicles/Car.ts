@@ -8,6 +8,7 @@ import * as Utils from '../core/FunctionLibrary';
 import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
+import { ENGINE_PROFILES } from '../world/EngineSound';
 
 export class Car extends Vehicle implements IControllable
 {
@@ -72,6 +73,8 @@ export class Car extends Vehicle implements IControllable
 		};
 
 		this.steeringSimulator = new SpringSimulator(60, 10, 0.6);
+
+		this.engineSoundProfile = ENGINE_PROFILES.car;
 	}
 
 	public noDirectionPressed(): boolean

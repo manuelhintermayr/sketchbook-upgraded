@@ -51,6 +51,8 @@ export class SettingsModal
 		this.setToggle('Pointer_Lock', p.Pointer_Lock);
 		this.setToggle('Has_Day_Night_Cycle', p.Has_Day_Night_Cycle);
 		this.setToggle('Debug_FPS', p.Debug_FPS);
+		this.setToggle('Camera_Shake', p.Camera_Shake);
+		this.setToggle('Engine_Sound', p.Engine_Sound);
 	}
 
 	private build(): HTMLDivElement
@@ -74,7 +76,8 @@ export class SettingsModal
 
 				<div class="settings-card">
 					<h3>Audio</h3>
-					${this.rangeRow('Master_Volume', 'Master volume', 0, 100, 1, 'All in-world positional audio')}
+					${this.rangeRow('Master_Volume', 'Master volume', 0, 100, 1, 'All in-world positional + procedural audio')}
+					${this.toggleRow('Engine_Sound', 'Engine sound', 'Procedural Web Audio engine while driving')}
 					${this.rangeRow('Music_Volume', 'Music', 0, 100, 1, 'Reserved — no separate music bus yet')}
 					${this.rangeRow('SFX_Volume', 'Sound effects', 0, 100, 1, 'Reserved — no SFX bus yet')}
 				</div>
@@ -85,6 +88,7 @@ export class SettingsModal
 					${this.rangeRow('Free_Cam_Speed', 'Free-camera speed', 1, 100, 1, 'Shift+C movement')}
 					${this.rangeRow('Gravity_Scale', 'Gravity scale', 0, 2, 0.05, '0 = zero-g, 1 = Earth, 2 = double')}
 					${this.toggleRow('Pointer_Lock', 'Pointer lock', 'Click captures the cursor')}
+					${this.toggleRow('Camera_Shake', 'Camera shake', 'Shake on vehicle hard landings + recovery')}
 				</div>
 
 				<div class="settings-footer">

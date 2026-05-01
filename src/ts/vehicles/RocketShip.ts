@@ -6,6 +6,7 @@ import { IControllable } from '../interfaces/IControllable';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { KeyBinding } from '../core/KeyBinding';
 import { EntityType } from '../enums/EntityType';
+import { ENGINE_PROFILES } from '../world/EngineSound';
 
 // Ported from Inthenew/Sketchbook (MIT). The rocketship reuses the
 // vehicle scaffolding (chassis collision shapes, seat, rotors marked in
@@ -100,6 +101,8 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		// stuck/flip recovery would fight with it.
 		this.stuckRecoveryEnabled = false;
 		this.flipRecoveryEnabled = false;
+
+		this.engineSoundProfile = ENGINE_PROFILES.rocket;
 	}
 
 	public noDirectionPressed(): boolean
