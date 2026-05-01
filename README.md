@@ -17,6 +17,7 @@ This fork pulls in the features from later community forks that I felt were wort
 
 - Day / night cycle with a sky shader, sun position controls, and a black space backdrop above the launch apex.
 - Earth and Moon visible as celestial bodies; lunar gravity (~1.62 m/s²) kicks in on the moon.
+- 2000-star night sky (camera-anchored shell, additive twinkle shader) — fades in as the sun drops, full brightness in space.
 - Wave-based ocean with vertex displacement and a height query that boats actually ride.
 - Procedural [300k-blade grass field](https://www.eddietree.com/grass) (instanced, 30-unit LOD) — wired to any map material called `grass`.
 - 3D positional audio sources ("Speaker") with browser-autoplay handling.
@@ -110,6 +111,7 @@ Adopts the highest-value pieces of [manuelhintermayr/portfolio three-js](https:/
 - **Outline effect** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/32449e442e2a3080c8fd540ca3a3b6b307017889)) — depth-Sobel pass: pre-renders the scene's linear depth to a float render target, then blends a Sobel kernel over the framebuffer via a fullscreen quad. Plays well with the existing FXAA composer, no shader rewrite needed; toggle in Settings.
 - **Ambient soundscape** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1573870e6fff3b17e4e5c04e38dc40eb876cd839)) — procedural wind / bird-chirp / water Web Audio synthesis with proximity-gated water gain (only audible near the ocean). Same Master_Volume bus as engine + positional audio.
 - **Wandering animals** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/4c5a13e8c121fa5c4d1663de764b4526f375e1e5)) — 8 dogs + 10 cats spawned deterministically around the Inthenew spawn, each running a small state machine (idle / wander / approach / bark / flee / tame). Geometry merges primitive shapes — no GLTF asset; ground height is queried per-frame via cannon raycast so the animals adapt to any map.
+- **Star field at night** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/5037501e5807a68853d608bf735ad90802bd4f33)) — 2000 points on the upper hemisphere of a camera-anchored shell with a twinkle shader. nightFactor is derived from sun position, so they fade in at dusk and stay full in space.
 
 ## May 2026 — UI design system & in-game shell ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb))
 
