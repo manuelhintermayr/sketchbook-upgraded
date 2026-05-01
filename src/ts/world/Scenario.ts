@@ -1,6 +1,7 @@
 import { ISpawnPoint } from '../interfaces/ISpawnPoint';
 import { VehicleSpawnPoint } from './VehicleSpawnPoint';
 import { CharacterSpawnPoint } from './CharacterSpawnPoint';
+import { NPCSpawnPoint } from './NPCSpawnPoint';
 import { ShapeSpawnPoint } from './ShapeSpawnPoint';
 import { World } from '../world/World';
 import { LoadingManager } from '../core/LoadingManager';
@@ -106,6 +107,10 @@ export class Scenario
 					{
 						let sp = new CharacterSpawnPoint(child);
 						this.spawnPoints.push(sp);
+					}
+					else if (child.userData.type === 'npc')
+					{
+						this.spawnPoints.push(new NPCSpawnPoint(child));
 					}
 					else if (child.userData.type === 'shape')
 					{
