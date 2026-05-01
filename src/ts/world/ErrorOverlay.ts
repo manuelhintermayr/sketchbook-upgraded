@@ -3,6 +3,8 @@
 // Once the overlay is up the page is effectively frozen — that's the
 // intended behaviour because anything could be in a half-broken state.
 
+import { t } from '../i18n';
+
 let installed = false;
 let overlay: HTMLDivElement | null = null;
 
@@ -21,8 +23,8 @@ export function installErrorOverlay(): void
 			<p class="error-desc" data-desc>The game engine encountered an unexpected error. You can try reloading the page; if the problem persists, please report it.</p>
 			<div class="error-stack" data-stack></div>
 			<div class="error-actions">
-				<button class="error-btn error-btn-primary" data-reload>Reload</button>
-				<button class="error-btn error-btn-outline" data-copy>Copy details</button>
+				<button class="error-btn error-btn-primary" data-reload>${t('error.reload')}</button>
+				<button class="error-btn error-btn-outline" data-copy>${t('error.copy')}</button>
 			</div>
 		</div>
 	`;

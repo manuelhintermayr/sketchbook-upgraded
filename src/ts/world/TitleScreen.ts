@@ -5,6 +5,8 @@
 // The first user gesture also unblocks browser audio autoplay, which
 // is what Speaker relies on for in-world positional audio.
 
+import { LOCALE_LABELS, getLocale, setLocale, t, Locale } from '../i18n';
+
 const FONT_HREFS = [
 	'https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap',
 	'https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&display=swap',
@@ -25,7 +27,10 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 {
 	const title = options.title ?? 'Sketchbook';
 	const version = options.version ?? 'Version 0.6';
-	const prompt = options.prompt ?? 'Click or press any key to start';
+	// Caller can pass a literal English prompt for back-compat, but if
+	// they don't we look it up via i18n so the player's saved locale
+	// applies before the prompt is even drawn.
+	const promptText = options.prompt ?? t('title.prompt');
 
 	// Inject fonts so the title screen looks right even before main.css
 	// has had a chance to attach them (it does it inside World).
@@ -38,6 +43,10 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 		link.href = href;
 		document.head.appendChild(link);
 	}
+
+	const langButtons = (['en', 'de', 'es'] as Locale[]).map((l) => `
+		<button class="title-lang-btn" data-lang="${l}" type="button">${escapeHtml(LOCALE_LABELS[l])}</button>
+	`).join('');
 
 	const wrap = document.createElement('div');
 	wrap.id = 'title-screen';
@@ -52,14 +61,50 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 				</div>
 			</div>
 		</div>
-		<p class="title-prompt">${formatPrompt(prompt)}</p>
+		<p class="title-prompt">${formatPrompt(promptText)}</p>
+		<div class="title-lang">
+			<span class="title-lang-label">${escapeHtml(t('title.languagePrompt'))}:</span>
+			${langButtons}
+		</div>
 	`;
 	document.body.appendChild(wrap);
+
+	const promptEl = wrap.querySelector<HTMLParagraphElement>('.title-prompt');
+	const labelEl = wrap.querySelector<HTMLSpanElement>('.title-lang-label');
+
+	const refreshActiveLang = (): void =>
+	{
+		const active = getLocale();
+		wrap.querySelectorAll<HTMLButtonElement>('.title-lang-btn').forEach((b) =>
+		{
+			b.classList.toggle('active', b.dataset.lang === active);
+		});
+	};
+	refreshActiveLang();
+
+	wrap.querySelectorAll<HTMLButtonElement>('.title-lang-btn').forEach((btn) =>
+	{
+		btn.addEventListener('click', (e) =>
+		{
+			// Stop the click from bubbling to the dismiss listener — the
+			// player is selecting language, not asking to start.
+			e.stopPropagation();
+			const lang = btn.dataset.lang as Locale | undefined;
+			if (lang === undefined) return;
+			setLocale(lang);
+			if (promptEl) promptEl.innerHTML = formatPrompt(t('title.prompt'));
+			if (labelEl) labelEl.textContent = t('title.languagePrompt') + ':';
+			refreshActiveLang();
+		});
+		// Pointerdown also bubbles to the document-level dismiss listener
+		// — same stop here.
+		btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+	});
 
 	return new Promise<void>((resolve) =>
 	{
 		let dismissed = false;
-		const dismiss = () =>
+		const dismiss = (): void =>
 		{
 			if (dismissed) return;
 			dismissed = true;
@@ -72,8 +117,8 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 				resolve();
 			}, 400);
 		};
-		const onKeyDown = (_e: KeyboardEvent) => dismiss();
-		const onPointer = (_e: PointerEvent) => dismiss();
+		const onKeyDown = (_e: KeyboardEvent): void => dismiss();
+		const onPointer = (_e: PointerEvent): void => dismiss();
 		window.addEventListener('keydown', onKeyDown);
 		window.addEventListener('pointerdown', onPointer);
 	});

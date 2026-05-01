@@ -1,5 +1,6 @@
 import { World } from './World';
 import { IrisTransition } from './IrisTransition';
+import { t } from '../i18n';
 
 // Pause overlay driven by Esc. Pauses gameplay (timeScale → 0),
 // exits pointer lock so the cursor is usable, and offers Resume,
@@ -84,27 +85,31 @@ export class PauseMenu
 	{
 		const wrap = document.createElement('div');
 		wrap.id = 'pause-overlay';
+		// Built once at construction; t() reads the current locale at the
+		// moment of build. PauseMenu is constructed at world startup
+		// after the title-screen language picker has stored a locale, so
+		// the labels match the player's choice.
 		wrap.innerHTML = `
-			<h1 class="pause-title">PAUSED</h1>
+			<h1 class="pause-title">${t('pause.title')}</h1>
 			<div class="pause-menu" role="menu">
 				<button class="pause-btn" data-action="resume" role="menuitem">
 					<span class="pause-icon">&#9654;</span>
-					<span>Resume</span>
+					<span>${t('pause.resume')}</span>
 				</button>
 				<button class="pause-btn" data-action="settings" role="menuitem">
 					<span class="pause-icon">&#9881;</span>
-					<span>Settings</span>
+					<span>${t('pause.settings')}</span>
 				</button>
 				<button class="pause-btn" data-action="restart" role="menuitem">
 					<span class="pause-icon">&#8634;</span>
-					<span>Restart Scenario</span>
+					<span>${t('pause.restart')}</span>
 				</button>
 				<button class="pause-btn danger" data-action="reload" role="menuitem">
 					<span class="pause-icon">&#8629;</span>
-					<span>Reload Page</span>
+					<span>${t('pause.reload')}</span>
 				</button>
 			</div>
-			<p class="pause-hint">Press <kbd class="ctrl-key">Esc</kbd> to resume</p>
+			<p class="pause-hint">${t('pause.hint', { key: '<kbd class="ctrl-key">Esc</kbd>' })}</p>
 		`;
 
 		wrap.querySelectorAll<HTMLButtonElement>('.pause-btn').forEach((btn) =>

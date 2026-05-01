@@ -1,4 +1,5 @@
 import { World } from './World';
+import { t } from '../i18n';
 
 // Settings modal opened from the pause menu. Each control writes its
 // value into world.params and forwards through the matching lil-gui
@@ -61,15 +62,20 @@ export class SettingsModal
 	{
 		const wrap = document.createElement('div');
 		wrap.id = 'settings-modal';
+		// Card titles + button labels are translated via i18n.
+		// Individual control labels stay in English to keep the per-row
+		// description tight; full row translation would inflate the
+		// translation table without much value to non-English players
+		// who already know what "FXAA" or "Mouse Sensitivity" means.
 		wrap.innerHTML = `
 			<div class="settings-container">
 				<div class="settings-header">
-					<h2 class="settings-title">Settings</h2>
+					<h2 class="settings-title">${t('settings.title')}</h2>
 					<button class="settings-close" data-close aria-label="Close">&times;</button>
 				</div>
 
 				<div class="settings-card">
-					<h3>Graphics</h3>
+					<h3>${t('settings.graphics')}</h3>
 					${this.toggleRow('Shadows', 'Shadows', 'Cascaded shadow maps')}
 					${this.toggleRow('FXAA', 'Anti-aliasing', 'FXAA post-process')}
 					${this.toggleRow('Has_Day_Night_Cycle', 'Day / night cycle', 'Sun moves automatically')}
@@ -78,7 +84,7 @@ export class SettingsModal
 				</div>
 
 				<div class="settings-card">
-					<h3>Audio</h3>
+					<h3>${t('settings.audio')}</h3>
 					${this.rangeRow('Master_Volume', 'Master volume', 0, 100, 1, 'All in-world positional + procedural audio')}
 					${this.toggleRow('Engine_Sound', 'Engine sound', 'Procedural Web Audio engine while driving')}
 					${this.toggleRow('Ambient_Sound', 'Ambient sound', 'Wind, birds, water (procedural)')}
@@ -87,7 +93,7 @@ export class SettingsModal
 				</div>
 
 				<div class="settings-card">
-					<h3>Controls</h3>
+					<h3>${t('settings.controls')}</h3>
 					${this.rangeRow('Mouse_Sensitivity', 'Mouse sensitivity', 0, 1, 0.01, 'Camera look speed')}
 					${this.rangeRow('Free_Cam_Speed', 'Free-camera speed', 1, 100, 1, 'Shift+C movement')}
 					${this.rangeRow('Gravity_Scale', 'Gravity scale', 0, 2, 0.05, '0 = zero-g, 1 = Earth, 2 = double')}
@@ -96,7 +102,7 @@ export class SettingsModal
 				</div>
 
 				<div class="settings-footer">
-					<button class="btn-gold" data-close>Done</button>
+					<button class="btn-gold" data-close>${t('settings.done')}</button>
 				</div>
 			</div>
 		`;
