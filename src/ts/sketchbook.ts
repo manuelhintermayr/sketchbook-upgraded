@@ -14,3 +14,8 @@ export { Example } from './world/sandboxes/ExampleScene';
 // is built.
 export { showTitleScreen } from './world/TitleScreen';
 export { installErrorOverlay } from './world/ErrorOverlay';
+
+// Touch controls — auto-installs on touch devices. No-op on desktop,
+// so it's safe to import unconditionally.
+import { TouchControls } from './core/TouchControls';
+TouchControls.install();

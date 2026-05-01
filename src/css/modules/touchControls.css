@@ -1,0 +1,79 @@
+/* On-screen touch controls — only mounted when 'ontouchstart' is on the
+ * window object. Layout: virtual joystick bottom-left, action buttons
+ * bottom-right. Both drawn as fixed-position overlays above the canvas;
+ * the right side of the screen (anything outside the buttons) is the
+ * camera drag area handled by JS event listeners.
+ */
+
+#touch-controls
+{
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: var(--z-overlay);
+}
+
+#touch-joystick-base
+{
+	position: absolute;
+	bottom: var(--space-10);
+	left: var(--space-10);
+	width: 140px;
+	height: 140px;
+	border-radius: var(--radius-full);
+	background: rgba(0, 0, 0, 0.25);
+	border: 2px solid rgba(255, 255, 255, 0.4);
+	pointer-events: auto;
+	touch-action: none;
+}
+
+#touch-joystick-thumb
+{
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 60px;
+	height: 60px;
+	border-radius: var(--radius-full);
+	background: rgba(255, 255, 255, 0.7);
+	pointer-events: none;
+	transition: background var(--motion-fast) var(--ease-default);
+}
+
+#touch-joystick-base.active #touch-joystick-thumb
+{
+	background: var(--color-primary);
+}
+
+.touch-action-btn
+{
+	position: absolute;
+	width: 72px;
+	height: 72px;
+	border-radius: var(--radius-full);
+	background: rgba(0, 0, 0, 0.35);
+	border: 2px solid rgba(255, 255, 255, 0.5);
+	color: #fff;
+	font-family: var(--font-label);
+	font-size: var(--text-body-sm);
+	font-weight: var(--weight-bold);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: auto;
+	touch-action: manipulation;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.touch-action-btn:active,
+.touch-action-btn.pressed
+{
+	background: var(--color-primary);
+	color: var(--color-on-primary);
+}
+
+#touch-btn-jump   { right: 30px; bottom: 110px; }
+#touch-btn-action { right: 120px; bottom: 50px; }
+#touch-btn-sprint { right: 30px; bottom: 30px; width: 60px; height: 60px; }
