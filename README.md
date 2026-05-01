@@ -77,12 +77,9 @@ const world = new Sketchbook.World('scene.glb');
 
 Many great changes happened across forks over the years, but they are spread out and hard to track in one place. The items below collect the next major integration targets.
 
-### Beyond Inthenew/Sketchbook
+### Quality-of-life ideas beyond what's shipped
 
-[Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) is fully integrated as of May 2026. The only items left are quality-of-life ideas that go beyond what their fork shipped:
-
-- **Boat-lap tracking.** Inthenew's Boat Race has AI racers but no lap counter (their README explicitly says "for now only oval races track laps"). A generic path-node-pass tracker — applicable to any race scenario — would turn Boat Race into a real race against the AI.
-- **`viewBack` / `centerHere` userData on vehicle camera empties.** Inthenew lets the level designer override the chase camera's distance and Y offset per vehicle via Blender custom properties. We currently hardcode the rocketship's larger chase distance; reading the GLB userData would generalise that to any vehicle.
+- **Boat-lap tracking.** The Boat Race scenario from Inthenew has AI racers but no lap counter (their README explicitly says "for now only oval races track laps"). A generic path-node-pass tracker — applicable to any race scenario — would turn Boat Race into a real race against the AI.
 - Optional: replace the wave ocean with [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map) for GPGPU-driven normals.
 
 ### Other forks worth mining
@@ -96,9 +93,9 @@ Many great changes happened across forks over the years, but they are spread out
 
 # Project timeline
 
-## May 2026 update — [manuelhintermayr](https://github.com/manuelhintermayr)
+## May 2026 — version 0.6.0 — Inthenew port ([manuelhintermayr](https://github.com/manuelhintermayr))
 
-Bumped to **0.6.0**. With the toolchain stable from the April work, this round was a feature push: the boats / ocean / races, Joy-Con support, and finally the full rocketship + moon system from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook). Inthenew is now fully integrated, including the per-vehicle camera tweaks via `viewBack` / `centerHere` userData.
+Ports the bulk of [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook) into this fork. The "0.6.0" label tracks the upstream feature set — the credit for the gameplay design and original implementation belongs to [Inthenew](https://github.com/Inthenew); this entry is about pulling that work in cleanly.
 
 Highlights:
 
@@ -112,19 +109,25 @@ Highlights:
 - **Vehicles GUI folder** with six per-car tuning sliders (Friction_Slip, Suspension_Stiffness, Max_Suspension, Damping_Compression, Damping_Relaxation, Engine_Force) that apply to currently spawned cars and to any future spawns.
 - **World GUI extras**: Gravity_Scale slider (0–2×), Free_Cam_Speed slider (1–100).
 - **Free-camera quality-of-life**: `T` teleports the player (or driven vehicle) to the camera target, `Z` toggles the on-screen controls overlay, and the in-vehicle first-person camera slerps back to face forward after ~400 ms of no mouse movement.
-- **Joy-Con / gamepad** integration via [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). The original commits were preserved via `git format-patch` / `git am`, so [Bar Hatsor](https://github.com/barhatsor)'s authorship and timestamps remain intact in `git log`. The controller layer (`joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`, `audio/horn.wav`) is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` dependency was vendored under `vendor/joycon/`.
+- **Per-vehicle camera tweaks** via `viewBack` and `centerHere` userData on the GLB camera empty.
 
-How the Inthenew port is structured: Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible. Instead each feature ports as its own commit with `--author=inthenew <matthew@slocum.io>` and the original commit date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, the race-track path nodes, the rocketship spawn and the rocket-island launch pad all line up with the ocean shader's hand-tuned constants and the rocketship's flight coordinates.
+How the port is structured: Inthenew squashes everything into a few generic "Changes" commits, so granular `format-patch` per feature wasn't possible. Instead each feature ports as its own commit with `--author=inthenew <matthew@slocum.io>` and the original commit date, and the upstream commit SHA is referenced in the commit body. The level (`build/assets/world.glb`) was replaced with Inthenew's so the no-wave dock zone, the boat spawn marker, the race-track path nodes, the rocketship spawn and the rocket-island launch pad all line up with the ocean shader's hand-tuned constants and the rocketship's flight coordinates.
 
-**Asset re-creation:** Inthenew's upstream hotlinks several third-party images that we couldn't legally vendor (DeviantArt fan-art for the Earth sphere, an Adobe Stock smoke particle, Future plc / Wikipedia / Farmers Almanac photos for the Earth and Moon, an anonymous Imgur upload, a dead Glitch CDN). All of those were replaced with DALL-E generated equivalents shipped in `src/img/` (`equirectangular-earth.png`, `equirectangular-moon.png`, `hemisphere-earth.png`, `full-moon.png`, `moon-with-flowers.png`, `smoke.png`). Visual style is comparable; licensing is clean.
+**Asset re-creation:** Inthenew's upstream hotlinks several third-party images that couldn't legally be vendored (DeviantArt fan-art for the Earth sphere, an Adobe Stock smoke particle, Future plc / Wikipedia / Farmers Almanac photos for the Earth and Moon, an anonymous Imgur upload, a dead Glitch CDN). All were replaced with DALL-E generated equivalents shipped in `src/img/` (`equirectangular-earth.png`, `equirectangular-moon.png`, `hemisphere-earth.png`, `full-moon.png`, `moon-with-flowers.png`, `smoke.png`). Visual style is comparable; licensing is clean.
 
-Full technical details are available in the commit history on branches `claude/joycon-integration`, `claude/inthenew-day-night-extras`, `claude/inthenew-boats-water`, and `claude/inthenew-rocketship-moon`.
+Full technical details on branches `claude/inthenew-day-night-extras`, `claude/inthenew-boats-water`, and `claude/inthenew-rocketship-moon`.
 
-## April 2026 update — [manuelhintermayr](https://github.com/manuelhintermayr)
+## May 2026 — version 0.5.0 — Joy-Con port ([manuelhintermayr](https://github.com/manuelhintermayr))
 
-Continuing from [cjmott](https://github.com/cjmott)'s September 2024 work, this update focused on modernization, cleanup, and long-term maintainability.
+Adds the Joy-Con / gamepad support originally written by [Bar Hatsor](https://github.com/barhatsor) in [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). The "0.5.0" label tracks Bar Hatsor's upstream feature; this entry is about integrating it cleanly.
 
-In short: dependencies were updated, old vendored code was replaced with maintained npm packages, and unused legacy files were removed. The goal was to keep Sketchbook stable on current tooling while reducing technical debt.
+The original commits were preserved via `git format-patch` / `git am`, so Bar Hatsor's authorship and timestamps remain intact in `git log`. The controller layer (`joycon-sketchbook.js`, `Client.js`, `vendor/joycon/Joycon.min.js`, `audio/horn.wav`) is loaded by `index.html` and only synthesizes keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` dependency was vendored under `vendor/joycon/`.
+
+Full technical details on branch `claude/joycon-integration`.
+
+## April 2026 update — toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr))
+
+A second pass over the toolchain on top of [cjmott](https://github.com/cjmott)'s September 2024 work. Dependencies were updated, old vendored utilities were replaced with maintained npm packages, and unused legacy files were removed. The goal was to keep Sketchbook stable on current tooling while reducing technical debt — no gameplay changes here, those start in May.
 
 Highlights:
 
@@ -134,9 +137,9 @@ Highlights:
 - Removed outdated or unused code paths and old build artifacts from version control.
 - Kept behavior and architecture largely the same, but made the project easier to maintain.
 
-Full technical details are available in the commit history on branch `claude/migrate-libraries-ZsEcJ`.
+Full technical details on branch `claude/migrate-libraries-ZsEcJ`.
 
-## September 2024 update — [cjmott](https://github.com/cjmott) ([commit](https://github.com/cjmott/Sketchbook/commit/088fffc743818d13babeecd87c8ba3165cf13fcb))
+## September 2024 — version 0.4.1 — [cjmott](https://github.com/cjmott) ([commit](https://github.com/cjmott/Sketchbook/commit/088fffc743818d13babeecd87c8ba3165cf13fcb))
 
 > I plan to use Sketchbook as a basis to develop another project, so I have updated the code to run on the latest version of all the packages and switched from cannon.js, which is no longer maintained, to cannon-es.js. This version should build and run locally using `npm`.
 >
@@ -146,7 +149,7 @@ Full technical details are available in the commit history on branch `claude/mig
 >
 > I do not plan to make regular updates to this fork at the moment, but I may do so in the future.
 
-## February 2023 — [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook-upgraded/commit/62f4b7986fd1ce1e4f91daba89ef032c20a6ce55)), final update from the original author
+## February 2023 — version 0.4 — [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook-upgraded/commit/62f4b7986fd1ce1e4f91daba89ef032c20a6ce55)), final update from the original author
 
 > As I have no more interest in developing this project, it comes to a conclusion. In order to remain honest about the true state of the project, I am archiving this repository.
 >
