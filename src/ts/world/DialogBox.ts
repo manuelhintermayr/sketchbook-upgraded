@@ -42,6 +42,16 @@ export class DialogBox
 	private onClose: (() => void) | null = null;
 	private boundKeyDown: (e: KeyboardEvent) => void;
 
+	// Typewriter state. The full text of the current node is held here
+	// while a setInterval reveals it one char at a time. Choices stay
+	// hidden until isTyping flips false; clicking the bar (or pressing
+	// Enter / Space / E) before then skips to the end without picking
+	// any choice — the same skip-to-end pattern the portfolio uses.
+	private typingTimer: ReturnType<typeof setInterval> | null = null;
+	private typingFullText: string = '';
+	private typingCharIndex: number = 0;
+	private isTyping: boolean = false;
+
 	public static getInstance(): DialogBox
 	{
 		if (instance === null) instance = new DialogBox();
@@ -79,6 +89,15 @@ export class DialogBox
 
 		this.boundKeyDown = (e) => this.handleKeyDown(e);
 		document.addEventListener('keydown', this.boundKeyDown);
+
+		// Click-to-skip on the dialog box itself. Choice buttons live
+		// inside the bar too — they stop event propagation in their own
+		// click handler so this listener only fires for clicks on the
+		// surrounding card.
+		this.bar.addEventListener('click', () =>
+		{
+			if (this.isTyping) this.skipToEnd();
+		});
 	}
 
 	public isOpen(): boolean
@@ -99,6 +118,7 @@ export class DialogBox
 		this.currentDialog = null;
 		this.currentNodeId = null;
 		this.bar.classList.remove('visible');
+		this.stopTyping();
 		if (this.onClose) this.onClose();
 		this.onClose = null;
 	}
@@ -120,12 +140,15 @@ export class DialogBox
 	private render(node: DialogNode): void
 	{
 		this.speakerEl.textContent = node.speaker;
-		this.textEl.textContent = node.text;
 		this.portraitName.textContent = node.speaker;
 		this.portraitRole.textContent = node.role ?? '';
 		this.portraitImg.textContent = node.portrait ?? node.speaker.charAt(0).toUpperCase();
 
+		// Build choices once, hidden until typing finishes. Stop click
+		// from bubbling to the bar-level skip listener so picking a
+		// choice doesn't get treated as a skip.
 		this.choicesEl.innerHTML = '';
+		this.choicesEl.style.visibility = 'hidden';
 		node.choices.forEach((choice, i) =>
 		{
 			const btn = document.createElement('button');
@@ -133,12 +156,63 @@ export class DialogBox
 			btn.setAttribute('role', 'menuitem');
 			btn.dataset.index = String(i);
 			btn.innerHTML = `<span class="dialog-key">${i + 1}</span><span>${escapeHtml(choice.label)}</span>`;
-			btn.addEventListener('click', () => this.pick(i));
+			btn.addEventListener('click', (e) =>
+			{
+				e.stopPropagation();
+				if (!this.isTyping) this.pick(i);
+			});
 			this.choicesEl.appendChild(btn);
 		});
 
+		this.startTyping(node.text);
+	}
+
+	private startTyping(text: string): void
+	{
+		this.stopTyping();
+		this.typingFullText = text;
+		this.typingCharIndex = 0;
+		this.isTyping = true;
+		this.textEl.textContent = '';
+
+		const CHAR_DELAY_MS = 28;
+		this.typingTimer = setInterval(() =>
+		{
+			this.typingCharIndex++;
+			if (this.typingCharIndex >= this.typingFullText.length)
+			{
+				this.finishTyping();
+				return;
+			}
+			this.textEl.textContent = this.typingFullText.slice(0, this.typingCharIndex);
+		}, CHAR_DELAY_MS);
+	}
+
+	private finishTyping(): void
+	{
+		this.stopTyping();
+		this.textEl.textContent = this.typingFullText;
+		this.choicesEl.style.visibility = '';
+		// Focus the first choice so keyboard players land on it
+		// immediately — same behaviour as before the typewriter pass.
 		const first = this.choicesEl.querySelector<HTMLButtonElement>('.dialog-choice');
 		first?.focus();
+	}
+
+	private skipToEnd(): void
+	{
+		if (!this.isTyping) return;
+		this.finishTyping();
+	}
+
+	private stopTyping(): void
+	{
+		if (this.typingTimer !== null)
+		{
+			clearInterval(this.typingTimer);
+			this.typingTimer = null;
+		}
+		this.isTyping = false;
 	}
 
 	private pick(i: number): void
@@ -160,7 +234,20 @@ export class DialogBox
 			this.close();
 			return;
 		}
-		// Number keys 1–9 pick a choice.
+
+		// Skip-to-end while typing. E / Enter / Space all count, matching
+		// the portfolio's "any acknowledgement" behaviour. ProximityPrompt
+		// uses E to open — once the dialog is up the same key skips ahead.
+		if (this.isTyping && (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space'))
+		{
+			e.preventDefault();
+			this.skipToEnd();
+			return;
+		}
+
+		// Number keys 1–9 pick a choice. Ignored while typing so the
+		// player doesn't accidentally pick before reading.
+		if (this.isTyping) return;
 		const num = e.code.startsWith('Digit') ? parseInt(e.code.slice(5), 10) - 1
 			: e.code.startsWith('Numpad') ? parseInt(e.code.slice(6), 10) - 1 : -1;
 		if (num >= 0 && num < 9)
