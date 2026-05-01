@@ -5,6 +5,7 @@ import { Helicopter } from '../vehicles/Helicopter';
 import { Airplane } from '../vehicles/Airplane';
 import { Car } from '../vehicles/Car';
 import { Boat } from '../vehicles/Boat';
+import { RocketShip } from '../vehicles/RocketShip';
 import * as Utils from '../core/FunctionLibrary';
 import { Vehicle } from '../vehicles/Vehicle';
 import { Character } from '../characters/Character';
@@ -96,6 +97,7 @@ export class VehicleSpawnPoint implements ISpawnPoint
 			case 'heli': return new Helicopter(model);
 			case 'airplane': return new Airplane(model);
 			case 'boat': return new Boat(model);
+			case 'rocketship': return new RocketShip(model);
 		}
 	}
 }
