@@ -259,6 +259,13 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 	{
 		this.landing = false;
 		this.balancing = false;
+		// Drain any residual velocity before cannon's next step. Without
+		// this, the -5 / -0.1 nudge applyVerticalStabilization put on
+		// velocity.y in the previous frame leaves the chassis driving
+		// itself into the trimesh, which the solver then pushes back up,
+		// producing a permanent bounce that never settles.
+		this.collision.velocity.set(0, 0, 0);
+		this.collision.angularVelocity.set(0, 0, 0);
 		setTimeout(() => { this.justBlasted = false; }, 1000);
 	}
 
