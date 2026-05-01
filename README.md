@@ -21,6 +21,7 @@ This fork pulls in the features from later community forks that I felt were wort
 - Procedural [300k-blade grass field](https://www.eddietree.com/grass) (instanced, 30-unit LOD) — wired to any map material called `grass`.
 - 3D positional audio sources ("Speaker") with browser-autoplay handling.
 - Procedural engine sound per vehicle (sawtooth + square exhaust + filtered noise intake; per-type profiles for car / heli / airplane / boat / rocket); RPM scales with chassis speed; routed through the same Master_Volume slider as positional audio.
+- Procedural ambient soundscape (wind / bird-chirps via FM / water via LFO-swept bandpass), water gain gated by camera proximity to the ocean.
 - Variable timescale, FXAA, cascaded shadow maps, adjustable gravity (0–2×).
 - Camera shake on vehicle hard landings (sineNoise-based, three presets: collision / land / boost).
 - All settings persist to `localStorage` with a one-click reset.
@@ -106,6 +107,7 @@ Adopts the highest-value pieces of [manuelhintermayr/portfolio three-js](https:/
 - **Procedural engine sound** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/181e92140fa35381ea41f6ba234175943d8dbf6e)) — per-vehicle Web Audio synthesiser (2-layer exhaust + intake), RPM modulated by chassis speed, five timbre profiles (car / heli / airplane / boat / rocket). Master_Volume routes through the same slider that already drives THREE.AudioListener for positional audio.
 - **Iris transition** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/4c887795129adefc4a9adb82577ef65bea37c0d9)) — singleton CSS clip-path overlay (700ms cubic-bezier circle wipe). Wired into the map switcher, scenario restart, and pause-menu reload — replaces the earlier white-flash `location.reload()` look with a clean black iris.
 - **Outline effect** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/32449e442e2a3080c8fd540ca3a3b6b307017889)) — depth-Sobel pass: pre-renders the scene's linear depth to a float render target, then blends a Sobel kernel over the framebuffer via a fullscreen quad. Plays well with the existing FXAA composer, no shader rewrite needed; toggle in Settings.
+- **Ambient soundscape** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1573870e6fff3b17e4e5c04e38dc40eb876cd839)) — procedural wind / bird-chirp / water Web Audio synthesis with proximity-gated water gain (only audible near the ocean). Same Master_Volume bus as engine + positional audio.
 
 ## May 2026 — UI design system & in-game shell ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb))
 
