@@ -3,10 +3,11 @@ import { VehicleSpawnPoint } from './VehicleSpawnPoint';
 import { CharacterSpawnPoint } from './CharacterSpawnPoint';
 import { World } from '../world/World';
 import { LoadingManager } from '../core/LoadingManager';
+import { Path } from './Path';
 import * as THREE from 'three';
 
 // Hardcoded race finish-line trigger zones, ported from
-// Inthenew/Sketchbook. Each race uses two zones: tunnel1 must be
+// Inthenew/Sketchbook. Each car race uses two zones: tunnel1 must be
 // crossed first, tunnel2 closes the loop and increments the lap count.
 // Coordinates were authored against world.glb's level layout, so they
 // only make sense with that map.
@@ -34,6 +35,22 @@ const RACE_BY_TITLE: Record<string, keyof typeof RACE_LAYOUTS> = {
 	'Figure 8 race': 'fig',
 };
 
+// Names of scenarios whose lap counter runs off path-node passes
+// rather than RACE_LAYOUTS' hardcoded trigger zones. Currently just
+// the Boat Race because Inthenew shipped that scenario without lap
+// tracking; the same approach generalises to any future map-authored
+// race by adding an entry here.
+const BOAT_RACE_TITLE = 'Boat Race';
+
+// How close (world-space units) the player needs to come to a path
+// node for it to count as 'passed' for lap-tracking purposes.
+const BOAT_RACE_NODE_THRESHOLD = 15;
+
+type BoatRaceState = {
+	orderedNodeNames: string[];
+	nextIndex: number;
+};
+
 export class Scenario
 {
 	public id: string;
@@ -48,7 +65,7 @@ export class Scenario
 	public race: keyof typeof RACE_LAYOUTS | undefined;
 
 	private rootNode: THREE.Object3D;
-	private spawnPoints: ISpawnPoint[] = [];
+	public spawnPoints: ISpawnPoint[] = [];
 	private invisible: boolean = false;
 	private initialCameraAngle: number;
 
@@ -57,6 +74,8 @@ export class Scenario
 	private justLappedTunnel2: boolean = false;
 	private lapCheckTimer: ReturnType<typeof setInterval> | undefined;
 	private playerPosition: THREE.Vector3 = new THREE.Vector3();
+
+	private boatRaceState: BoatRaceState | undefined;
 
 	constructor(root: THREE.Object3D, world: World)
 	{
@@ -151,6 +170,7 @@ export class Scenario
 		}
 		this.isRace = false;
 		this.race = undefined;
+		this.boatRaceState = undefined;
 	}
 
 	public launch(loadingManager: LoadingManager, world: World): void
@@ -166,6 +186,7 @@ export class Scenario
 		this.lap = 0;
 		this.justLappedTunnel1 = false;
 		this.justLappedTunnel2 = false;
+		this.boatRaceState = undefined;
 		world.lapCounter.innerHTML = 'Lap: 0';
 		world.lapCounter.style.visibility = 'hidden';
 
@@ -179,6 +200,20 @@ export class Scenario
 			{
 				this.checkLap(world.camera.position);
 			}, 16);
+		}
+		else if (this.descriptionTitle === BOAT_RACE_TITLE)
+		{
+			const state = this.buildBoatRaceState(world);
+			if (state !== undefined)
+			{
+				this.isRace = true;
+				this.boatRaceState = state;
+				world.lapCounter.style.visibility = 'visible';
+				this.lapCheckTimer = setInterval(() =>
+				{
+					this.checkBoatLap(world.camera.position);
+				}, 16);
+			}
 		}
 
 		if (!this.spawnAlways)
@@ -230,5 +265,91 @@ export class Scenario
 		{
 			this.justLappedTunnel2 = false;
 		}
+	}
+
+	// Find the path used by the boat race scenario by walking the
+	// firstAINode of any AI-driven boat spawn through the path graph.
+	// Returns the ordered list of node names so checkBoatLap can step
+	// through them sequentially. If no AI spawn / no matching node is
+	// found we silently skip lap-tracking — the player can still race,
+	// just without a counter.
+	private buildBoatRaceState(world: World): BoatRaceState | undefined
+	{
+		let firstNodeName: string | undefined;
+		for (const sp of this.spawnPoints)
+		{
+			if (sp instanceof VehicleSpawnPoint && sp.type === 'boat' && sp.firstAINode)
+			{
+				firstNodeName = sp.firstAINode;
+				break;
+			}
+		}
+		if (!firstNodeName) return undefined;
+
+		// world.paths is an array of Path. Find the one that contains
+		// the named node.
+		let path: Path | undefined;
+		for (const p of world.paths)
+		{
+			if (p.nodes[firstNodeName] !== undefined)
+			{
+				path = p;
+				break;
+			}
+		}
+		if (!path) return undefined;
+
+		// Walk the linked list starting at firstNode and collect names
+		// in order until we loop back to the start (or hit a dead end).
+		const orderedNodeNames: string[] = [];
+		const seen = new Set<string>();
+		let cursor = path.nodes[firstNodeName];
+		while (cursor !== undefined && !seen.has(cursor.object.name))
+		{
+			seen.add(cursor.object.name);
+			orderedNodeNames.push(cursor.object.name);
+			cursor = cursor.nextNode;
+		}
+		if (orderedNodeNames.length === 0) return undefined;
+
+		return { orderedNodeNames, nextIndex: 0 };
+	}
+
+	// Sequential path-node-pass tracker. The player needs to come within
+	// BOAT_RACE_NODE_THRESHOLD of the next-expected node; once they
+	// reach the last node, lap++ and reset to node 0.
+	private checkBoatLap(playerPosition: THREE.Vector3): void
+	{
+		const state = this.boatRaceState;
+		if (!state) return;
+
+		const targetName = state.orderedNodeNames[state.nextIndex];
+		const path = this.findPathContaining(targetName);
+		if (!path) return;
+		const node = path.nodes[targetName];
+		if (!node) return;
+
+		const nodeWorldPos = new THREE.Vector3();
+		node.object.getWorldPosition(nodeWorldPos);
+		const distance = nodeWorldPos.distanceTo(playerPosition);
+		if (distance < BOAT_RACE_NODE_THRESHOLD)
+		{
+			state.nextIndex++;
+			if (state.nextIndex >= state.orderedNodeNames.length)
+			{
+				state.nextIndex = 0;
+				this.lap++;
+				this.displayLap();
+			}
+		}
+	}
+
+	private findPathContaining(nodeName: string): Path | undefined
+	{
+		for (const p of this.world.paths)
+		{
+			if (p.nodes[nodeName] !== undefined) return p;
+		}
+		return undefined;
 	}
 }
