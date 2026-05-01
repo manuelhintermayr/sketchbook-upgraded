@@ -259,14 +259,22 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 	{
 		this.landing = false;
 		this.balancing = false;
-		// Drain any residual velocity before cannon's next step. Without
-		// this, the -5 / -0.1 nudge applyVerticalStabilization put on
-		// velocity.y in the previous frame leaves the chassis driving
-		// itself into the trimesh, which the solver then pushes back up,
-		// producing a permanent bounce that never settles.
 		this.collision.velocity.set(0, 0, 0);
 		this.collision.angularVelocity.set(0, 0, 0);
-		setTimeout(() => { this.justBlasted = false; }, 1000);
+
+		// Cannon's solver keeps trying to resolve the rocket vs trimesh
+		// contact every step, and any tiny penetration produces an
+		// upward push that re-introduces velocity, so the body never
+		// truly settles on the pad. Pin it kinematic for the 1-second
+		// settle window — it stops responding to forces, gravity and
+		// collisions, then reverts to DYNAMIC so a fresh liftoff works.
+		const previousType = this.collision.type;
+		this.collision.type = CANNON.Body.KINEMATIC;
+		setTimeout(() =>
+		{
+			this.collision.type = previousType;
+			this.justBlasted = false;
+		}, 1000);
 	}
 
 	// --- Planet menu -------------------------------------------------
@@ -299,6 +307,9 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 	{
 		// Ignore stray clicks if the menu is closed (e.g. before liftoff).
 		if (!this.balancing) return;
+		// Ignore clicks fired by listeners pointing at a rocket that's
+		// already been removed (scenario switch while the menu was open).
+		if (!this.world || this.world.vehicles.indexOf(this) === -1) return;
 
 		this.hidePlanetMenu();
 		this.cancelTravelTimers();

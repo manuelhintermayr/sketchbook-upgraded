@@ -531,6 +531,12 @@ export class World
 	{
 		this.lastScenarioID = scenarioID;
 
+		// Reset cross-scenario world state so a Shift+R from the moon or a
+		// scenario switch with the planet menu open lands the player
+		// cleanly back on Earth.
+		this.onMoon = false;
+		document.getElementById('planet-menu')?.classList.add('planet-menu-hidden');
+
 		this.clearEntities();
 
 		// Launch default scenario
