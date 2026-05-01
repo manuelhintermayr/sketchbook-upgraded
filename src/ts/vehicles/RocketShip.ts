@@ -239,11 +239,17 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		// Touchdown checks — once vertical position dips below the pad
 		// height we consider the landing complete and reset state so
 		// another launch is possible.
-		if (body.position.y <= 16.1283 && this.goingTo === 'earth')
+		//
+		// The `this.landing` guard is critical: without it, the body
+		// would trigger completeLanding while passing y=3755 mid-flight
+		// from moon to earth (goingTo is still 'moon' until dropCheckTimer
+		// fires), wedging the state machine and leaving dropTimer pushing
+		// velocity through the floor.
+		if (this.landing && body.position.y <= 16.1283 && this.goingTo === 'earth')
 		{
 			this.completeLanding();
 		}
-		else if (body.position.y <= MOON_HEIGHT - 97 && this.goingTo === 'moon')
+		else if (this.landing && body.position.y <= MOON_HEIGHT - 97 && this.goingTo === 'moon')
 		{
 			this.completeLanding();
 		}
