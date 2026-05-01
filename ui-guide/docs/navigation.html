@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook Style — Navigation</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link rel="stylesheet" href="docs.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="docs-layout">
+  <nav class="docs-sidebar">
+    <div class="docs-sidebar-brand"><h2>SKETCHBOOK</h2><span>UI Design System</span></div>
+    <div class="docs-nav-section">Pages</div>
+    <a href="index.html" class="docs-nav-link"><span class="material-symbols-outlined">home</span> Overview</a>
+    <a href="foundations.html" class="docs-nav-link"><span class="material-symbols-outlined">palette</span> Foundations</a>
+    <a href="buttons.html" class="docs-nav-link"><span class="material-symbols-outlined">smart_button</span> Buttons</a>
+    <a href="forms.html" class="docs-nav-link"><span class="material-symbols-outlined">text_fields</span> Forms</a>
+    <a href="navigation.html" class="docs-nav-link active"><span class="material-symbols-outlined">menu</span> Navigation</a>
+    <a href="data-display.html" class="docs-nav-link"><span class="material-symbols-outlined">table_chart</span> Data Display</a>
+    <a href="feedback.html" class="docs-nav-link"><span class="material-symbols-outlined">notifications</span> Feedback</a>
+    <a href="layout.html" class="docs-nav-link"><span class="material-symbols-outlined">grid_view</span> Layout</a>
+    <a href="game-ui.html" class="docs-nav-link"><span class="material-symbols-outlined">sports_esports</span> Game UI</a>
+    <div class="docs-nav-section">Screens</div>
+    <a href="../screens/01-title-screen.html" class="docs-nav-link"><span class="material-symbols-outlined">title</span> Title</a>
+    <a href="../screens/02-loading-screen.html" class="docs-nav-link"><span class="material-symbols-outlined">hourglass_top</span> Loading</a>
+    <a href="../screens/03-gameplay-hud.html" class="docs-nav-link"><span class="material-symbols-outlined">videogame_asset</span> HUD</a>
+    <a href="../screens/04-dialog.html" class="docs-nav-link"><span class="material-symbols-outlined">chat_bubble</span> Dialog</a>
+    <a href="../screens/05-settings.html" class="docs-nav-link"><span class="material-symbols-outlined">settings</span> Settings</a>
+    <a href="../screens/06-inventory.html" class="docs-nav-link"><span class="material-symbols-outlined">backpack</span> Inventory</a>
+    <a href="../screens/07-map.html" class="docs-nav-link"><span class="material-symbols-outlined">map</span> Map</a>
+    <a href="../screens/08-crafting.html" class="docs-nav-link"><span class="material-symbols-outlined">handyman</span> Crafting</a>
+    <a href="../screens/09-social.html" class="docs-nav-link"><span class="material-symbols-outlined">group</span> Social</a>
+    <a href="../screens/10-events.html" class="docs-nav-link"><span class="material-symbols-outlined">celebration</span> Events</a>
+    <a href="../screens/11-SketchPad.html" class="docs-nav-link"><span class="material-symbols-outlined">smartphone</span> SketchPad</a>
+    <a href="../screens/12-shop.html" class="docs-nav-link"><span class="material-symbols-outlined">storefront</span> Shop</a>
+    <a href="../screens/13-pause-menu.html" class="docs-nav-link"><span class="material-symbols-outlined">pause</span> Pause</a>
+    <a href="../screens/14-photo-mode.html" class="docs-nav-link"><span class="material-symbols-outlined">photo_camera</span> Photo</a>
+    <a href="../screens/15-tutorial.html" class="docs-nav-link"><span class="material-symbols-outlined">school</span> Tutorial</a>
+    <a href="../screens/16-error.html" class="docs-nav-link"><span class="material-symbols-outlined">error</span> Error</a>
+    <a href="../screens/17-debug-panel.html" class="docs-nav-link"><span class="material-symbols-outlined">bug_report</span> Debug</a>
+    <a href="../screens/18-sketchos.html" class="docs-nav-link"><span class="material-symbols-outlined">desktop_windows</span> SketchOS</a>
+  </nav>
+
+  <div class="docs-mobile-nav">
+    <a href="index.html">Overview</a>
+    <a href="foundations.html">Foundations</a>
+    <a href="buttons.html">Buttons</a>
+    <a href="forms.html">Forms</a>
+    <a href="navigation.html" class="active">Navigation</a>
+    <a href="data-display.html">Data</a>
+    <a href="feedback.html">Feedback</a>
+    <a href="layout.html">Layout</a>
+    <a href="game-ui.html">Game UI</a>
+  </div>
+
+  <main class="docs-main">
+    <div class="docs-page-header">
+      <h1 class="docs-page-title">NAVIGATION</h1>
+      <p class="docs-page-desc">Control panel, footer nav, SketchOS taskbar, sidebar navigation, tabs, breadcrumbs, and pagination.</p>
+    </div>
+
+    <!-- Control Panel -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Control Panel</h2>
+      <p class="docs-note">Fixed left-side panel showing keyboard controls with keycap representations. Visible during gameplay.</p>
+      <div class="demo demo-dark" style="max-width:300px;padding:var(--space-6);">
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+          <div class="ctrl-row"><span class="keycap">W</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Forward</span></div>
+          <div class="ctrl-row"><span class="keycap">S</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Backward</span></div>
+          <div class="ctrl-row"><span class="keycap">A</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Left</span></div>
+          <div class="ctrl-row"><span class="keycap">D</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Right</span></div>
+          <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:var(--space-3);"></div>
+          <div class="ctrl-row"><span class="keycap">Shift</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Sprint</span></div>
+          <div class="ctrl-row"><span class="keycap">Space</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Jump</span></div>
+          <div class="ctrl-row"><span class="keycap">F</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Interact</span></div>
+          <div class="ctrl-row"><span class="keycap">V</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Camera</span></div>
+          <div class="ctrl-row"><span class="keycap">C</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Crouch</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Nav -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Footer Navigation</h2>
+      <div class="demo" style="padding:0;position:relative;height:60px;">
+        <div style="position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:var(--space-4);padding:var(--space-3) var(--space-6);background:var(--color-surface);border-top:1px solid var(--color-outline);">
+          <a href="#" style="text-decoration:none;text-align:center;color:var(--color-primary);font-family:var(--font-label);font-size:var(--text-caption);font-weight:600;">
+            <span class="material-symbols-outlined" style="display:block;">home</span>Home
+          </a>
+          <a href="#" style="text-decoration:none;text-align:center;color:var(--color-on-surface-variant);font-family:var(--font-label);font-size:var(--text-caption);font-weight:500;">
+            <span class="material-symbols-outlined" style="display:block;">backpack</span>Items
+          </a>
+          <a href="#" style="text-decoration:none;text-align:center;color:var(--color-on-surface-variant);font-family:var(--font-label);font-size:var(--text-caption);font-weight:500;">
+            <span class="material-symbols-outlined" style="display:block;">map</span>Map
+          </a>
+          <a href="#" style="text-decoration:none;text-align:center;color:var(--color-on-surface-variant);font-family:var(--font-label);font-size:var(--text-caption);font-weight:500;">
+            <span class="material-symbols-outlined" style="display:block;">settings</span>Settings
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SketchOS Taskbar -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">SketchOS Taskbar</h2>
+      <p class="docs-note">macOS/Windows-inspired taskbar with frosted glass effect, app icons, and system tray.</p>
+      <div class="demo" style="padding:0;position:relative;height:48px;overflow:hidden;border-radius:var(--radius-md);">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:48px;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);display:flex;align-items:center;padding:0 var(--space-4);gap:var(--space-3);">
+          <div style="width:32px;height:32px;background:var(--color-primary);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;cursor:pointer;"><span class="material-symbols-outlined" style="color:#222;font-size:18px;">apps</span></div>
+          <div style="width:1px;height:24px;background:rgba(255,255,255,0.2);"></div>
+          <div class="SketchOS-icon" style="background:rgba(255,255,255,0.1);"><span class="material-symbols-outlined" style="color:#fff;font-size:18px;">folder</span></div>
+          <div class="SketchOS-icon" style="background:rgba(255,255,255,0.1);"><span class="material-symbols-outlined" style="color:#fff;font-size:18px;">terminal</span></div>
+          <div class="SketchOS-icon" style="background:rgba(255,255,255,0.1);"><span class="material-symbols-outlined" style="color:#fff;font-size:18px;">language</span></div>
+          <div style="flex:1;"></div>
+          <span style="color:#fff;font-family:var(--font-label);font-size:var(--text-caption);">12:34</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Window Titlebar -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Window Titlebar</h2>
+      <div class="demo" style="padding:0;">
+        <div class="SketchOS-window" style="position:relative;width:100%;border-radius:var(--radius-lg);overflow:hidden;">
+          <div class="SketchOS-titlebar">
+            <div class="SketchOS-dot SketchOS-dot-red"></div>
+            <div class="SketchOS-dot SketchOS-dot-yellow"></div>
+            <div class="SketchOS-dot SketchOS-dot-green"></div>
+            <span style="flex:1;text-align:center;font-family:var(--font-label);font-size:var(--text-caption);font-weight:600;">Window Title</span>
+            <div style="width:36px;"></div>
+          </div>
+          <div style="padding:var(--space-6);text-align:center;color:var(--color-on-surface-variant);font-size:var(--text-body-sm);">
+            Traffic light dots: red (#ff5f57), yellow (#febc2e), green (#28c840). Titlebar with cursor:grab.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Tabs</h2>
+      <div class="demo">
+        <div style="display:flex;gap:0;border-bottom:2px solid var(--color-outline);">
+          <button style="padding:var(--space-2) var(--space-4);border:none;background:none;font-family:var(--font-label);font-weight:700;font-size:var(--text-body-sm);color:var(--color-primary);border-bottom:2px solid var(--color-primary);margin-bottom:-2px;cursor:pointer;">General</button>
+          <button style="padding:var(--space-2) var(--space-4);border:none;background:none;font-family:var(--font-label);font-weight:500;font-size:var(--text-body-sm);color:var(--color-on-surface-variant);cursor:pointer;">Graphics</button>
+          <button style="padding:var(--space-2) var(--space-4);border:none;background:none;font-family:var(--font-label);font-weight:500;font-size:var(--text-body-sm);color:var(--color-on-surface-variant);cursor:pointer;">Audio</button>
+          <button style="padding:var(--space-2) var(--space-4);border:none;background:none;font-family:var(--font-label);font-weight:500;font-size:var(--text-body-sm);color:var(--color-on-surface-variant);cursor:pointer;">Controls</button>
+        </div>
+        <div style="padding:var(--space-4);font-size:var(--text-body-sm);color:var(--color-on-surface-variant);">Tab content area</div>
+      </div>
+    </section>
+
+    <!-- Breadcrumbs -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Breadcrumbs</h2>
+      <div class="demo">
+        <nav style="display:flex;align-items:center;gap:var(--space-2);font-family:var(--font-label);font-size:var(--text-body-sm);">
+          <a href="#" style="color:var(--color-tertiary);text-decoration:none;">Home</a>
+          <span style="color:var(--color-outline);">/</span>
+          <a href="#" style="color:var(--color-tertiary);text-decoration:none;">Settings</a>
+          <span style="color:var(--color-outline);">/</span>
+          <span style="color:var(--color-on-surface);font-weight:600;">Graphics</span>
+        </nav>
+      </div>
+    </section>
+
+    <div class="docs-pager">
+      <a href="forms.html"><span class="material-symbols-outlined">arrow_back</span> Forms</a>
+      <a href="data-display.html">Data Display <span class="material-symbols-outlined">arrow_forward</span></a>
+    </div>
+
+    <div class="docs-footer">
+      <p class="docs-footer-title">SKETCHBOOK</p>
+      <p class="docs-footer-sub">Animal Crossing Mobile — UI Design System</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

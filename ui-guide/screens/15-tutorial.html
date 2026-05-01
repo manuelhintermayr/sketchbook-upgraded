@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook — Tutorial</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; overflow:hidden; }
+  .tutorial-scene {
+    width:100vw; height:100vh; position:relative;
+    background:linear-gradient(to bottom, #87ceeb 0%, #90c695 55%, #5a7a3a 100%);
+  }
+  .tutorial-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.3); }
+  .tutorial-tip {
+    position:absolute; background:#fff; border-radius:var(--radius-lg);
+    padding:var(--space-4) var(--space-5); box-shadow:var(--shadow-lg);
+    max-width:280px; animation:tip-in 0.4s ease-out;
+  }
+  @keyframes tip-in { 0%{opacity:0;transform:translateY(10px)} 100%{opacity:1;transform:translateY(0)} }
+  .tutorial-tip::after {
+    content:""; position:absolute; width:12px; height:12px;
+    background:#fff; transform:rotate(45deg);
+  }
+  .tutorial-tip-title { font-family:var(--font-headline); font-weight:700; font-size:var(--text-body); margin-bottom:var(--space-2); }
+  .tutorial-tip-text { font-size:var(--text-body-sm); color:var(--color-on-surface-variant); line-height:var(--leading-normal); margin-bottom:var(--space-3); }
+  .tutorial-progress {
+    position:fixed; bottom:var(--space-6); left:50%; transform:translateX(-50%);
+    display:flex; gap:var(--space-2); align-items:center;
+  }
+  .tutorial-dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.3); }
+  .tutorial-dot.active { background:var(--color-primary); width:24px; border-radius:var(--radius-pill); }
+</style>
+</head>
+<body>
+<div class="tutorial-scene">
+  <div class="tutorial-overlay"></div>
+
+  <!-- Tip 1: Movement -->
+  <div class="tutorial-tip" style="top:30%;left:10%;">
+    <div class="tutorial-tip-title">Movement Controls</div>
+    <div class="tutorial-tip-text">Use these keys to move your character around the world.</div>
+    <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3);">
+      <span class="keycap">W</span>
+      <span class="keycap">A</span>
+      <span class="keycap">S</span>
+      <span class="keycap">D</span>
+    </div>
+    <button class="btn-gold" style="padding:var(--space-1) var(--space-4);font-size:var(--text-body-sm);">Got it!</button>
+    <div style="position:absolute;bottom:-6px;left:24px;width:12px;height:12px;background:#fff;transform:rotate(45deg);"></div>
+  </div>
+
+  <!-- Tip 2: Sprint -->
+  <div class="tutorial-tip" style="top:55%;left:50%;transform:translateX(-50%);">
+    <div class="tutorial-tip-title">Sprint</div>
+    <div class="tutorial-tip-text">Hold <span class="keycap">Shift</span> while moving to run faster.</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <button class="btn btn-outline" style="padding:var(--space-1) var(--space-3);font-size:var(--text-caption);">Skip</button>
+      <button class="btn-gold" style="padding:var(--space-1) var(--space-4);font-size:var(--text-body-sm);">Next</button>
+    </div>
+  </div>
+
+  <!-- Tip 3: Interact -->
+  <div class="tutorial-tip" style="top:20%;right:60px;left:auto;">
+    <div class="tutorial-tip-title">Interact</div>
+    <div class="tutorial-tip-text">Press <span class="keycap">F</span> near objects and NPCs to interact.</div>
+    <span class="tag" style="background:var(--color-primary);color:var(--color-on-primary);">Step 3 of 5</span>
+  </div>
+
+  <!-- Progress dots -->
+  <div class="tutorial-progress">
+    <div class="tutorial-dot"></div>
+    <div class="tutorial-dot"></div>
+    <div class="tutorial-dot active"></div>
+    <div class="tutorial-dot"></div>
+    <div class="tutorial-dot"></div>
+  </div>
+</div>
+</body>
+</html>

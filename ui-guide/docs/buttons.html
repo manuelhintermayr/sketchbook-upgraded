@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook Style — Buttons</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link rel="stylesheet" href="docs.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  .btn-icon { width:40px; height:40px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
+  .btn-icon .material-symbols-outlined { font-size:20px; }
+  @keyframes spin-loader { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin-loader .6s linear infinite; }
+</style>
+</head>
+<body>
+
+<div class="docs-layout">
+  <nav class="docs-sidebar">
+    <div class="docs-sidebar-brand"><h2>SKETCHBOOK</h2><span>UI Design System</span></div>
+    <div class="docs-nav-section">Pages</div>
+    <a href="index.html" class="docs-nav-link"><span class="material-symbols-outlined">home</span> Overview</a>
+    <a href="foundations.html" class="docs-nav-link"><span class="material-symbols-outlined">palette</span> Foundations</a>
+    <a href="buttons.html" class="docs-nav-link active"><span class="material-symbols-outlined">smart_button</span> Buttons</a>
+    <a href="forms.html" class="docs-nav-link"><span class="material-symbols-outlined">text_fields</span> Forms</a>
+    <a href="navigation.html" class="docs-nav-link"><span class="material-symbols-outlined">menu</span> Navigation</a>
+    <a href="data-display.html" class="docs-nav-link"><span class="material-symbols-outlined">table_chart</span> Data Display</a>
+    <a href="feedback.html" class="docs-nav-link"><span class="material-symbols-outlined">notifications</span> Feedback</a>
+    <a href="layout.html" class="docs-nav-link"><span class="material-symbols-outlined">grid_view</span> Layout</a>
+    <a href="game-ui.html" class="docs-nav-link"><span class="material-symbols-outlined">sports_esports</span> Game UI</a>
+    <div class="docs-nav-section">Screens</div>
+    <a href="../screens/01-title-screen.html" class="docs-nav-link"><span class="material-symbols-outlined">title</span> Title</a>
+    <a href="../screens/02-loading-screen.html" class="docs-nav-link"><span class="material-symbols-outlined">hourglass_top</span> Loading</a>
+    <a href="../screens/03-gameplay-hud.html" class="docs-nav-link"><span class="material-symbols-outlined">videogame_asset</span> HUD</a>
+    <a href="../screens/04-dialog.html" class="docs-nav-link"><span class="material-symbols-outlined">chat_bubble</span> Dialog</a>
+    <a href="../screens/05-settings.html" class="docs-nav-link"><span class="material-symbols-outlined">settings</span> Settings</a>
+    <a href="../screens/06-inventory.html" class="docs-nav-link"><span class="material-symbols-outlined">backpack</span> Inventory</a>
+    <a href="../screens/07-map.html" class="docs-nav-link"><span class="material-symbols-outlined">map</span> Map</a>
+    <a href="../screens/08-crafting.html" class="docs-nav-link"><span class="material-symbols-outlined">handyman</span> Crafting</a>
+    <a href="../screens/09-social.html" class="docs-nav-link"><span class="material-symbols-outlined">group</span> Social</a>
+    <a href="../screens/10-events.html" class="docs-nav-link"><span class="material-symbols-outlined">celebration</span> Events</a>
+    <a href="../screens/11-SketchPad.html" class="docs-nav-link"><span class="material-symbols-outlined">smartphone</span> SketchPad</a>
+    <a href="../screens/12-shop.html" class="docs-nav-link"><span class="material-symbols-outlined">storefront</span> Shop</a>
+    <a href="../screens/13-pause-menu.html" class="docs-nav-link"><span class="material-symbols-outlined">pause</span> Pause</a>
+    <a href="../screens/14-photo-mode.html" class="docs-nav-link"><span class="material-symbols-outlined">photo_camera</span> Photo</a>
+    <a href="../screens/15-tutorial.html" class="docs-nav-link"><span class="material-symbols-outlined">school</span> Tutorial</a>
+    <a href="../screens/16-error.html" class="docs-nav-link"><span class="material-symbols-outlined">error</span> Error</a>
+    <a href="../screens/17-debug-panel.html" class="docs-nav-link"><span class="material-symbols-outlined">bug_report</span> Debug</a>
+    <a href="../screens/18-sketchos.html" class="docs-nav-link"><span class="material-symbols-outlined">desktop_windows</span> SketchOS</a>
+  </nav>
+
+  <div class="docs-mobile-nav">
+    <a href="index.html">Overview</a>
+    <a href="foundations.html">Foundations</a>
+    <a href="buttons.html" class="active">Buttons</a>
+    <a href="forms.html">Forms</a>
+    <a href="navigation.html">Navigation</a>
+    <a href="data-display.html">Data</a>
+    <a href="feedback.html">Feedback</a>
+    <a href="layout.html">Layout</a>
+    <a href="game-ui.html">Game UI</a>
+  </div>
+
+  <main class="docs-main">
+    <div class="docs-page-header">
+      <h1 class="docs-page-title">BUTTONS</h1>
+      <p class="docs-page-desc">Gold confirm buttons with press effect, secondary dark buttons, outline variants, icon buttons, keycap buttons, and loading states.</p>
+    </div>
+
+    <!-- Gold Confirm -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Gold Confirm Button</h2>
+      <p class="docs-note">The signature Sketchbook button. SweetAlert-style with 4px gold bottom shadow and press-active margin shift.</p>
+      <div class="demo">
+        <div class="demo-row">
+          <button class="btn-gold">Okay</button>
+          <button class="btn-gold">Confirm</button>
+          <button class="btn-gold">Start Game</button>
+          <button class="btn-gold">Save Changes</button>
+        </div>
+      </div>
+      <div class="docs-code">
+.btn-gold {
+  background: #FFB900;
+  box-shadow: 0 4px 0 0 rgb(228,158,0);
+  border-radius: 4px;
+}
+.btn-gold:active {
+  margin: 4px 0 0 0;
+  box-shadow: 0 0px 0 0 rgb(228,158,0);
+}</div>
+    </section>
+
+    <!-- Primary & Secondary -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Standard Buttons</h2>
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">Variants</h3>
+        <div class="demo">
+          <div class="demo-row">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn">Secondary</button>
+            <button class="btn btn-outline">Outline</button>
+            <button class="btn btn-ghost">Ghost</button>
+            <button class="btn" disabled>Disabled</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">Sizes</h3>
+        <div class="demo">
+          <div class="demo-row" style="align-items:flex-end;">
+            <button class="btn btn-primary" style="padding:var(--space-1) var(--space-3);font-size:var(--text-caption);">Small</button>
+            <button class="btn btn-primary">Medium</button>
+            <button class="btn btn-primary" style="padding:var(--space-4) var(--space-8);font-size:var(--text-body-lg);">Large</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">With Icons</h3>
+        <div class="demo">
+          <div class="demo-row">
+            <button class="btn btn-primary"><span class="material-symbols-outlined">play_arrow</span> Play</button>
+            <button class="btn"><span class="material-symbols-outlined">settings</span> Settings</button>
+            <button class="btn btn-outline"><span class="material-symbols-outlined">download</span> Download</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">Icon Only</h3>
+        <div class="demo">
+          <div class="demo-row">
+            <button class="btn btn-icon"><span class="material-symbols-outlined">close</span></button>
+            <button class="btn btn-primary btn-icon"><span class="material-symbols-outlined">add</span></button>
+            <button class="btn btn-outline btn-icon"><span class="material-symbols-outlined">edit</span></button>
+            <button class="btn btn-icon"><span class="material-symbols-outlined">delete</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">Loading State</h3>
+        <div class="demo">
+          <div class="demo-row">
+            <button class="btn btn-primary" style="pointer-events:none;opacity:0.8;"><span class="spinner"></span> Loading</button>
+            <button class="btn" style="pointer-events:none;opacity:0.8;"><span class="spinner" style="border-color:rgba(0,0,0,0.2);border-top-color:#222;"></span> Processing</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Keycap Buttons -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Keycap Buttons</h2>
+      <p class="docs-note">Physical keyboard key representation. Used in control panels and tutorial tooltips.</p>
+      <div class="demo">
+        <div class="demo-row">
+          <span class="keycap">W</span>
+          <span class="keycap">A</span>
+          <span class="keycap">S</span>
+          <span class="keycap">D</span>
+        </div>
+        <div class="demo-row" style="margin-top:var(--space-3);">
+          <span class="keycap">Shift</span>
+          <span class="keycap">Space</span>
+          <span class="keycap">Ctrl</span>
+          <span class="keycap">Enter</span>
+          <span class="keycap">Esc</span>
+        </div>
+        <div class="demo-row" style="margin-top:var(--space-3);">
+          <span class="keycap">F</span>
+          <span class="keycap">V</span>
+          <span class="keycap">C</span>
+          <span class="keycap">1</span>
+          <span class="keycap">2</span>
+          <span class="keycap">3</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Button Group -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Button Groups</h2>
+      <div class="demo">
+        <div class="demo-row">
+          <div style="display:inline-flex;border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm);">
+            <button class="btn btn-primary" style="border-radius:0;">Low</button>
+            <button class="btn" style="border-radius:0;border-left:1px solid var(--color-outline);">Medium</button>
+            <button class="btn" style="border-radius:0;border-left:1px solid var(--color-outline);">High</button>
+            <button class="btn" style="border-radius:0;border-left:1px solid var(--color-outline);">Ultra</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="docs-pager">
+      <a href="foundations.html"><span class="material-symbols-outlined">arrow_back</span> Foundations</a>
+      <a href="forms.html">Forms <span class="material-symbols-outlined">arrow_forward</span></a>
+    </div>
+
+    <div class="docs-footer">
+      <p class="docs-footer-title">SKETCHBOOK</p>
+      <p class="docs-footer-sub">Animal Crossing Mobile — UI Design System</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

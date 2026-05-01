@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook Style — Game UI</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link rel="stylesheet" href="docs.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="docs-layout">
+  <nav class="docs-sidebar">
+    <div class="docs-sidebar-brand"><h2>SKETCHBOOK</h2><span>UI Design System</span></div>
+    <div class="docs-nav-section">Pages</div>
+    <a href="index.html" class="docs-nav-link"><span class="material-symbols-outlined">home</span> Overview</a>
+    <a href="foundations.html" class="docs-nav-link"><span class="material-symbols-outlined">palette</span> Foundations</a>
+    <a href="buttons.html" class="docs-nav-link"><span class="material-symbols-outlined">smart_button</span> Buttons</a>
+    <a href="forms.html" class="docs-nav-link"><span class="material-symbols-outlined">text_fields</span> Forms</a>
+    <a href="navigation.html" class="docs-nav-link"><span class="material-symbols-outlined">menu</span> Navigation</a>
+    <a href="data-display.html" class="docs-nav-link"><span class="material-symbols-outlined">table_chart</span> Data Display</a>
+    <a href="feedback.html" class="docs-nav-link"><span class="material-symbols-outlined">notifications</span> Feedback</a>
+    <a href="layout.html" class="docs-nav-link"><span class="material-symbols-outlined">grid_view</span> Layout</a>
+    <a href="game-ui.html" class="docs-nav-link active"><span class="material-symbols-outlined">sports_esports</span> Game UI</a>
+    <div class="docs-nav-section">Screens</div>
+    <a href="../screens/01-title-screen.html" class="docs-nav-link"><span class="material-symbols-outlined">title</span> Title</a>
+    <a href="../screens/02-loading-screen.html" class="docs-nav-link"><span class="material-symbols-outlined">hourglass_top</span> Loading</a>
+    <a href="../screens/03-gameplay-hud.html" class="docs-nav-link"><span class="material-symbols-outlined">videogame_asset</span> HUD</a>
+    <a href="../screens/04-dialog.html" class="docs-nav-link"><span class="material-symbols-outlined">chat_bubble</span> Dialog</a>
+    <a href="../screens/05-settings.html" class="docs-nav-link"><span class="material-symbols-outlined">settings</span> Settings</a>
+    <a href="../screens/06-inventory.html" class="docs-nav-link"><span class="material-symbols-outlined">backpack</span> Inventory</a>
+    <a href="../screens/07-map.html" class="docs-nav-link"><span class="material-symbols-outlined">map</span> Map</a>
+    <a href="../screens/08-crafting.html" class="docs-nav-link"><span class="material-symbols-outlined">handyman</span> Crafting</a>
+    <a href="../screens/09-social.html" class="docs-nav-link"><span class="material-symbols-outlined">group</span> Social</a>
+    <a href="../screens/10-events.html" class="docs-nav-link"><span class="material-symbols-outlined">celebration</span> Events</a>
+    <a href="../screens/11-SketchPad.html" class="docs-nav-link"><span class="material-symbols-outlined">smartphone</span> SketchPad</a>
+    <a href="../screens/12-shop.html" class="docs-nav-link"><span class="material-symbols-outlined">storefront</span> Shop</a>
+    <a href="../screens/13-pause-menu.html" class="docs-nav-link"><span class="material-symbols-outlined">pause</span> Pause</a>
+    <a href="../screens/14-photo-mode.html" class="docs-nav-link"><span class="material-symbols-outlined">photo_camera</span> Photo</a>
+    <a href="../screens/15-tutorial.html" class="docs-nav-link"><span class="material-symbols-outlined">school</span> Tutorial</a>
+    <a href="../screens/16-error.html" class="docs-nav-link"><span class="material-symbols-outlined">error</span> Error</a>
+    <a href="../screens/17-debug-panel.html" class="docs-nav-link"><span class="material-symbols-outlined">bug_report</span> Debug</a>
+    <a href="../screens/18-sketchos.html" class="docs-nav-link"><span class="material-symbols-outlined">desktop_windows</span> SketchOS</a>
+  </nav>
+
+  <div class="docs-mobile-nav">
+    <a href="index.html">Overview</a>
+    <a href="foundations.html">Foundations</a>
+    <a href="buttons.html">Buttons</a>
+    <a href="forms.html">Forms</a>
+    <a href="navigation.html">Navigation</a>
+    <a href="data-display.html">Data</a>
+    <a href="feedback.html">Feedback</a>
+    <a href="layout.html">Layout</a>
+    <a href="game-ui.html" class="active">Game UI</a>
+  </div>
+
+  <main class="docs-main">
+    <div class="docs-page-header">
+      <h1 class="docs-page-title">GAME UI</h1>
+      <p class="docs-page-desc">Game-specific components: HUD overlay, control panels, debug panels, SketchOS desktop, inventory grids, dialog boxes, and loading screens.</p>
+    </div>
+
+    <!-- HUD Overlay Text -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">HUD Overlay Text</h2>
+      <p class="docs-note">White text with text-shadow for readability over 3D scene backgrounds.</p>
+      <div class="demo" style="background:linear-gradient(to bottom, #87ceeb, #5a7a3a);padding:var(--space-8);border-radius:var(--radius-md);">
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+          <h2 class="text-overlay" style="font-size:var(--text-h2);">Sketchbook 0.4</h2>
+          <p class="text-overlay" style="font-size:var(--text-body);">Press any key to start</p>
+          <p class="text-overlay" style="font-size:var(--text-body-sm);">Use <span class="keycap">W</span><span class="keycap">A</span><span class="keycap">S</span><span class="keycap">D</span> to move</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inventory Grid -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Inventory Grid</h2>
+      <div class="demo">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-2);max-width:320px;">
+          <div style="aspect-ratio:1;background:var(--color-surface-container);border:1px solid var(--color-outline);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined" style="color:var(--color-primary);">park</span></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container);border:1px solid var(--color-outline);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined" style="color:var(--color-tertiary);">phishing</span></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container);border:1px solid var(--color-outline);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined" style="color:var(--color-success);">psychiatry</span></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container);border:1px solid var(--color-outline);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;position:relative;"><span class="material-symbols-outlined">inventory_2</span><span style="position:absolute;bottom:2px;right:4px;font-size:10px;font-family:var(--font-mono);font-weight:700;">x5</span></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container-high);border:1px dashed var(--color-outline);border-radius:var(--radius-md);"></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container-high);border:1px dashed var(--color-outline);border-radius:var(--radius-md);"></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container-high);border:1px dashed var(--color-outline);border-radius:var(--radius-md);"></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container-high);border:1px dashed var(--color-outline);border-radius:var(--radius-md);"></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container-high);border:1px dashed var(--color-outline);border-radius:var(--radius-md);"></div>
+          <div style="aspect-ratio:1;background:var(--color-surface-container-high);border:1px dashed var(--color-outline);border-radius:var(--radius-md);"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Debug Panel Full -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Debug Panel (lil-gui)</h2>
+      <p class="docs-note">Right-side panel with folder sections, toggles, sliders, and color pickers. Inspired by lil-gui/dat.gui.</p>
+      <div class="demo" style="padding:0;max-width:280px;">
+        <div class="debug-panel" style="position:relative;max-height:none;">
+          <div class="debug-folder">
+            <div class="debug-folder-title">World <span style="font-size:10px;">&#9660;</span></div>
+            <div class="debug-row"><span class="debug-label">Fog</span><div class="debug-toggle active" onclick="this.classList.toggle('active')"></div></div>
+            <div class="debug-row"><span class="debug-label">Grid</span><div class="debug-toggle" onclick="this.classList.toggle('active')"></div></div>
+            <div class="debug-row"><span class="debug-label">Time of Day</span><input type="range" class="debug-slider" min="0" max="24" value="14" step="0.5"></div>
+          </div>
+          <div class="debug-folder">
+            <div class="debug-folder-title">Rendering <span style="font-size:10px;">&#9660;</span></div>
+            <div class="debug-row"><span class="debug-label">Wireframe</span><div class="debug-toggle" onclick="this.classList.toggle('active')"></div></div>
+            <div class="debug-row"><span class="debug-label">Shadows</span><div class="debug-toggle active" onclick="this.classList.toggle('active')"></div></div>
+            <div class="debug-row"><span class="debug-label">Sky Color</span><input type="color" value="#568db5" style="width:24px;height:18px;border:none;cursor:pointer;background:none;"></div>
+          </div>
+          <div class="debug-folder">
+            <div class="debug-folder-title">Physics <span style="font-size:10px;">&#9660;</span></div>
+            <div class="debug-row"><span class="debug-label">Gravity</span><input type="range" class="debug-slider" min="0" max="20" value="9.8"><span style="color:#999;font-size:10px;min-width:24px;text-align:right;">9.8</span></div>
+            <div class="debug-row"><span class="debug-label">Speed</span><input type="range" class="debug-slider" min="0" max="10" value="4"><span style="color:#999;font-size:10px;min-width:24px;text-align:right;">4.0</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SketchOS Components -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">SketchOS Components</h2>
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">Desktop Icons</h3>
+        <div class="demo" style="background:linear-gradient(135deg, #87ceeb, #5fa8d3);padding:var(--space-6);border-radius:var(--radius-md);">
+          <div style="display:flex;gap:var(--space-6);">
+            <div style="text-align:center;cursor:pointer;">
+              <div class="SketchOS-icon" style="width:48px;height:48px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);margin:0 auto var(--space-1);"><span class="material-symbols-outlined" style="color:#fff;font-size:24px;">folder</span></div>
+              <span style="font-size:10px;color:#fff;font-family:var(--font-label);text-shadow:0 1px 2px rgba(0,0,0,0.5);">Documents</span>
+            </div>
+            <div style="text-align:center;cursor:pointer;">
+              <div class="SketchOS-icon" style="width:48px;height:48px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);margin:0 auto var(--space-1);"><span class="material-symbols-outlined" style="color:#fff;font-size:24px;">terminal</span></div>
+              <span style="font-size:10px;color:#fff;font-family:var(--font-label);text-shadow:0 1px 2px rgba(0,0,0,0.5);">Terminal</span>
+            </div>
+            <div style="text-align:center;cursor:pointer;">
+              <div class="SketchOS-icon" style="width:48px;height:48px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);margin:0 auto var(--space-1);"><span class="material-symbols-outlined" style="color:#fff;font-size:24px;">language</span></div>
+              <span style="font-size:10px;color:#fff;font-family:var(--font-label);text-shadow:0 1px 2px rgba(0,0,0,0.5);">Browser</span>
+            </div>
+            <div style="text-align:center;cursor:pointer;">
+              <div class="SketchOS-icon" style="width:48px;height:48px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);margin:0 auto var(--space-1);"><span class="material-symbols-outlined" style="color:#fff;font-size:24px;">settings</span></div>
+              <span style="font-size:10px;color:#fff;font-family:var(--font-label);text-shadow:0 1px 2px rgba(0,0,0,0.5);">Settings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">Traffic Light Dots</h3>
+        <div class="demo">
+          <div class="demo-row" style="gap:var(--space-6);">
+            <div style="display:flex;gap:var(--space-2);align-items:center;">
+              <div class="SketchOS-dot SketchOS-dot-red"></div>
+              <div class="SketchOS-dot SketchOS-dot-yellow"></div>
+              <div class="SketchOS-dot SketchOS-dot-green"></div>
+              <span style="margin-left:var(--space-2);font-size:var(--text-caption);color:var(--color-on-surface-variant);">Standard</span>
+            </div>
+            <div style="display:flex;gap:var(--space-2);align-items:center;">
+              <div style="width:12px;height:12px;border-radius:50%;background:#ff5f57;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(0,0,0,0.4);">x</div>
+              <div style="width:12px;height:12px;border-radius:50%;background:#febc2e;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(0,0,0,0.4);">-</div>
+              <div style="width:12px;height:12px;border-radius:50%;background:#28c840;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(0,0,0,0.4);">+</div>
+              <span style="margin-left:var(--space-2);font-size:var(--text-caption);color:var(--color-on-surface-variant);">With symbols (hover)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dialog Box -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Dialog Box</h2>
+      <div class="demo demo-dark" style="padding:var(--space-8);display:flex;justify-content:center;">
+        <div style="background:rgba(0,0,0,0.6);padding:var(--space-4) var(--space-6);border-radius:var(--radius-lg);max-width:400px;backdrop-filter:blur(4px);">
+          <p class="text-overlay" style="font-size:var(--text-body);margin-bottom:var(--space-3);">swift502</p>
+          <p class="text-overlay" style="font-size:var(--text-body-sm);opacity:0.9;line-height:1.6;">Welcome to Sketchbook! Vehicles are at the spawn zone. Press <strong>F</strong> to board, <strong>G</strong> to exit. Have fun exploring!</p>
+          <div style="margin-top:var(--space-3);text-align:right;">
+            <span class="text-overlay" style="font-size:var(--text-caption);">Press <span class="keycap" style="font-size:10px;">Space</span> to continue</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="docs-pager">
+      <a href="layout.html"><span class="material-symbols-outlined">arrow_back</span> Layout</a>
+      <span class="spacer"><span class="material-symbols-outlined">arrow_forward</span></span>
+    </div>
+
+    <div class="docs-footer">
+      <p class="docs-footer-title">SKETCHBOOK</p>
+      <p class="docs-footer-sub">Animal Crossing Mobile — UI Design System</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

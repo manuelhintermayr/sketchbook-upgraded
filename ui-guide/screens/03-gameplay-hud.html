@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook — Gameplay HUD</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; overflow:hidden; }
+  .scene {
+    width:100vw; height:100vh; position:relative;
+    background: linear-gradient(to bottom, #87ceeb 0%, #b0d4e8 30%, #90c695 55%, #5a7a3a 70%, #3d5a1e 100%);
+  }
+  .sun {
+    position:absolute; top:60px; right:120px;
+    width:80px; height:80px; background:radial-gradient(circle, #FFD700 30%, rgba(255,215,0,0) 70%);
+    border-radius:50%;
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="sun"></div>
+
+  <!-- Control Panel (left) -->
+  <div class="control-panel" style="pointer-events:none;">
+    <div class="ctrl-row"><span class="keycap">W</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Forward</span></div>
+    <div class="ctrl-row"><span class="keycap">S</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Backward</span></div>
+    <div class="ctrl-row"><span class="keycap">A</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Left</span></div>
+    <div class="ctrl-row"><span class="keycap">D</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Right</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.15);margin:var(--space-2) 0;"></div>
+    <div class="ctrl-row"><span class="keycap">Shift</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Sprint</span></div>
+    <div class="ctrl-row"><span class="keycap">Space</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Jump</span></div>
+    <div class="ctrl-row"><span class="keycap">F</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Interact</span></div>
+    <div class="ctrl-row"><span class="keycap">V</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Camera</span></div>
+    <div class="ctrl-row"><span class="keycap">C</span> <span class="text-overlay" style="font-size:var(--text-body-sm);">Crouch</span></div>
+  </div>
+
+  <!-- Stats Box (top-right) -->
+  <div class="stats-box" style="background:rgba(0,0,0,0.65);color:#fff;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);font-family:var(--font-mono);font-size:var(--text-caption);line-height:1.6;">
+    <div>FPS: <span id="fps">60</span></div>
+    <div>X: 12.4 Y: 0.0 Z: -8.2</div>
+  </div>
+
+  <!-- Bottom center text -->
+  <div style="position:fixed;bottom:var(--space-8);left:50%;transform:translateX(-50%);text-align:center;">
+    <span class="text-overlay" style="font-size:var(--text-body);">Sandbox World</span>
+  </div>
+</div>
+
+<script>
+let fps = 60;
+setInterval(() => {
+  fps = 58 + Math.floor(Math.random() * 5);
+  document.getElementById('fps').textContent = fps;
+}, 1000);
+</script>
+</body>
+</html>

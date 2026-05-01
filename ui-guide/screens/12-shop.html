@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook — Shop</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { background:var(--color-background); }
+  .shop-container { max-width:700px; margin:0 auto; padding:var(--space-8); }
+  .shop-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--space-4); }
+  .shop-item {
+    background:var(--color-surface); border-radius:var(--radius-lg);
+    padding:var(--space-4); text-align:center; box-shadow:var(--shadow-md);
+    cursor:pointer; transition:all var(--motion-fast);
+  }
+  .shop-item:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+  .shop-icon {
+    width:64px; height:64px; margin:0 auto var(--space-3);
+    background:var(--color-surface-container); border-radius:var(--radius-md);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .shop-price {
+    font-family:var(--font-mono); font-weight:700; color:var(--color-primary);
+    font-size:var(--text-body-sm); margin-top:var(--space-2);
+  }
+  .shop-balance {
+    display:inline-flex; align-items:center; gap:var(--space-2);
+    padding:var(--space-2) var(--space-4); background:var(--color-primary);
+    color:var(--color-on-primary); border-radius:var(--radius-pill);
+    font-family:var(--font-mono); font-weight:700;
+  }
+</style>
+</head>
+<body>
+<div class="shop-container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-6);">
+    <div>
+      <h1 style="font-family:var(--font-headline);font-size:var(--text-h2);">Supply Depot</h1>
+      <p style="color:var(--color-on-surface-variant);font-size:var(--text-body-sm);">Available today</p>
+    </div>
+    <div class="shop-balance"><span class="material-symbols-outlined" style="font-size:18px;">paid</span> 12,450 Credits</div>
+  </div>
+
+  <div class="shop-grid">
+    <div class="shop-item">
+      <div class="shop-icon"><span class="material-symbols-outlined" style="font-size:32px;color:var(--color-tertiary);">directions_car</span></div>
+      <h4 style="font-size:var(--text-body-sm);">Car Spawn</h4>
+      <p style="font-size:var(--text-caption);color:var(--color-on-surface-variant);">Instant vehicle at your location</p>
+      <div class="shop-price">500 Credits</div>
+      <button class="btn-gold" style="margin-top:var(--space-2);padding:var(--space-1) var(--space-3);font-size:var(--text-caption);">Buy</button>
+    </div>
+
+    <div class="shop-item">
+      <div class="shop-icon"><span class="material-symbols-outlined" style="font-size:32px;color:#a0522d;">helicopter</span></div>
+      <h4 style="font-size:var(--text-body-sm);">Helicopter</h4>
+      <p style="font-size:var(--text-caption);color:var(--color-on-surface-variant);">Fly and hover freely</p>
+      <div class="shop-price">800 Credits</div>
+      <button class="btn-gold" style="margin-top:var(--space-2);padding:var(--space-1) var(--space-3);font-size:var(--text-caption);">Buy</button>
+    </div>
+
+    <div class="shop-item">
+      <div class="shop-icon"><span class="material-symbols-outlined" style="font-size:32px;color:var(--color-success);">sailing</span></div>
+      <h4 style="font-size:var(--text-body-sm);">Boat</h4>
+      <p style="font-size:var(--text-caption);color:var(--color-on-surface-variant);">Navigate the water areas</p>
+      <div class="shop-price">680 Credits</div>
+      <button class="btn-gold" style="margin-top:var(--space-2);padding:var(--space-1) var(--space-3);font-size:var(--text-caption);">Buy</button>
+    </div>
+
+    <div class="shop-item">
+      <div class="shop-icon"><span class="material-symbols-outlined" style="font-size:32px;color:var(--color-primary);">flight</span></div>
+      <h4 style="font-size:var(--text-body-sm);">Airplane</h4>
+      <p style="font-size:var(--text-caption);color:var(--color-on-surface-variant);">High-speed aerial travel</p>
+      <div class="shop-price">1,200 Credits</div>
+      <button class="btn-gold" style="margin-top:var(--space-2);padding:var(--space-1) var(--space-3);font-size:var(--text-caption);">Buy</button>
+    </div>
+
+    <div class="shop-item">
+      <div class="shop-icon"><span class="material-symbols-outlined" style="font-size:32px;color:var(--color-error);">rocket_launch</span></div>
+      <h4 style="font-size:var(--text-body-sm);">Rocket Ship</h4>
+      <p style="font-size:var(--text-caption);color:var(--color-on-surface-variant);">Reach extreme altitudes</p>
+      <div class="shop-price">2,400 Credits</div>
+      <button class="btn-gold" style="margin-top:var(--space-2);padding:var(--space-1) var(--space-3);font-size:var(--text-caption);">Buy</button>
+    </div>
+
+    <div class="shop-item">
+      <div class="shop-icon"><span class="material-symbols-outlined" style="font-size:32px;color:#888;">backpack</span></div>
+      <h4 style="font-size:var(--text-body-sm);">Backpack+</h4>
+      <p style="font-size:var(--text-caption);color:var(--color-on-surface-variant);">Expand inventory +10</p>
+      <div class="shop-price">5,000 Credits</div>
+      <button class="btn-gold" style="margin-top:var(--space-2);padding:var(--space-1) var(--space-3);font-size:var(--text-caption);">Buy</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

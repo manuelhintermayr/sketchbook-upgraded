@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook — Settings</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { background:var(--color-background); }
+  .settings-container { max-width:640px; margin:0 auto; padding:var(--space-8); }
+  .settings-header { margin-bottom:var(--space-8); }
+  .settings-card {
+    background:var(--color-surface); border-radius:var(--radius-lg);
+    padding:var(--space-6); box-shadow:var(--shadow-md); margin-bottom:var(--space-4);
+  }
+  .settings-card h3 { font-family:var(--font-headline); font-size:var(--text-h4); margin-bottom:var(--space-4); }
+  .setting-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:var(--space-3) 0; border-bottom:1px solid var(--color-outline-variant);
+  }
+  .setting-row:last-child { border-bottom:none; }
+  .setting-label { font-family:var(--font-body); font-size:var(--text-body-sm); }
+  .setting-desc { font-family:var(--font-label); font-size:var(--text-caption); color:var(--color-on-surface-variant); }
+</style>
+</head>
+<body>
+<div class="settings-container">
+  <div class="settings-header">
+    <h1 style="font-family:var(--font-headline);font-size:var(--text-h1);margin-bottom:var(--space-2);">Settings</h1>
+    <p style="color:var(--color-on-surface-variant);font-size:var(--text-body-sm);">Configure your game experience</p>
+  </div>
+
+  <div class="settings-card">
+    <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:var(--space-2);">monitor</span>Graphics</h3>
+    <div class="setting-row">
+      <div><div class="setting-label">Quality</div><div class="setting-desc">Adjust overall rendering quality</div></div>
+      <select class="input" style="width:auto;">
+        <option>Low</option><option>Medium</option><option selected>High</option><option>Ultra</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Shadows</div><div class="setting-desc">Enable dynamic shadows</div></div>
+      <div class="toggle active" onclick="this.classList.toggle('active')"><div class="toggle-thumb"></div></div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Anti-Aliasing</div><div class="setting-desc">Smooth jagged edges</div></div>
+      <div class="toggle active" onclick="this.classList.toggle('active')"><div class="toggle-thumb"></div></div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">V-Sync</div><div class="setting-desc">Sync with display refresh rate</div></div>
+      <div class="toggle" onclick="this.classList.toggle('active')"><div class="toggle-thumb"></div></div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Draw Distance</div></div>
+      <input type="range" min="100" max="2000" value="1000" style="width:150px;accent-color:var(--color-primary);">
+    </div>
+  </div>
+
+  <div class="settings-card">
+    <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:var(--space-2);">volume_up</span>Audio</h3>
+    <div class="setting-row">
+      <div><div class="setting-label">Master Volume</div></div>
+      <input type="range" min="0" max="100" value="80" style="width:150px;accent-color:var(--color-primary);">
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Music</div></div>
+      <input type="range" min="0" max="100" value="60" style="width:150px;accent-color:var(--color-primary);">
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Sound Effects</div></div>
+      <input type="range" min="0" max="100" value="75" style="width:150px;accent-color:var(--color-primary);">
+    </div>
+  </div>
+
+  <div class="settings-card">
+    <h3><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:var(--space-2);">keyboard</span>Controls</h3>
+    <div class="setting-row">
+      <div><div class="setting-label">Mouse Sensitivity</div></div>
+      <input type="range" min="1" max="10" value="5" style="width:150px;accent-color:var(--color-primary);">
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Invert Y-Axis</div></div>
+      <div class="toggle" onclick="this.classList.toggle('active')"><div class="toggle-thumb"></div></div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:var(--space-6);">
+    <button class="btn-gold">Save Changes</button>
+  </div>
+</div>
+</body>
+</html>

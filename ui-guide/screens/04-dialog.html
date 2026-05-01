@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook — NPC Dialog</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; overflow:hidden; }
+
+  /* ── Scene Background ─────────────────────────────── */
+  .scene {
+    width:100vw; height:100vh; position:relative;
+    background:linear-gradient(to bottom,
+      #87ceeb 0%, #b0d4e8 30%,
+      #90c695 55%, #5a7a3a 70%, #3d5a1e 100%);
+  }
+  .sun {
+    position:absolute; top:60px; right:140px;
+    width:72px; height:72px;
+    background:radial-gradient(circle, #FFD700 30%, rgba(255,215,0,0) 70%);
+    border-radius:50%;
+  }
+
+  /* ── NPC Character Sprite ─────────────────────────── */
+  .npc-wrap {
+    position:absolute; bottom:34%; left:52%;
+    transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .npc-interact-hint {
+    margin-bottom:var(--space-2);
+    animation:hint-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes hint-pulse { 0%,100%{transform:translateY(0);opacity:0.9} 50%{transform:translateY(-4px);opacity:1} }
+  .npc-body { display:flex; flex-direction:column; align-items:center; }
+  .npc-head { width:32px; height:32px; background:#f0b070; border-radius:50%; border:2px solid #c8884a; }
+  .npc-torso { width:40px; height:42px; background:#568db5; border-radius:4px 4px 0 0; margin-top:-4px; }
+  .npc-legs { display:flex; gap:4px; }
+  .npc-leg { width:15px; height:18px; background:#2a3a4a; border-radius:0 0 4px 4px; }
+  .npc-label {
+    margin-top:var(--space-1);
+    background:rgba(0,0,0,0.6); border-radius:var(--radius-sm);
+    padding:2px var(--space-3);
+    font-family:var(--font-label); font-size:10px; font-weight:700; color:#fff; white-space:nowrap;
+  }
+
+  /* ── Dialog dim overlay ───────────────────────────── */
+  .dialog-dim { position:absolute; inset:0; background:rgba(0,0,0,0.22); pointer-events:none; }
+
+  /* ── Bottom Dialog Bar ────────────────────────────── */
+  .dialog-bar { position:fixed; bottom:0; left:0; right:0; padding:0 var(--space-8) var(--space-6); }
+  .dialog-box {
+    background:rgba(12,15,22,0.93);
+    border:2px solid rgba(255,185,0,0.45);
+    border-radius:var(--radius-xl);
+    backdrop-filter:blur(10px);
+    display:flex; position:relative;
+    min-height:170px; overflow:hidden;
+    box-shadow:0 -4px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,185,0,0.12);
+  }
+
+  /* ── Portrait Panel ───────────────────────────────── */
+  .dialog-portrait {
+    width:148px; flex-shrink:0;
+    background:rgba(255,185,0,0.06);
+    border-right:2px solid rgba(255,185,0,0.25);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-end;
+    padding:var(--space-4) var(--space-3); gap:var(--space-2);
+  }
+  .portrait-img {
+    width:88px; height:88px;
+    background:linear-gradient(135deg, #568db5 0%, #3a7090 100%);
+    border-radius:var(--radius-full);
+    border:3px solid rgba(255,185,0,0.55);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 22px rgba(255,185,0,0.18), 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .portrait-name {
+    font-family:var(--font-label); font-weight:700;
+    font-size:var(--text-body-sm); color:var(--color-primary);
+    text-align:center; letter-spacing:0.04em;
+  }
+  .portrait-role {
+    font-family:var(--font-label); font-size:var(--text-caption);
+    color:rgba(255,255,255,0.4); text-align:center;
+  }
+
+  /* ── Dialog Content ───────────────────────────────── */
+  .dialog-content {
+    flex:1; padding:var(--space-4) var(--space-6) var(--space-10);
+    display:flex; flex-direction:column;
+  }
+  .dialog-speaker {
+    font-family:var(--font-headline); font-weight:700;
+    font-size:var(--text-h4); color:var(--color-primary);
+    margin-bottom:var(--space-2); padding-bottom:var(--space-2);
+    border-bottom:1px solid rgba(255,185,0,0.2);
+  }
+  .dialog-text {
+    font-family:var(--font-body); font-size:var(--text-body);
+    color:rgba(255,255,255,0.88); line-height:var(--leading-relaxed);
+    flex:1; position:relative;
+  }
+
+  /* ── Choice List ──────────────────────────────────── */
+  .dialog-choices { display:flex; flex-direction:column; gap:var(--space-2); margin-top:var(--space-4); }
+  .dialog-choice {
+    display:flex; align-items:center; gap:var(--space-3);
+    padding:var(--space-2) var(--space-3);
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09);
+    border-radius:var(--radius-md);
+    color:rgba(255,255,255,0.75);
+    font-family:var(--font-body); font-size:var(--text-body-sm);
+    cursor:pointer; transition:all var(--motion-fast); user-select:none;
+  }
+  .dialog-choice:hover, .dialog-choice.selected {
+    background:rgba(255,185,0,0.12);
+    border-color:rgba(255,185,0,0.5);
+    color:#fff;
+  }
+  .choice-index {
+    font-family:var(--font-mono); font-size:var(--text-caption);
+    color:var(--color-primary); min-width:18px; text-align:center; font-weight:700;
+  }
+
+  /* ── Hint strip ───────────────────────────────────── */
+  .dialog-hint {
+    position:absolute; bottom:var(--space-3); right:var(--space-4);
+    display:flex; align-items:center; gap:var(--space-2);
+    font-family:var(--font-label); font-size:var(--text-caption);
+    color:rgba(255,255,255,0.38);
+  }
+  .dialog-hint .keycap {
+    font-size:10px; background:#2a2a2a; color:#ccc;
+    box-shadow:inset 0 0 8px #111, 0 1px 0 #555, 0 2px 0 #666, 0 2px 2px #000;
+  }
+
+  /* ── Blinking next chevron ────────────────────────── */
+  .next-chevron {
+    display:inline-block; width:10px; height:10px;
+    border-right:2px solid var(--color-primary);
+    border-bottom:2px solid var(--color-primary);
+    transform:rotate(45deg);
+    margin-left:var(--space-2); vertical-align:middle;
+    animation:chevron-bounce 0.8s ease-in-out infinite;
+  }
+  @keyframes chevron-bounce {
+    0%,100%{transform:rotate(45deg) translate(0,0)}
+    50%{transform:rotate(45deg) translate(3px,3px)}
+  }
+
+  /* ── Typewriter effect ────────────────────────────── */
+  .typewriter { animation:typewriter 1.4s steps(60,end) forwards; }
+  @keyframes typewriter { from{clip-path:inset(0 100% 0 0)} to{clip-path:inset(0 0% 0 0)} }
+
+  /* ── State panels ─────────────────────────────────── */
+  .dialog-state { display:none; }
+  .dialog-state.active { display:flex; flex-direction:column; flex:1; }
+</style>
+</head>
+<body>
+<div class="scene">
+
+  <!-- Sky decoration -->
+  <div class="sun"></div>
+
+  <!-- NPC in world -->
+  <div class="npc-wrap" id="npc-wrap">
+    <div class="npc-interact-hint">
+      <span class="keycap" style="background:var(--color-primary);color:var(--color-on-primary);font-weight:700;">F</span>
+    </div>
+    <div class="npc-body">
+      <div class="npc-head"></div>
+      <div class="npc-torso"></div>
+      <div class="npc-legs"><div class="npc-leg"></div><div class="npc-leg"></div></div>
+    </div>
+    <div class="npc-label">Sgt. Cooper</div>
+  </div>
+
+  <!-- Dim overlay -->
+  <div class="dialog-dim"></div>
+
+  <!-- Left control hints -->
+  <div class="control-panel" style="pointer-events:none;">
+    <div class="ctrl-row"><span class="keycap">W</span><span class="text-overlay" style="font-size:var(--text-body-sm);">Forward</span></div>
+    <div class="ctrl-row"><span class="keycap">S</span><span class="text-overlay" style="font-size:var(--text-body-sm);">Backward</span></div>
+    <div class="ctrl-row"><span class="keycap">A</span><span class="text-overlay" style="font-size:var(--text-body-sm);">Left</span></div>
+    <div class="ctrl-row"><span class="keycap">D</span><span class="text-overlay" style="font-size:var(--text-body-sm);">Right</span></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.15);margin:var(--space-2) 0;"></div>
+    <div class="ctrl-row"><span class="keycap">F</span><span class="text-overlay" style="font-size:var(--text-body-sm);">Interact</span></div>
+  </div>
+
+  <!-- ── NPC DIALOG BOX ──────────────────────────────── -->
+  <div class="dialog-bar" id="dialog-bar">
+    <div class="dialog-box">
+
+      <!-- Portrait -->
+      <div class="dialog-portrait">
+        <div class="portrait-img">
+          <span class="material-symbols-outlined" style="font-size:44px;color:rgba(255,255,255,0.9);">person</span>
+        </div>
+        <div class="portrait-name">Sgt. Cooper</div>
+        <div class="portrait-role">Field Instructor</div>
+      </div>
+
+      <!-- Content area -->
+      <div class="dialog-content">
+
+        <!-- State 0: Opening line + choice menu -->
+        <div class="dialog-state active" id="state-0">
+          <div class="dialog-speaker">Sgt. Cooper</div>
+          <div class="dialog-text typewriter">
+            Hey there, pilot! The <span style="color:var(--color-primary);">airstrip</span> is north of here.
+            We've got vehicles ready at the spawn zone — walk up and press
+            <span class="keycap" style="font-size:10px;">F</span> to board.
+            <span class="next-chevron"></span>
+          </div>
+          <div class="dialog-choices">
+            <div class="dialog-choice selected" onclick="pickChoice(this, 1)">
+              <span class="choice-index">1</span> Tell me about the vehicles.
+            </div>
+            <div class="dialog-choice" onclick="pickChoice(this, 2)">
+              <span class="choice-index">2</span> How do I reach the airstrip?
+            </div>
+            <div class="dialog-choice" onclick="pickChoice(this, 3)">
+              <span class="choice-index">3</span> I'm good, thanks.
+            </div>
+          </div>
+        </div>
+
+        <!-- State 1: Vehicles info -->
+        <div class="dialog-state" id="state-1">
+          <div class="dialog-speaker">Sgt. Cooper</div>
+          <div class="dialog-text typewriter">
+            We've got <span style="color:var(--color-primary);">Cars</span>,
+            <span style="color:var(--color-primary);">Helicopters</span>,
+            a <span style="color:var(--color-primary);">Boat</span>,
+            an <span style="color:var(--color-primary);">Airplane</span>
+            and even a <span style="color:var(--color-primary);">Rocket Ship</span>.
+            Press <span class="keycap" style="font-size:10px;">G</span> to exit a vehicle.
+            Each one handles differently — experiment!
+            <span class="next-chevron"></span>
+          </div>
+          <div class="dialog-choices">
+            <div class="dialog-choice" onclick="pickChoice(this, 0)">
+              <span class="choice-index">←</span> Go back.
+            </div>
+            <div class="dialog-choice selected" onclick="pickChoice(this, 3)">
+              <span class="choice-index">2</span> Got it, thanks!
+            </div>
+          </div>
+        </div>
+
+        <!-- State 2: Directions -->
+        <div class="dialog-state" id="state-2">
+          <div class="dialog-speaker">Sgt. Cooper</div>
+          <div class="dialog-text typewriter">
+            Head <strong style="color:var(--color-primary);">north</strong> past the hills — can't miss it.
+            Open your <span class="keycap" style="font-size:10px;">M</span> map to see waypoints.
+            The airstrip marker is already set for you.
+            <span class="next-chevron"></span>
+          </div>
+          <div class="dialog-choices">
+            <div class="dialog-choice" onclick="pickChoice(this, 0)">
+              <span class="choice-index">←</span> Go back.
+            </div>
+            <div class="dialog-choice selected" onclick="pickChoice(this, 3)">
+              <span class="choice-index">2</span> Got it, thanks!
+            </div>
+          </div>
+        </div>
+
+        <!-- State 3: Farewell -->
+        <div class="dialog-state" id="state-3">
+          <div class="dialog-speaker">Sgt. Cooper</div>
+          <div class="dialog-text typewriter">
+            Stay safe out there! Press
+            <span class="keycap" style="font-size:10px;">V</span> to switch camera view,
+            and <span class="keycap" style="font-size:10px;">Esc</span> to open the pause menu.
+            Good luck, pilot.
+            <span class="next-chevron"></span>
+          </div>
+          <div class="dialog-choices">
+            <div class="dialog-choice selected" onclick="closeDialog()">
+              <span class="choice-index">✓</span> See you around.
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /dialog-content -->
+
+      <!-- Keyboard hint strip -->
+      <div class="dialog-hint">
+        <span class="keycap">1</span>–<span class="keycap">3</span>&nbsp;Pick
+        &nbsp;
+        <span class="keycap">E</span>&nbsp;Confirm
+        &nbsp;
+        <span class="keycap">Esc</span>&nbsp;Close
+      </div>
+
+    </div><!-- /dialog-box -->
+  </div><!-- /dialog-bar -->
+
+</div><!-- /scene -->
+
+<script>
+function showState(id) {
+  document.querySelectorAll('.dialog-state').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('state-' + id);
+  if (!el) return;
+  el.classList.add('active');
+  const txt = el.querySelector('.dialog-text');
+  if (txt) { txt.classList.remove('typewriter'); void txt.offsetWidth; txt.classList.add('typewriter'); }
+}
+
+function pickChoice(choiceEl, targetState) {
+  choiceEl.closest('.dialog-state')
+    .querySelectorAll('.dialog-choice')
+    .forEach(c => c.classList.remove('selected'));
+  choiceEl.classList.add('selected');
+  setTimeout(() => showState(targetState), 180);
+}
+
+function closeDialog() {
+  document.getElementById('dialog-bar').style.display = 'none';
+  document.getElementById('npc-wrap').style.display = 'flex';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeDialog(); return; }
+  if (e.key === 'e' || e.key === 'E') {
+    const sel = document.querySelector('.dialog-state.active .dialog-choice.selected');
+    if (sel) sel.click();
+    return;
+  }
+  const idx = parseInt(e.key) - 1;
+  const choices = document.querySelectorAll('.dialog-state.active .dialog-choice');
+  if (!isNaN(idx) && choices[idx]) choices[idx].click();
+});
+
+showState(0);
+</script>
+</body>
+</html>

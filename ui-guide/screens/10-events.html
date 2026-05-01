@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook — Events</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<style>
+  body { background:var(--color-background); }
+  .events-container { max-width:700px; margin:0 auto; padding:var(--space-8); }
+  .event-card {
+    background:var(--color-surface); border-radius:var(--radius-lg); overflow:hidden;
+    box-shadow:var(--shadow-md); margin-bottom:var(--space-4);
+  }
+  .event-banner { height:120px; display:flex; align-items:flex-end; padding:var(--space-4); position:relative; }
+  .event-banner::after { content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.6), transparent); }
+  .event-banner h3 { position:relative; z-index:1; color:#fff; text-shadow:var(--text-shadow-overlay); }
+  .event-body { padding:var(--space-4); }
+  .event-meta { display:flex; gap:var(--space-3); margin-top:var(--space-3); }
+</style>
+</head>
+<body>
+<div class="events-container">
+  <h1 style="font-family:var(--font-headline);font-size:var(--text-h2);margin-bottom:var(--space-2);">Events</h1>
+  <p style="color:var(--color-on-surface-variant);font-size:var(--text-body-sm);margin-bottom:var(--space-6);">Seasonal challenges and special physics scenarios</p>
+
+  <div class="event-card">
+    <div class="event-banner" style="background:linear-gradient(135deg, #ff9a56, #ff6b35);">
+      <h3 style="font-size:var(--text-h3);">Speed Run Challenge</h3>
+    </div>
+    <div class="event-body">
+      <p style="font-size:var(--text-body-sm);color:var(--color-on-surface-variant);">Race a Car from spawn to the coastline in the fastest time. Leaderboard active all weekend.</p>
+      <div class="event-meta">
+        <span class="tag" style="background:var(--color-success);color:#fff;">Active</span>
+        <span class="tag"><span class="material-symbols-outlined" style="font-size:14px;">schedule</span> 2d remaining</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="event-card">
+    <div class="event-banner" style="background:linear-gradient(135deg, #568db5, #87ceeb);">
+      <h3 style="font-size:var(--text-h3);">Aerial Stunt Derby</h3>
+    </div>
+    <div class="event-body">
+      <p style="font-size:var(--text-body-sm);color:var(--color-on-surface-variant);">Pull off the most creative Helicopter and Airplane stunts. Upload your best screenshot to the gallery!</p>
+      <div class="event-meta">
+        <span class="tag" style="background:var(--color-primary);color:var(--color-on-primary);">Upcoming</span>
+        <span class="tag"><span class="material-symbols-outlined" style="font-size:14px;">schedule</span> Starts in 3d</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="event-card" style="opacity:0.6;">
+    <div class="event-banner" style="background:linear-gradient(135deg, #888, #555);">
+      <h3 style="font-size:var(--text-h3);">Zero-G Physics Jam</h3>
+    </div>
+    <div class="event-body">
+      <p style="font-size:var(--text-body-sm);color:var(--color-on-surface-variant);">Special low-gravity build using custom gravity settings. Exclusive debug panel preset unlocked.</p>
+      <div class="event-meta">
+        <span class="tag">Ended</span>
+        <span class="tag"><span class="material-symbols-outlined" style="font-size:14px;">check</span> Completed</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

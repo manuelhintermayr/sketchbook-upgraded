@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="sketchbook">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketchbook Style — Data Display</title>
+<link rel="stylesheet" href="../sketchbook.css">
+<link rel="stylesheet" href="docs.css">
+<link href="https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&family=Catamaran:wght@100;200;300;400;500;600;700;800;900&family=Cutive+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="docs-layout">
+  <nav class="docs-sidebar">
+    <div class="docs-sidebar-brand"><h2>SKETCHBOOK</h2><span>UI Design System</span></div>
+    <div class="docs-nav-section">Pages</div>
+    <a href="index.html" class="docs-nav-link"><span class="material-symbols-outlined">home</span> Overview</a>
+    <a href="foundations.html" class="docs-nav-link"><span class="material-symbols-outlined">palette</span> Foundations</a>
+    <a href="buttons.html" class="docs-nav-link"><span class="material-symbols-outlined">smart_button</span> Buttons</a>
+    <a href="forms.html" class="docs-nav-link"><span class="material-symbols-outlined">text_fields</span> Forms</a>
+    <a href="navigation.html" class="docs-nav-link"><span class="material-symbols-outlined">menu</span> Navigation</a>
+    <a href="data-display.html" class="docs-nav-link active"><span class="material-symbols-outlined">table_chart</span> Data Display</a>
+    <a href="feedback.html" class="docs-nav-link"><span class="material-symbols-outlined">notifications</span> Feedback</a>
+    <a href="layout.html" class="docs-nav-link"><span class="material-symbols-outlined">grid_view</span> Layout</a>
+    <a href="game-ui.html" class="docs-nav-link"><span class="material-symbols-outlined">sports_esports</span> Game UI</a>
+    <div class="docs-nav-section">Screens</div>
+    <a href="../screens/01-title-screen.html" class="docs-nav-link"><span class="material-symbols-outlined">title</span> Title</a>
+    <a href="../screens/02-loading-screen.html" class="docs-nav-link"><span class="material-symbols-outlined">hourglass_top</span> Loading</a>
+    <a href="../screens/03-gameplay-hud.html" class="docs-nav-link"><span class="material-symbols-outlined">videogame_asset</span> HUD</a>
+    <a href="../screens/04-dialog.html" class="docs-nav-link"><span class="material-symbols-outlined">chat_bubble</span> Dialog</a>
+    <a href="../screens/05-settings.html" class="docs-nav-link"><span class="material-symbols-outlined">settings</span> Settings</a>
+    <a href="../screens/06-inventory.html" class="docs-nav-link"><span class="material-symbols-outlined">backpack</span> Inventory</a>
+    <a href="../screens/07-map.html" class="docs-nav-link"><span class="material-symbols-outlined">map</span> Map</a>
+    <a href="../screens/08-crafting.html" class="docs-nav-link"><span class="material-symbols-outlined">handyman</span> Crafting</a>
+    <a href="../screens/09-social.html" class="docs-nav-link"><span class="material-symbols-outlined">group</span> Social</a>
+    <a href="../screens/10-events.html" class="docs-nav-link"><span class="material-symbols-outlined">celebration</span> Events</a>
+    <a href="../screens/11-SketchPad.html" class="docs-nav-link"><span class="material-symbols-outlined">smartphone</span> SketchPad</a>
+    <a href="../screens/12-shop.html" class="docs-nav-link"><span class="material-symbols-outlined">storefront</span> Shop</a>
+    <a href="../screens/13-pause-menu.html" class="docs-nav-link"><span class="material-symbols-outlined">pause</span> Pause</a>
+    <a href="../screens/14-photo-mode.html" class="docs-nav-link"><span class="material-symbols-outlined">photo_camera</span> Photo</a>
+    <a href="../screens/15-tutorial.html" class="docs-nav-link"><span class="material-symbols-outlined">school</span> Tutorial</a>
+    <a href="../screens/16-error.html" class="docs-nav-link"><span class="material-symbols-outlined">error</span> Error</a>
+    <a href="../screens/17-debug-panel.html" class="docs-nav-link"><span class="material-symbols-outlined">bug_report</span> Debug</a>
+    <a href="../screens/18-sketchos.html" class="docs-nav-link"><span class="material-symbols-outlined">desktop_windows</span> SketchOS</a>
+  </nav>
+
+  <div class="docs-mobile-nav">
+    <a href="index.html">Overview</a>
+    <a href="foundations.html">Foundations</a>
+    <a href="buttons.html">Buttons</a>
+    <a href="forms.html">Forms</a>
+    <a href="navigation.html">Navigation</a>
+    <a href="data-display.html" class="active">Data</a>
+    <a href="feedback.html">Feedback</a>
+    <a href="layout.html">Layout</a>
+    <a href="game-ui.html">Game UI</a>
+  </div>
+
+  <main class="docs-main">
+    <div class="docs-page-header">
+      <h1 class="docs-page-title">DATA DISPLAY</h1>
+      <p class="docs-page-desc">Cards, tags, badges, tables, stat boxes, progress bars, lists, avatars, and skeleton loaders.</p>
+    </div>
+
+    <!-- Cards -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Cards</h2>
+      <div class="demo">
+        <div class="demo-grid demo-grid-3">
+          <div class="card">
+            <h4 style="margin-bottom:var(--space-2);">Player Stats</h4>
+            <p style="font-size:var(--text-body-sm);color:var(--color-on-surface-variant);">Level 12, 340 Credits, 5 items collected</p>
+          </div>
+          <div class="card" style="border-left:3px solid var(--color-primary);">
+            <h4 style="margin-bottom:var(--space-2);">Active Quest</h4>
+            <p style="font-size:var(--text-body-sm);color:var(--color-on-surface-variant);">Collect 10 wood for swift502</p>
+          </div>
+          <div class="card" style="background:var(--color-secondary);color:var(--color-on-secondary);">
+            <h4 style="margin-bottom:var(--space-2);">Dark Card</h4>
+            <p style="font-size:var(--text-body-sm);opacity:0.7;">Used for overlay contexts</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tags & Badges -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Tags & Badges</h2>
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">Tags</h3>
+        <div class="demo">
+          <div class="demo-row">
+            <span class="tag">Default</span>
+            <span class="tag" style="background:var(--color-primary);color:var(--color-on-primary);">Primary</span>
+            <span class="tag" style="background:var(--color-tertiary);color:#fff;">Info</span>
+            <span class="tag" style="background:var(--color-success);color:#fff;">Online</span>
+            <span class="tag" style="background:var(--color-error);color:#fff;">Offline</span>
+          </div>
+        </div>
+      </div>
+      <div class="docs-subsection">
+        <h3 class="docs-subsection-title">Badges</h3>
+        <div class="demo">
+          <div class="demo-row" style="gap:var(--space-6);">
+            <span style="position:relative;"><span class="material-symbols-outlined" style="font-size:28px;">notifications</span><span class="badge" style="position:absolute;top:-4px;right:-8px;">3</span></span>
+            <span style="position:relative;"><span class="material-symbols-outlined" style="font-size:28px;">mail</span><span class="badge" style="position:absolute;top:-4px;right:-8px;">12</span></span>
+            <span style="position:relative;"><span class="material-symbols-outlined" style="font-size:28px;">backpack</span><span class="badge" style="position:absolute;top:-4px;right:-8px;">5</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Box -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Stats Box</h2>
+      <p class="docs-note">Fixed top-right during gameplay. Shows FPS, coordinates, and debug info.</p>
+      <div class="demo">
+        <div style="display:inline-block;background:rgba(0,0,0,0.7);color:#fff;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);font-family:var(--font-mono);font-size:var(--text-caption);line-height:1.6;">
+          FPS: 60<br>
+          X: 12.4 Y: 0.0 Z: -8.2<br>
+          Chunks: 24
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress Bars -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Progress Bars</h2>
+      <div class="demo">
+        <div class="demo-col" style="gap:var(--space-4);max-width:400px;">
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-1);"><span class="docs-label" style="margin:0;">Loading Assets</span><span class="docs-label" style="margin:0;">75%</span></div>
+            <div class="progress"><div class="progress-fill" style="width:75%;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-1);"><span class="docs-label" style="margin:0;">HP</span><span class="docs-label" style="margin:0;">100%</span></div>
+            <div class="progress"><div class="progress-fill" style="width:100%;background:var(--color-success);"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-1);"><span class="docs-label" style="margin:0;">Stamina</span><span class="docs-label" style="margin:0;">30%</span></div>
+            <div class="progress"><div class="progress-fill" style="width:30%;background:var(--color-error);"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Table</h2>
+      <div class="demo" style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:var(--text-body-sm);">
+          <thead>
+            <tr style="border-bottom:2px solid var(--color-secondary);">
+              <th style="text-align:left;padding:var(--space-2) var(--space-3);font-family:var(--font-label);font-weight:700;text-transform:uppercase;font-size:var(--text-caption);">Item</th>
+              <th style="text-align:left;padding:var(--space-2) var(--space-3);font-family:var(--font-label);font-weight:700;text-transform:uppercase;font-size:var(--text-caption);">Type</th>
+              <th style="text-align:right;padding:var(--space-2) var(--space-3);font-family:var(--font-label);font-weight:700;text-transform:uppercase;font-size:var(--text-caption);">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--color-outline-variant);"><td style="padding:var(--space-2) var(--space-3);">Wood</td><td style="padding:var(--space-2) var(--space-3);">Material</td><td style="padding:var(--space-2) var(--space-3);text-align:right;">60 Credits</td></tr>
+            <tr style="border-bottom:1px solid var(--color-outline-variant);"><td style="padding:var(--space-2) var(--space-3);">Iron Ore</td><td style="padding:var(--space-2) var(--space-3);">Material</td><td style="padding:var(--space-2) var(--space-3);text-align:right;">375 Credits</td></tr>
+            <tr style="border-bottom:1px solid var(--color-outline-variant);"><td style="padding:var(--space-2) var(--space-3);">Helicopter Key</td><td style="padding:var(--space-2) var(--space-3);">Vehicle</td><td style="padding:var(--space-2) var(--space-3);text-align:right;">800 Credits</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Skeleton -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Skeleton Loader</h2>
+      <div class="demo">
+        <div style="display:flex;gap:var(--space-4);align-items:flex-start;">
+          <div class="skeleton" style="width:48px;height:48px;border-radius:var(--radius-full);flex-shrink:0;"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:var(--space-2);">
+            <div class="skeleton" style="height:14px;width:60%;"></div>
+            <div class="skeleton" style="height:14px;width:90%;"></div>
+            <div class="skeleton" style="height:14px;width:40%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Avatar -->
+    <section class="docs-section">
+      <h2 class="docs-section-title">Avatars</h2>
+      <div class="demo">
+        <div class="demo-row">
+          <div style="width:32px;height:32px;border-radius:var(--radius-full);background:var(--color-primary);display:flex;align-items:center;justify-content:center;font-family:var(--font-label);font-weight:700;font-size:var(--text-caption);color:var(--color-on-primary);">TN</div>
+          <div style="width:40px;height:40px;border-radius:var(--radius-full);background:var(--color-tertiary);display:flex;align-items:center;justify-content:center;font-family:var(--font-label);font-weight:700;font-size:var(--text-body-sm);color:#fff;">IS</div>
+          <div style="width:48px;height:48px;border-radius:var(--radius-full);background:var(--color-secondary);display:flex;align-items:center;justify-content:center;font-family:var(--font-label);font-weight:700;font-size:var(--text-body);color:#fff;">KK</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="docs-pager">
+      <a href="navigation.html"><span class="material-symbols-outlined">arrow_back</span> Navigation</a>
+      <a href="feedback.html">Feedback <span class="material-symbols-outlined">arrow_forward</span></a>
+    </div>
+
+    <div class="docs-footer">
+      <p class="docs-footer-title">SKETCHBOOK</p>
+      <p class="docs-footer-sub">Animal Crossing Mobile — UI Design System</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>
