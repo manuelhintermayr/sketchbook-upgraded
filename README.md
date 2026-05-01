@@ -37,6 +37,7 @@ This fork pulls in the features from later community forks that I felt were wort
 - Name labels float above every character via a CSS2D pass; the player is tagged "Du" and stands out in blue.
 - Two example NPCs walk a small loop at the default spawn, two more flank the player on idle.
 - Wandering dogs & cats around the spawn area — dogs notice and bark, cats flee, both can be tamed.
+- Distance-culled CSS2D world labels via a central registry — opt-in animal tags ("Hund" / "Katze") follow each animal and hide past 30 units.
 
 ### Vehicles
 
@@ -118,6 +119,7 @@ Adopts the highest-value pieces of [manuelhintermayr/portfolio three-js](https:/
 - **Touch controls** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/3dd1be5548ec0cc77cafd45141b0bb04498d2bba)) — virtual joystick + jump / action / sprint buttons + drag-to-look camera area, auto-mounted on touch devices. Synthesises KeyboardEvent / MouseEvent pairs so InputManager handles them as if from a hardware keyboard / mouse.
 - **i18n + language picker** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/dbbe34030fe6384fd22953899fecb31d730fef3f)) — flat translation table (en / de / es), `t(key, vars)` lookup, persisted to `localStorage`. Title screen shows a language picker at the bottom; pause menu, settings modal, and error overlay are translated.
 - **Bloom + Depth-of-Field** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/34920c47808b0b1d560fc9893e2b79222311d688)) — three's `UnrealBloomPass` + `BokehPass` added to the existing composer pipeline; bloom strength ramps at night, DoF focus tightens while driving. Toggles per pass — no new dependency.
+- **Centralised world labels** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/cc03c9d3333de6dc261c3b453d1537bf7195b539)) — `WorldLabels` registry on top of the existing CSS2DRenderer that adds distance culling and feature-flag gating. `attachNameLabel` keeps its old signature (back-compat) and gains options for `maxDistance`/`feature`. Wandering animals use it for opt-in "Hund" / "Katze" tags.
 
 ## May 2026 — UI design system & in-game shell ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb))
 
