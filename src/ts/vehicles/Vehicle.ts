@@ -12,6 +12,7 @@ import { CollisionGroups } from '../enums/CollisionGroups';
 import { SwitchingSeats } from '../characters/character_states/vehicles/SwitchingSeats';
 import { EntityType } from '../enums/EntityType';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
+import { CameraShake } from '../core/CameraShake';
 
 export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 {
@@ -40,6 +41,13 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	// looks at the middle of tall vehicles instead of the wheels.
 	public viewBack: number = 0;
 	public centerHere: boolean = false;
+
+	// Hard-landing tracker. Watches the chassis's Y velocity each step;
+	// a sharp transition from fast-falling (< -6) to grounded (> -1)
+	// fires a 'land' camera shake scaled by impact strength. Same
+	// heuristic as portfolio's Vehicle.tsx — it's the simplest signal
+	// that catches both a roof-jump landing and a long fall.
+	private prevLinvelY: number = 0;
 
 	constructor(gltf: any, handlingSetup?: any)
 	{
@@ -123,6 +131,24 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			this.collision.interpolatedQuaternion.z,
 			this.collision.interpolatedQuaternion.w
 		);
+
+		// Hard-landing detection — only when the player is actually in
+		// the seat, otherwise an empty parked car wobbling on respawn
+		// would shake the camera too.
+		if (this.controllingCharacter !== undefined)
+		{
+			const curY = this.collision.velocity.y;
+			if (this.prevLinvelY < -6 && curY > -1)
+			{
+				const impact = Math.min(Math.abs(this.prevLinvelY) / 15, 2);
+				CameraShake.trigger('land', impact);
+			}
+			this.prevLinvelY = curY;
+		}
+		else
+		{
+			this.prevLinvelY = 0;
+		}
 
 		this.seats.forEach((seat: VehicleSeat) => {
 			seat.update(timeStep);

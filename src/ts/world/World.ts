@@ -20,6 +20,7 @@ import * as Utils from '../core/FunctionLibrary';
 import { LoadingManager } from '../core/LoadingManager';
 import { InfoStack } from '../core/InfoStack';
 import { UIManager } from '../core/UIManager';
+import { CameraShake } from '../core/CameraShake';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { Character } from '../characters/Character';
@@ -87,6 +88,7 @@ export class World
 	public pauseMenu: PauseMenu;
 	public audioListener: THREE.AudioListener | null = null;
 	public gui: any;
+	public cameraShake: CameraShake;
 
 	private lastScenarioID: string;
 
@@ -235,6 +237,13 @@ export class World
 		this.inputManager = new InputManager(this, this.renderer.domElement);
 		this.cameraOperator = new CameraOperator(this, this.camera, this.params.Mouse_Sensitivity);
 		this.sky = new Sky(this);
+
+		// Camera shake runs after CameraOperator (updateOrder=15) and adds
+		// transient position offsets when vehicles slam down or collide.
+		// Singleton API: anywhere can call CameraShake.trigger() without a
+		// world reference.
+		this.cameraShake = new CameraShake(this);
+		this.registerUpdatable(this.cameraShake);
 
 		// Day / night cycle (ported from Inthenew/Sketchbook).
 		// Mirror sky.phi back into params.Sun_Elevation (folded over 180 so
@@ -977,6 +986,7 @@ export class World
 			Master_Volume: 80,
 			Music_Volume: 60,
 			SFX_Volume: 75,
+			Camera_Shake: true,
 		};
 
 		const gui = new GUI();
@@ -1116,6 +1126,7 @@ export class World
 			{
 				UIManager.setFPSVisible(enabled);
 			});
+		settingsFolder.add(this.params, 'Camera_Shake');
 
 		// Settings persistence (ported from Inthenew/Sketchbook).
 		// Snapshot defaults before restoring so Reset_World_Settings can
