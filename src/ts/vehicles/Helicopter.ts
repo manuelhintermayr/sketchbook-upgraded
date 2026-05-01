@@ -37,6 +37,10 @@ export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 			'seat_switch': new KeyBinding('KeyX'),
 			'view': new KeyBinding('KeyV'),
 		};
+
+		// Helis hover deliberately, so low-movement is intentional. Flip
+		// recovery still helps when one crashes on its side.
+		this.stuckRecoveryEnabled = false;
 	}
 
 	public noDirectionPressed(): boolean

@@ -95,6 +95,11 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 			seat_switch: new KeyBinding('KeyX'),
 			view: new KeyBinding('KeyV'),
 		};
+
+		// Rocket has its own auto-flight + KINEMATIC-pin landing — base
+		// stuck/flip recovery would fight with it.
+		this.stuckRecoveryEnabled = false;
+		this.flipRecoveryEnabled = false;
 	}
 
 	public noDirectionPressed(): boolean

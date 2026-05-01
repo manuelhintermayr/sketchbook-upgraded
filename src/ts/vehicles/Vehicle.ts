@@ -49,6 +49,20 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	// that catches both a roof-jump landing and a long fall.
 	private prevLinvelY: number = 0;
 
+	// Stuck / flip auto-recovery. Subclasses opt out of either gate by
+	// setting these to false in their constructor — boats sit still on
+	// water (stuck check would teleport them), rockets have their own
+	// auto-flight state machine, and air vehicles deliberately hover
+	// (no stuck-sampling) but still benefit from flip-recovery if they
+	// crash on their side.
+	protected stuckRecoveryEnabled: boolean = true;
+	protected flipRecoveryEnabled: boolean = true;
+	private stuckSamples: { dist: number; time: number }[] = [];
+	private stuckLastPos: THREE.Vector3 = new THREE.Vector3();
+	private stuckInitialized: boolean = false;
+	private flipTimer: number = 0;
+	private recoveryCooldown: number = 0;
+
 	constructor(gltf: any, handlingSetup?: any)
 	{
 		super();
@@ -144,10 +158,15 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 				CameraShake.trigger('land', impact);
 			}
 			this.prevLinvelY = curY;
+
+			this.updateStuckRecovery(timeStep);
 		}
 		else
 		{
 			this.prevLinvelY = 0;
+			this.stuckSamples.length = 0;
+			this.flipTimer = 0;
+			this.stuckInitialized = false;
 		}
 
 		this.seats.forEach((seat: VehicleSeat) => {
@@ -180,6 +199,116 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	{
 		this.controllingCharacter.modelContainer.visible = true;
 		this.controllingCharacter.exitVehicle();
+	}
+
+	// Auto-recovery: lifts the chassis 2 units, snaps to a yaw-only
+	// rotation (preserves heading), zeroes velocity. Triggered when the
+	// vehicle has been moving < STUCK_DIST for STUCK_WINDOW seconds with
+	// player input held, OR has been upside-down for FLIP_TIME seconds.
+	// Both gates are toggled per-vehicle (boats / rockets opt out fully,
+	// air vehicles only opt out of the stuck check).
+	private updateStuckRecovery(timeStep: number): void
+	{
+		const STUCK_WINDOW = 6;
+		const STUCK_DIST = 0.5;
+		const FLIP_TIME = 3;
+		const UPSIDE_DOWN_THRESHOLD = Math.cos(100 * Math.PI / 180);
+		const RECOVERY_COOLDOWN = 2;
+
+		const dt = Math.min(timeStep, 1 / 30);
+		this.recoveryCooldown = Math.max(0, this.recoveryCooldown - dt);
+		if (this.recoveryCooldown > 0) return;
+
+		// Stuck sampling — track distance traveled while the player is
+		// actively trying to move. Sitting at idle is not "stuck".
+		if (this.stuckRecoveryEnabled && !this.noDirectionPressed())
+		{
+			const cur = this.collision.position;
+			if (!this.stuckInitialized)
+			{
+				this.stuckLastPos.set(cur.x, cur.y, cur.z);
+				this.stuckInitialized = true;
+			}
+
+			const dx = cur.x - this.stuckLastPos.x;
+			const dy = cur.y - this.stuckLastPos.y;
+			const dz = cur.z - this.stuckLastPos.z;
+			const traveled = Math.sqrt(dx * dx + dy * dy + dz * dz);
+			this.stuckLastPos.set(cur.x, cur.y, cur.z);
+
+			this.stuckSamples.unshift({ dist: traveled, time: dt });
+		}
+		else if (this.stuckInitialized)
+		{
+			// Player let go — drop the sample window so a long idle
+			// doesn't immediately count as stuck the moment they touch
+			// throttle again.
+			this.stuckSamples.length = 0;
+			this.stuckInitialized = false;
+		}
+
+		// Trim sample window to the last STUCK_WINDOW seconds.
+		let totalDist = 0;
+		let totalTime = 0;
+		for (let i = 0; i < this.stuckSamples.length; i++)
+		{
+			if (totalTime >= STUCK_WINDOW)
+			{
+				this.stuckSamples.length = i;
+				break;
+			}
+			totalDist += this.stuckSamples[i].dist;
+			totalTime += this.stuckSamples[i].time;
+		}
+		const isStuck = totalTime >= STUCK_WINDOW && totalDist < STUCK_DIST;
+
+		// Flip detection — accumulate while upside-down, reset on upright
+		// so a brief tilt over a bump doesn't trigger.
+		let flipTimerExpired = false;
+		if (this.flipRecoveryEnabled)
+		{
+			const q = this.collision.quaternion;
+			// Apply quaternion to (0,1,0) — y component of the result is
+			// up.dot(worldUp). When < threshold the chassis is past
+			// horizontal.
+			const upY =
+				1 - 2 * (q.x * q.x + q.z * q.z);
+			if (upY < UPSIDE_DOWN_THRESHOLD)
+			{
+				this.flipTimer += dt;
+			}
+			else
+			{
+				this.flipTimer = 0;
+			}
+			flipTimerExpired = this.flipTimer >= FLIP_TIME;
+		}
+
+		if (!isStuck && !flipTimerExpired) return;
+
+		// Recover: keep heading (yaw only), lift, zero out everything.
+		const pos = this.collision.position;
+		this.collision.position.set(pos.x, pos.y + 2, pos.z);
+
+		const quat = new THREE.Quaternion(
+			this.collision.quaternion.x,
+			this.collision.quaternion.y,
+			this.collision.quaternion.z,
+			this.collision.quaternion.w,
+		);
+		const euler = new THREE.Euler().setFromQuaternion(quat, 'YXZ');
+		euler.x = 0;
+		euler.z = 0;
+		const yawOnly = new THREE.Quaternion().setFromEuler(euler);
+		this.collision.quaternion.set(yawOnly.x, yawOnly.y, yawOnly.z, yawOnly.w);
+
+		this.collision.velocity.setZero();
+		this.collision.angularVelocity.setZero();
+
+		CameraShake.trigger('collision', 1.2);
+		this.recoveryCooldown = RECOVERY_COOLDOWN;
+		this.stuckSamples.length = 0;
+		this.flipTimer = 0;
 	}
 
 	public onInputChange(): void

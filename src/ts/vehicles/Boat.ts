@@ -61,6 +61,11 @@ export class Boat extends Vehicle implements IControllable
 		};
 
 		this.steeringSimulator = new SpringSimulator(60, 10, 0.6);
+
+		// Boats sit still on water and tilt with waves — both auto-recovery
+		// gates would teleport them constantly. Disable both.
+		this.stuckRecoveryEnabled = false;
+		this.flipRecoveryEnabled = false;
 	}
 
 	public noDirectionPressed(): boolean

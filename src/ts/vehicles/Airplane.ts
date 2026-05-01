@@ -59,10 +59,14 @@ export class Airplane extends Vehicle implements IControllable, IWorldEntity
 			'view': new KeyBinding('KeyV'),
 		};
 
-		this.steeringSimulator = new SpringSimulator(60, 10, 0.6); 
+		this.steeringSimulator = new SpringSimulator(60, 10, 0.6);
 		this.aileronSimulator = new SpringSimulator(60, 5, 0.6);
 		this.elevatorSimulator = new SpringSimulator(60, 7, 0.6);
 		this.rudderSimulator = new SpringSimulator(60, 10, 0.6);
+
+		// Slow flight is intentional, so don't flag it as stuck. Flip
+		// recovery still helps after a crash-landing on the wing.
+	this.stuckRecoveryEnabled = false;
 	}
 
 	public noDirectionPressed(): boolean
