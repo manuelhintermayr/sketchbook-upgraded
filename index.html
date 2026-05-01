@@ -3,61 +3,15 @@
 
 <head>
 	<title>Sketchbook</title>
-	<style>
-		#map-picker {
-			position: fixed; inset: 0;
-			display: flex; flex-direction: column; align-items: center; justify-content: center;
-			gap: 24px;
-			background: #0b1220;
-			color: #e7eaf0;
-			font-family: system-ui, sans-serif;
-			z-index: 9999;
-		}
-		#map-picker h1 { margin: 0; font-size: 28px; font-weight: 600; }
-		#map-picker p { margin: 0; opacity: 0.7; font-size: 14px; }
-		#map-picker .cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
-		#map-picker button {
-			width: 260px; padding: 22px 18px;
-			background: #1c2940; color: #e7eaf0;
-			border: 1px solid #2c3e60; border-radius: 8px;
-			cursor: pointer; text-align: left;
-			transition: background 0.15s, border-color 0.15s;
-		}
-		#map-picker button:hover { background: #243553; border-color: #4a6aa3; }
-		#map-picker button strong { display: block; font-size: 16px; margin-bottom: 6px; }
-		#map-picker button span { font-size: 13px; opacity: 0.75; line-height: 1.4; }
-	</style>
 </head>
 
 <body>
-	<div id="map-picker">
-		<div>
-			<h1>Sketchbook</h1>
-			<p>Choose a world to load.</p>
-		</div>
-		<div class="cards">
-			<button id="map-inthenew">
-				<strong>Inthenew World</strong>
-				<span>Rocketship + moon scenario, boat race, tunnel race, figure-8, ocean shader. The default Sketchbook map plus the Inthenew + custom additions.</span>
-			</button>
-			<button id="map-socketcontrol">
-				<strong>SocketControl World</strong>
-				<span>Map from tkkaushik369/socketControl with grass field, positional audio speakers, cylinder physics, and box/sphere shape spawns.</span>
-			</button>
-		</div>
-	</div>
-
 	<script src="build/sketchbook.min.js"></script>
 	<script>
-		(function () {
-			const picker = document.getElementById('map-picker');
-			function load(path) {
-				picker.remove();
-				new Sketchbook.World(path);
-			}
-			document.getElementById('map-inthenew').onclick = () => load('build/assets/world.glb');
-			document.getElementById('map-socketcontrol').onclick = () => load('build/assets/world_socketcontrol.glb');
-		})();
+		const map = localStorage.getItem('sketchbook.map') === 'socketcontrol'
+			? 'build/assets/world_socketcontrol.glb'
+			: 'build/assets/world.glb';
+		new Sketchbook.World(map);
 	</script>
 	<script src="vendor/joycon/Joycon.min.js"></script>
 	<script src="Client.js"></script>

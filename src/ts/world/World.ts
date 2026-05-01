@@ -596,6 +596,12 @@ export class World
 
 		this.graphicsWorld.add(gltf.scene);
 
+		// Map switcher in the Scenarios panel — sits below the scenario
+		// list and reloads the page with the alternate world.glb. Default
+		// (no localStorage entry) is the Inthenew map; the SocketControl
+		// map is opt-in and persists across reloads.
+		this.addMapSwitcher();
+
 		// Launch default scenario
 		let defaultScenarioID: string;
 		for (const scenario of this.scenarios) {
@@ -606,7 +612,22 @@ export class World
 		}
 		if (defaultScenarioID !== undefined) this.launchScenario(defaultScenarioID, loadingManager);
 	}
-	
+
+	private addMapSwitcher(): void
+	{
+		const currentMap = localStorage.getItem('sketchbook.map') === 'socketcontrol' ? 'socketcontrol' : 'inthenew';
+		const otherMap = currentMap === 'inthenew' ? 'socketcontrol' : 'inthenew';
+		const otherLabel = currentMap === 'inthenew' ? 'SocketControl Map' : 'Inthenew Map';
+		const buttonName = `→ Switch to ${otherLabel}`;
+
+		this.params[buttonName] = () =>
+		{
+			localStorage.setItem('sketchbook.map', otherMap);
+			location.reload();
+		};
+		this.scenarioGUIFolder.add(this.params, buttonName);
+	}
+
 	public launchScenario(scenarioID: string, loadingManager?: LoadingManager): void
 	{
 		this.lastScenarioID = scenarioID;
