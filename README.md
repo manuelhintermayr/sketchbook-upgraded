@@ -21,6 +21,7 @@ This fork pulls in the features from later community forks that I felt were wort
 - Procedural [300k-blade grass field](https://www.eddietree.com/grass) (instanced, 30-unit LOD) — wired to any map material called `grass`.
 - 3D positional audio sources ("Speaker") with browser-autoplay handling.
 - Variable timescale, FXAA, cascaded shadow maps, adjustable gravity (0–2×).
+- Camera shake on vehicle hard landings (sineNoise-based, three presets: collision / land / boost).
 - All settings persist to `localStorage` with a one-click reset.
 
 ### Characters & NPCs
@@ -91,6 +92,12 @@ Sketchbook needs to run on a local server (e.g. `npm run dev`) to load assets.
 # Project timeline
 
 > **Attribution policy:** every port below tries to preserve the original commits or at least the original authors via `git format-patch` / `git am` or `git commit --author="…" --date="…"`. The intent is to honour each upstream author's work — and only their work — in `git log`.
+
+## May 2026 — portfolio polish pass ([manuelhintermayr](https://github.com/manuelhintermayr))
+
+Adopts the highest-value pieces of [manuelhintermayr/portfolio three-js](https://github.com/manuelhintermayr/portfolio) — a separate React Three Fiber project with stronger feel/polish than this fork shipped with. Each feature ships as its own commit, ported from the React/Zustand idiom into Sketchbook's vanilla TypeScript + lil-gui idiom (Allman braces, IUpdatable pattern, lil-gui controllers as the source of truth).
+
+- **Camera Shake** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b9dd34c550f8da366970f9a0009558fa77af45f7)) — sineNoise-based per-frame camera offset triggered by vehicle hard landings; static fire-and-forget API, three presets (collision / land / boost), quadratic decay envelope, toggle in Settings.
 
 ## May 2026 — UI design system & in-game shell ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb))
 
