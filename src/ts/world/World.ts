@@ -38,6 +38,7 @@ import { Sky } from './Sky';
 import { Ocean } from './Ocean';
 import { Grass } from './Grass';
 import { Speaker } from './Speaker';
+import { NPCSpawnPoint } from './NPCSpawnPoint';
 
 export class World
 {
@@ -602,6 +603,12 @@ export class World
 		// map is opt-in and persists across reloads.
 		this.addMapSwitcher();
 
+		// Hand-placed NPCs around the Inthenew default spawn — gives the
+		// world some visible occupants without authoring markers in
+		// Blender. Tied to the default scenario so they re-spawn alongside
+		// it and get cleared on switch like other entities.
+		this.injectDefaultSceneNPCs();
+
 		// Launch default scenario
 		let defaultScenarioID: string;
 		for (const scenario of this.scenarios) {
@@ -626,6 +633,43 @@ export class World
 			location.reload();
 		};
 		this.scenarioGUIFolder.add(this.params, buttonName);
+	}
+
+	private injectDefaultSceneNPCs(): void
+	{
+		// Only the Inthenew map has the Default-spawn layout these
+		// coordinates were eyeballed against; SocketControl has its own
+		// scene topology and doesn't get NPCs here.
+		const onSocketControl = localStorage.getItem('sketchbook.map') === 'socketcontrol';
+		if (onSocketControl) return;
+
+		const defaultScenario = this.scenarios.find((s) => s.id === 'default');
+		if (defaultScenario === undefined) return;
+
+		// Picked from poking around the Inthenew default spawn — a few
+		// figures standing in a loose arc near the player spawn, plus one
+		// further out so the world doesn't look empty after walking.
+		const npcPositions: { x: number, y: number, z: number, faceX?: number, faceZ?: number }[] = [
+			{ x: 5, y: 18, z: -5, faceX: -1, faceZ: 0 },
+			{ x: -5, y: 18, z: -5, faceX: 1, faceZ: 0 },
+			{ x: 0, y: 18, z: 1, faceX: 0, faceZ: -1 },
+			{ x: -2, y: 18, z: -12, faceX: 0, faceZ: 1 },
+		];
+
+		for (const p of npcPositions)
+		{
+			const marker = new THREE.Object3D();
+			marker.position.set(p.x, p.y, p.z);
+			if (p.faceX !== undefined && p.faceZ !== undefined)
+			{
+				// Sketchbook's getForward reads the marker's local -Z;
+				// orient the marker so its forward matches our desired
+				// facing.
+				marker.lookAt(p.x + p.faceX, p.y, p.z + p.faceZ);
+			}
+			defaultScenario.rootNode.add(marker);
+			defaultScenario.spawnPoints.push(new NPCSpawnPoint(marker));
+		}
 	}
 
 	public launchScenario(scenarioID: string, loadingManager?: LoadingManager): void
