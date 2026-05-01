@@ -98,7 +98,7 @@ Many great changes happened across forks over the years, but they are spread out
 
 ## May 2026 update — [manuelhintermayr](https://github.com/manuelhintermayr)
 
-Bumped to **0.5.0**. With the toolchain stable from the April work, this round was a feature push: the boats / ocean / races, Joy-Con support, and finally the full rocketship + moon system from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook). Inthenew is now fully integrated.
+Bumped to **0.6.0**. With the toolchain stable from the April work, this round was a feature push: the boats / ocean / races, Joy-Con support, and finally the full rocketship + moon system from [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook). Inthenew is now fully integrated, including the per-vehicle camera tweaks via `viewBack` / `centerHere` userData.
 
 Highlights:
 
