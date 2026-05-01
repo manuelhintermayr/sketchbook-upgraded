@@ -73,22 +73,6 @@ const world = new Sketchbook.World('scene.glb');
 5. `npm run dev` and open <http://localhost:8080>
 6. `npm run lint` to run ESLint over `src/ts/`
 
-## TODO (centralized roadmap)
-
-Many great changes happened across forks over the years, but they are spread out and hard to track in one place. The items below collect the next major integration targets.
-
-### Quality-of-life ideas beyond what's shipped
-
-- **Boat-lap tracking.** The Boat Race scenario from Inthenew has AI racers but no lap counter (their README explicitly says "for now only oval races track laps"). A generic path-node-pass tracker — applicable to any race scenario — would turn Boat Race into a real race against the AI.
-- Optional: replace the wave ocean with [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map) for GPGPU-driven normals.
-
-### Other forks worth mining
-
-- Bring over features from [friuns2/SketchbookAI](https://github.com/friuns2/SketchbookAI) (excluding AI features).
-- Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).
-- Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
-	- Evaluate controller integration from [pmndrs/ecctrl](https://github.com/pmndrs/ecctrl) or [pmndrs/BVHEcctrl](https://github.com/pmndrs/BVHEcctrl).
-
 ---
 
 # Project timeline
@@ -156,6 +140,22 @@ Full technical details on branch `claude/migrate-libraries-ZsEcJ`.
 > - If you wish to modify Sketchbook feel free to fork it.
 > - To see if someone is currently maintaining a fork, check out the [Network Graph](https://github.com/swift502/Sketchbook/network).
 > - The [NPM package](https://www.npmjs.com/package/sketchbook) name is available, and I'll give it away to anyone who asks for it. The package has never worked properly.
+
+## TODO (centralized roadmap)
+
+Many great changes happened across forks over the years, but they are spread out and hard to track in one place. The items below collect the next major integration targets.
+
+### Quality-of-life ideas beyond what's shipped
+
+- Optional: replace the wave ocean with [J0SUKE/gpgpu-dynamic-normal-map](https://github.com/J0SUKE/gpgpu-dynamic-normal-map) for GPGPU-driven normals.
+
+### Other forks worth mining
+
+- Bring over features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl?tab=readme-ov-file) (excluding multiplayer).
+- Bring over features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
+	- Evaluate controller integration from [pmndrs/ecctrl](https://github.com/pmndrs/ecctrl) or [pmndrs/BVHEcctrl](https://github.com/pmndrs/BVHEcctrl).
+
+---
 
 ## Credits
 
