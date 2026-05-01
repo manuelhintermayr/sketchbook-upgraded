@@ -6,6 +6,8 @@ import { FollowPath } from '../characters/character_ai/FollowPath';
 import { LoadingManager } from '../core/LoadingManager';
 import * as Utils from '../core/FunctionLibrary';
 import { attachNameLabel } from './NameLabel';
+import { ProximityPrompt } from './ProximityPrompt';
+import { Dialog } from './DialogBox';
 
 let anonymousNpcCounter = 1;
 
@@ -18,18 +20,25 @@ let anonymousNpcCounter = 1;
 // FollowPath behaviour rooted at that node — same convention as the AI
 // vehicle drivers already use, so an NPC can wander a path without any
 // extra plumbing.
+//
+// If a dialog (and optional role) is attached, a ProximityPrompt is
+// created next to the NPC that opens the DialogBox on E-press.
 export class NPCSpawnPoint implements ISpawnPoint
 {
 	private object: THREE.Object3D;
 	private firstAINode: string | undefined;
+	private dialog: Dialog | undefined;
+	private role: string | undefined;
 
-	constructor(object: THREE.Object3D)
+	constructor(object: THREE.Object3D, options?: { dialog?: Dialog; role?: string })
 	{
 		this.object = object;
 		if (typeof object.userData.first_node === 'string')
 		{
 			this.firstAINode = object.userData.first_node;
 		}
+		this.dialog = options?.dialog;
+		this.role = options?.role;
 	}
 
 	public spawn(loadingManager: LoadingManager, world: World): void
@@ -54,6 +63,26 @@ export class NPCSpawnPoint implements ISpawnPoint
 				? this.object.userData.name
 				: `NPC #${anonymousNpcCounter++}`;
 			attachNameLabel(npc, tag, false);
+
+			// ProximityPrompt anchored to the NPC — moves with them so a
+			// walking NPC's interaction zone keeps up. Reads the role
+			// from constructor options (used as the portrait subtitle).
+			if (this.dialog !== undefined)
+			{
+				const dialog = this.dialog;
+				if (this.role !== undefined)
+				{
+					for (const id in dialog.nodes)
+					{
+						if (dialog.nodes[id].role === undefined) dialog.nodes[id].role = this.role;
+					}
+				}
+				const prompt = new ProximityPrompt(
+					() => npc.position.clone(),
+					{ text: `Press E to talk to ${tag}`, maxInteractDistance: 3, dialog },
+				);
+				prompt.addToWorld(world);
+			}
 
 			// Path-following NPC. Speed parameter mirrors the AI vehicle
 			// drivers — see VehicleSpawnPoint where it picks 10 too.

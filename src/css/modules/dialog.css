@@ -1,0 +1,186 @@
+/* NPC dialog bar — bottom-anchored card with portrait left, speaker
+ * name + body text + numbered choices on the right. Adapted from
+ * ui-guide/screens/04-dialog.html. */
+
+#dialog-bar
+{
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 0 var(--space-8) var(--space-6);
+	display: none;
+	z-index: var(--z-overlay);
+	pointer-events: none;
+}
+
+#dialog-bar.visible
+{
+	display: block;
+	pointer-events: auto;
+}
+
+#dialog-bar .dialog-dim
+{
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.22);
+	pointer-events: none;
+	z-index: -1;
+}
+
+#dialog-bar .dialog-box
+{
+	background: rgba(12, 15, 22, 0.93);
+	border: 2px solid rgba(255, 185, 0, 0.45);
+	border-radius: var(--radius-xl);
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(10px);
+	display: flex;
+	min-height: 170px;
+	overflow: hidden;
+	box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 185, 0, 0.12);
+	max-width: 1100px;
+	margin: 0 auto;
+}
+
+#dialog-bar .dialog-portrait
+{
+	width: 148px;
+	flex-shrink: 0;
+	background: rgba(255, 185, 0, 0.06);
+	border-right: 2px solid rgba(255, 185, 0, 0.25);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-4) var(--space-3);
+	gap: var(--space-2);
+}
+
+#dialog-bar .portrait-img
+{
+	width: 88px;
+	height: 88px;
+	background: linear-gradient(135deg, var(--color-tertiary) 0%, #3a7090 100%);
+	border-radius: var(--radius-full);
+	border: 3px solid rgba(255, 185, 0, 0.55);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 0 22px rgba(255, 185, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.4);
+	color: #ffffff;
+	font-family: var(--font-headline);
+	font-weight: var(--weight-bold);
+	font-size: var(--text-h2);
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+#dialog-bar .portrait-name
+{
+	font-family: var(--font-label);
+	font-weight: var(--weight-bold);
+	font-size: var(--text-body-sm);
+	color: var(--color-primary);
+	text-align: center;
+	letter-spacing: var(--tracking-wide);
+}
+
+#dialog-bar .portrait-role
+{
+	font-family: var(--font-label);
+	font-size: var(--text-caption);
+	color: rgba(255, 255, 255, 0.45);
+	text-align: center;
+}
+
+#dialog-bar .dialog-content
+{
+	flex: 1;
+	padding: var(--space-4) var(--space-6);
+	display: flex;
+	flex-direction: column;
+}
+
+#dialog-bar .dialog-speaker
+{
+	font-family: var(--font-headline);
+	font-weight: var(--weight-bold);
+	font-size: var(--text-h4);
+	color: var(--color-primary);
+	margin-bottom: var(--space-2);
+	padding-bottom: var(--space-2);
+	border-bottom: 1px solid rgba(255, 185, 0, 0.2);
+}
+
+#dialog-bar .dialog-text
+{
+	font-family: var(--font-body);
+	font-size: var(--text-body);
+	color: rgba(255, 255, 255, 0.9);
+	line-height: var(--leading-relaxed);
+	flex: 1;
+	margin-bottom: var(--space-3);
+	text-shadow: none;
+}
+
+#dialog-bar .dialog-choices
+{
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin-top: var(--space-2);
+}
+
+#dialog-bar .dialog-choice
+{
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	border-radius: var(--radius-md);
+	color: rgba(255, 255, 255, 0.85);
+	font-family: var(--font-body);
+	font-size: var(--text-body-sm);
+	cursor: pointer;
+	transition: background var(--motion-fast) var(--ease-default), border-color var(--motion-fast) var(--ease-default);
+	user-select: none;
+	text-align: left;
+}
+
+#dialog-bar .dialog-choice:hover,
+#dialog-bar .dialog-choice.selected,
+#dialog-bar .dialog-choice:focus-visible
+{
+	background: rgba(255, 185, 0, 0.12);
+	border-color: rgba(255, 185, 0, 0.45);
+	color: #ffffff;
+	outline: none;
+}
+
+#dialog-bar .dialog-key
+{
+	display: inline-block;
+	min-width: 1.4em;
+	text-align: center;
+	font-family: var(--font-mono);
+	font-weight: var(--weight-bold);
+	font-size: var(--text-caption);
+	background: rgba(255, 185, 0, 0.18);
+	border: 1px solid rgba(255, 185, 0, 0.35);
+	color: var(--color-primary);
+	padding: 1px 6px;
+	border-radius: var(--radius-sm);
+	flex-shrink: 0;
+}
+
+#dialog-bar .dialog-hint
+{
+	font-family: var(--font-label);
+	font-size: var(--text-caption);
+	color: rgba(255, 255, 255, 0.5);
+	margin-top: var(--space-3);
+	text-align: right;
+}

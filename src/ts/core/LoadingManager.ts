@@ -22,6 +22,7 @@ export class LoadingManager
 		this.world.setTimeScale(0);
 		UIManager.setUserInterfaceVisible(false);
 		UIManager.setLoadingScreenVisible(true);
+		UIManager.setLoadingProgress(0);
 	}
 
 	public loadGLTF(path: string, onLoadingFinished: (gltf: any) => void): void
@@ -39,6 +40,7 @@ export class LoadingManager
 				if ( xhr.lengthComputable )
 				{
 					trackerEntry.progress = xhr.loaded / xhr.total;
+					UIManager.setLoadingProgress(this.getLoadingPercentage());
 				}
 			},
 			(error)  =>
@@ -59,6 +61,7 @@ export class LoadingManager
 	{
 		trackerEntry.finished = true;
 		trackerEntry.progress = 1;
+		UIManager.setLoadingProgress(this.getLoadingPercentage());
 
 		if (this.isLoadingDone())
 		{
@@ -92,15 +95,15 @@ export class LoadingManager
 					if (result.isConfirmed) {
 						this.world.setTimeScale(1);
 						UIManager.setUserInterfaceVisible(true);
+						this.world.pauseMenu?.enable();
 					}
 				})
 			};
 		}
 	}
 
-	private getLoadingPercentage(): number
+	public getLoadingPercentage(): number
 	{
-		let done = true;
 		let total = 0;
 		let finished = 0;
 
@@ -108,9 +111,9 @@ export class LoadingManager
 		{
 			total++;
 			finished += item.progress;
-			if (!item.finished) done = false;
 		}
 
+		if (total === 0) return 0;
 		return (finished / total) * 100;
 	}
 

@@ -44,12 +44,16 @@ export class Speaker extends THREE.Object3D implements IWorldEntity
 
 	private attachAudio(audioUrl: string, world: World): void
 	{
-		let listener = (world.camera as any).__sketchbookAudioListener as THREE.AudioListener | undefined;
-		if (listener === undefined)
+		let listener = world.audioListener;
+		if (listener === null)
 		{
 			listener = new THREE.AudioListener();
 			world.camera.add(listener);
-			(world.camera as any).__sketchbookAudioListener = listener;
+			world.audioListener = listener;
+			// Honour the persisted Master_Volume even before the
+			// settings modal is opened.
+			const stored = world.params?.Master_Volume;
+			if (typeof stored === 'number') listener.setMasterVolume(stored / 100);
 		}
 
 		const audioDom = document.createElement('audio');

@@ -1,6 +1,7 @@
-/* Left panel */
+/* Left panel — pinned controls overlay over the 3D scene. */
 
-.left-panel {
+.left-panel
+{
 	position: fixed;
 	height: calc(100% - 70px);
 	padding-top: 70px;
@@ -10,47 +11,52 @@
 	pointer-events: none;
 }
 
-.left-panel .panel-segment {
+.left-panel .panel-segment
+{
 	flex-grow: 1;
 	flex-basis: 100px;
-	padding: 20px;
+	padding: var(--space-5);
 	overflow: hidden;
 }
 
-.flex-bottom {
+.flex-bottom
+{
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-end;
 }
 
-.controls-title {
-	margin-bottom: 12px;
+.controls-title
+{
+	margin-bottom: var(--space-3);
 }
 
-.ctrl-row {
-	margin-bottom: 6px;
+.ctrl-row
+{
+	margin-bottom: var(--space-2);
 	display: flex;
 	align-items: center;
 }
 
-.ctrl-key {
+.ctrl-key
+{
 	text-shadow: none;
-	font-weight: bold;
+	font-weight: var(--weight-bold);
 	display: inline-block;
-	font-family: 'Cutive Mono', monospace;
+	font-family: var(--font-mono);
 	padding: 2px 5px;
 	margin-right: 2px;
 	min-width: 10px;
 	text-align: center;
 	margin-left: 2px;
 	background: #eff0f2;
-	box-shadow: inset 0 0 25px #e8e8e8, 0 1px 0 #c3c3c3, 0 2px 0 #c9c9c9, 0 2px 3px #000;
-	color: #111;
-	border-radius: 2px;
-	font-size: 14px;
+	box-shadow: var(--shadow-keycap);
+	color: #111111;
+	border-radius: var(--radius-sm);
+	font-size: var(--text-body-sm);
 }
 
-.ctrl-desc {
-	margin-left: 5px;
-	/* font-size: 18px; */
+.ctrl-desc
+{
+	margin-left: var(--space-2);
 }

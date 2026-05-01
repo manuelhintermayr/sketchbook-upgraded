@@ -1,11 +1,12 @@
-/* Stats box */
+/* stats.js box (FPS / ms / MB) — pinned top-right. */
 
-#statsBox {
-    position: fixed;
-    top: 15px;
-    height: 48px;
-    right: 15px;
-    opacity: 0.9;
-    z-index: 10000;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+#statsBox
+{
+	position: fixed;
+	top: 15px;
+	height: 48px;
+	right: 15px;
+	opacity: 0.9;
+	z-index: var(--z-stats);
+	box-shadow: var(--shadow-sm);
 }

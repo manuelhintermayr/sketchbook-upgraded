@@ -9,3 +9,8 @@ export { TestScene } from './world/sandboxes/TestScene';
 export { Test2Scene } from './world/sandboxes/Test2Scene';
 export { Test3Scene } from './world/sandboxes/Test3Scene';
 export { Example } from './world/sandboxes/ExampleScene';
+
+// Pre-game UI helpers usable directly from index.html before the World
+// is built.
+export { showTitleScreen } from './world/TitleScreen';
+export { installErrorOverlay } from './world/ErrorOverlay';

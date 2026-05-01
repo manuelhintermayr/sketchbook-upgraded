@@ -5,17 +5,19 @@ import { Character } from '../characters/Character';
 
 // Volume that fires onEnter / onExit when the player walks into it.
 // Concept ported from iErcann/Notblox (back/src/ecs/entity/TriggerCube),
-// reshaped into a single Sketchbook IUpdatable since we don't run an
-// ECS or a server-side rapier physics world.
+// reshaped into a single Sketchbook IUpdatable.
 //
-// Rather than a CANNON sensor body, this uses a per-frame AABB check
-// against world.characters[0]'s position — cheaper to set up, no
-// collisionFilter wiring, and the cube isn't visible to the physics
-// world either way.
+// Center can be either a static THREE.Vector3 or a function — the
+// function form lets the trigger follow a moving target (e.g. an NPC
+// that walks a path) without manually re-anchoring it each frame.
+export type TriggerCenter = THREE.Vector3 | (() => THREE.Vector3);
+
 export class TriggerCube implements IUpdatable
 {
 	public updateOrder = 12;
 
+	private centerSource: TriggerCenter;
+	private size: THREE.Vector3;
 	private box: THREE.Box3;
 	private wasInside = false;
 	private world: World | null = null;
@@ -26,14 +28,16 @@ export class TriggerCube implements IUpdatable
 	private debug: THREE.Mesh | undefined;
 
 	constructor(
-		center: THREE.Vector3,
+		centerSource: TriggerCenter,
 		size: THREE.Vector3,
 		onEnter: (c: Character) => void,
 		onExit?: (c: Character) => void,
 		showDebug = false,
 	)
 	{
-		this.box = new THREE.Box3().setFromCenterAndSize(center, size);
+		this.centerSource = centerSource;
+		this.size = size.clone();
+		this.box = new THREE.Box3().setFromCenterAndSize(this.currentCenter(), this.size);
 		this.onEnter = onEnter;
 		this.onExit = onExit;
 
@@ -43,7 +47,7 @@ export class TriggerCube implements IUpdatable
 				new THREE.BoxGeometry(size.x, size.y, size.z),
 				new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.25 }),
 			);
-			this.debug.position.copy(center);
+			this.debug.position.copy(this.currentCenter());
 		}
 	}
 
@@ -66,9 +70,18 @@ export class TriggerCube implements IUpdatable
 		const player = this.world?.characters[0];
 		if (!player) return;
 
+		const center = this.currentCenter();
+		this.box.setFromCenterAndSize(center, this.size);
+		if (this.debug) this.debug.position.copy(center);
+
 		const inside = this.box.containsPoint(player.position);
 		if (inside && !this.wasInside) this.onEnter(player);
 		else if (!inside && this.wasInside) this.onExit?.(player);
 		this.wasInside = inside;
+	}
+
+	private currentCenter(): THREE.Vector3
+	{
+		return typeof this.centerSource === 'function' ? this.centerSource() : this.centerSource;
 	}
 }

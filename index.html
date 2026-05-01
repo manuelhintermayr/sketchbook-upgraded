@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="sketchbook">
 
 <head>
 	<title>Sketchbook</title>
@@ -9,6 +9,10 @@
 	<script src="build/sketchbook.min.js"></script>
 	<script>
 		(function () {
+			// Catch runtime errors as early as possible so even bootstrap
+			// failures get a friendly card instead of a silent crash.
+			Sketchbook.installErrorOverlay();
+
 			// Map registry: GLB paths get loaded via GLTFLoader, class
 			// names get instantiated as BaseScene subclasses (procedural
 			// sandboxes ported from socketControl).
@@ -24,11 +28,20 @@
 				'sc-example': Sketchbook.Example,
 			};
 			const choice = localStorage.getItem('sketchbook.map') || 'inthenew';
-			if (sceneClasses[choice]) {
-				new Sketchbook.World(new sceneClasses[choice]());
-			} else {
-				new Sketchbook.World(glbPaths[choice] || glbPaths['inthenew']);
-			}
+
+			// Title screen first — both for the pre-game vibe and to
+			// produce a user gesture before audio autoplay is requested.
+			Sketchbook.showTitleScreen({
+				title: 'Sketchbook',
+				version: 'Version 0.6',
+				prompt: 'Click or press any key to start',
+			}).then(() => {
+				if (sceneClasses[choice]) {
+					new Sketchbook.World(new sceneClasses[choice]());
+				} else {
+					new Sketchbook.World(glbPaths[choice] || glbPaths['inthenew']);
+				}
+			});
 		})();
 	</script>
 	<script src="vendor/joycon/Joycon.min.js"></script>

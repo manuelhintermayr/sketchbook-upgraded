@@ -14,9 +14,9 @@
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 32px;
+	gap: var(--space-8);
 	background: rgba(0, 0, 0, 0.65);
-	z-index: 100;
+	z-index: var(--z-modal);
 	pointer-events: auto;
 }
 
@@ -27,11 +27,11 @@
 
 .planet-heading
 {
-	color: white;
-	font-size: 2.5em;
+	color: #ffffff;
+	font-size: var(--text-h2);
 	margin: 0;
 	text-align: center;
-	font-family: 'Alfa Slab One', serif;
+	font-family: var(--font-display-alt);
 }
 
 #planet-menu .planet-item
@@ -40,10 +40,10 @@
 	flex-direction: column;
 	align-items: center;
 	cursor: pointer;
-	padding: 16px;
-	border-radius: 12px;
+	padding: var(--space-4);
+	border-radius: var(--radius-xl);
 	background: rgba(255, 255, 255, 0.08);
-	transition: background 0.15s ease, transform 0.15s ease;
+	transition: background var(--motion-fast) var(--ease-default), transform var(--motion-fast) var(--ease-default);
 }
 
 #planet-menu .planet-item:hover
@@ -56,19 +56,18 @@
 {
 	width: 200px;
 	height: 200px;
-	border-radius: 50%;
+	border-radius: var(--radius-full);
 	object-fit: cover;
 }
 
 #planet-menu .planet-item p
 {
-	color: white;
-	font-size: 1.5em;
-	margin: 12px 0 0 0;
-	font-family: 'Solway', serif;
+	color: #ffffff;
+	font-size: var(--text-h4);
+	margin: var(--space-3) 0 0 0;
+	font-family: var(--font-body);
 }
 
-/* Side-by-side on wider screens, stacked on narrow ones. */
 @media (min-width: 600px)
 {
 	#planet-menu

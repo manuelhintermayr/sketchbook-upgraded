@@ -40,6 +40,9 @@ import { Ocean } from './Ocean';
 import { Grass } from './Grass';
 import { Speaker } from './Speaker';
 import { NPCSpawnPoint } from './NPCSpawnPoint';
+import { PauseMenu } from './PauseMenu';
+import { DefaultDialogs } from './defaultDialogs';
+import { SettingsModal } from './SettingsModal';
 
 export class World
 {
@@ -80,6 +83,10 @@ export class World
 	public onMoon: boolean = false;
 	public scenarioGUIFolder: any;
 	public updatables: IUpdatable[] = [];
+
+	public pauseMenu: PauseMenu;
+	public audioListener: THREE.AudioListener | null = null;
+	public gui: any;
 
 	private lastScenarioID: string;
 
@@ -215,6 +222,15 @@ export class World
 		// Create right panel GUI
 		this.createParamsGUI(scope);
 
+		// Pause menu (Esc) — disabled until the loader's
+		// onFinishedCallback fires so it can't open over the welcome
+		// dialog. The Settings button opens the SettingsModal, which
+		// is built below and writes back through lil-gui controllers
+		// so all the existing onChange wiring stays in one place.
+		this.pauseMenu = new PauseMenu(this);
+		const settingsModal = new SettingsModal(this);
+		this.pauseMenu.setSettingsHandler(() => settingsModal.open());
+
 		// Initialization
 		this.inputManager = new InputManager(this, this.renderer.domElement);
 		this.cameraOperator = new CameraOperator(this, this.camera, this.params.Mouse_Sensitivity);
@@ -257,6 +273,7 @@ export class World
 				}).then((result) => {
 					if (result.isConfirmed) {
 						UIManager.setUserInterfaceVisible(true);
+						this.pauseMenu.enable();
 					}
 				})
 			};
@@ -473,6 +490,13 @@ export class World
 	{
 		this.params.Time_Scale = value;
 		this.timeScaleTarget = value;
+	}
+
+	public setMasterVolume(value: number): void
+	{
+		const v = Math.max(0, Math.min(100, value));
+		this.params.Master_Volume = v;
+		if (this.audioListener) this.audioListener.setMasterVolume(v / 100);
 	}
 
 	public add(worldEntity: IWorldEntity): void
@@ -742,7 +766,15 @@ export class World
 			marker.userData.name = s.name;
 			if (s.firstNode !== undefined) marker.userData.first_node = s.firstNode;
 			defaultScenario.rootNode.add(marker);
-			defaultScenario.spawnPoints.push(new NPCSpawnPoint(marker));
+
+			// Hand-written dialogs from defaultDialogs.ts; absent NPCs
+			// just stand silent (no prompt appears).
+			const dialogEntry = DefaultDialogs[s.name];
+			defaultScenario.spawnPoints.push(
+				new NPCSpawnPoint(marker, dialogEntry !== undefined
+					? { dialog: dialogEntry.dialog, role: dialogEntry.role }
+					: undefined),
+			);
 		}
 	}
 
@@ -843,7 +875,8 @@ export class World
 		// Fonts
 		const fontHrefs = [
 			'https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap',
-			'https://fonts.googleapis.com/css2?family=Solway:wght@400;500;700&display=swap',
+			'https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&display=swap',
+			'https://fonts.googleapis.com/css2?family=Catamaran:wght@400;500;700;800&display=swap',
 			'https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap',
 		];
 		for (const href of fontHrefs)
@@ -865,7 +898,9 @@ export class World
 						<div class="faces2"></div>
 					</div>
 				</div>
-				<div id="loading-text">Loading...</div>
+				<div id="loading-percent">0%</div>
+				<div id="loading-bar-track"><div id="loading-bar-fill"></div></div>
+				<div id="loading-text">Loading world assets...</div>
 			</div>
 		`);
 
@@ -935,9 +970,17 @@ export class World
 			Damping_Compression: 2,
 			Damping_Relaxation: 2,
 			Engine_Force: 10,
+			// Audio mix — Master applies to all positional sources via the
+			// shared THREE.AudioListener attached to the camera; the others
+			// are reserved for future per-bus routing (currently no SFX/
+			// music separation in the engine).
+			Master_Volume: 80,
+			Music_Volume: 60,
+			SFX_Volume: 75,
 		};
 
 		const gui = new GUI();
+		this.gui = gui;
 
 		// Scenario
 		this.scenarioGUIFolder = gui.addFolder('Scenarios');
