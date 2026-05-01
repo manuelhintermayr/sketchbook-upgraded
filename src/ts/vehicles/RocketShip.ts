@@ -296,6 +296,17 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		this.hidePlanetMenu();
 		this.cancelTravelTimers();
 
+		// Commit the target up-front so applyVerticalStabilization and
+		// Sky.update see the new state immediately. Otherwise, if the
+		// dropCheckTimer (200 ms tick) misses the brief window where the
+		// body is below the pad threshold (cannon's collision response
+		// can bounce the body back up between ticks), goingTo and
+		// world.onMoon would never get reset and the sky would stay
+		// black on Earth after a moon round-trip.
+		this.goingTo = target;
+		this.world.onMoon = target === 'moon';
+		this.landing = false;
+
 		const body = this.collision;
 		const fromMoon = body.position.z < -10000;
 		const toEarth = target === 'earth';
