@@ -9,6 +9,7 @@ import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/EngineSound';
+import { t } from '../i18n';
 
 export class Car extends Vehicle implements IControllable
 {
@@ -321,34 +322,13 @@ export class Car extends Vehicle implements IControllable
 		super.inputReceiverInit();
 
 		this.world.updateControls([
-			{
-				keys: ['W', 'S'],
-				desc: 'Accelerate, Brake / Reverse'
-			},
-			{
-				keys: ['A', 'D'],
-				desc: 'Steering'
-			},
-			{
-				keys: ['Space'],
-				desc: 'Handbrake'
-			},
-			{
-				keys: ['V'],
-				desc: 'View select'
-			},
-			{
-				keys: ['F'],
-				desc: 'Exit vehicle'
-			},
-			{
-				keys: ['Shift', '+', 'R'],
-				desc: 'Respawn'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Free camera'
-			},
+			{ keys: ['W', 'S'],          desc: t('controls.accelBrake') },
+			{ keys: ['A', 'D'],          desc: t('controls.steering') },
+			{ keys: ['Space'],           desc: t('controls.handbrake') },
+			{ keys: ['V'],               desc: t('controls.viewSelect') },
+			{ keys: ['F'],               desc: t('controls.exitVehicle') },
+			{ keys: ['Shift', '+', 'R'], desc: t('controls.respawn') },
+			{ keys: ['Shift', '+', 'C'], desc: t('controls.freeCamera') },
 		]);
 	}
 

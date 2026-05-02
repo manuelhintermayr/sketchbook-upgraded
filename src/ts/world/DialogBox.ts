@@ -4,6 +4,8 @@
 // one DOM bar and renders the current node; it's opened by NPCs from
 // their ProximityPrompt onInteract callback.
 
+import { t } from '../i18n';
+
 export interface DialogChoice
 {
 	label: string;
@@ -74,7 +76,7 @@ export class DialogBox
 					<div class="dialog-speaker" data-speaker></div>
 					<div class="dialog-text" data-text></div>
 					<div class="dialog-choices" data-choices role="menu"></div>
-					<div class="dialog-hint">Press <span class="dialog-key">Esc</span> to leave</div>
+					<div class="dialog-hint">${t('dialog.leaveHint', { key: '<span class="dialog-key">Esc</span>' })}</div>
 				</div>
 			</div>
 		`;

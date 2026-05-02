@@ -1,140 +1,184 @@
 import { Dialog } from './DialogBox';
+import { t } from '../i18n';
 
 // Hand-written conversation trees for the four programmatically-injected
 // NPCs at the Inthenew default spawn (Anna, Ben, Carla, Dieter). Loaded
 // from World.injectDefaultSceneNPCs.
+//
+// Translatable: text + choice labels resolve via i18n at lookup time.
+// `getDefaultDialogs()` is called each scenario launch — locale switch
+// + scenario restart picks up the new language without a page reload.
 
-export const DefaultDialogs: { [name: string]: { role: string; dialog: Dialog } } = {
-	Anna: {
-		role: 'Path Walker',
-		dialog: {
-			start: 'greet',
-			nodes: {
-				greet: {
-					speaker: 'Anna',
-					text: 'Hi there! Ben and I take turns walking this loop — it\'s a good way to keep an eye on the spawn area.',
-					choices: [
-						{ label: 'What\'s here to see?', next: 'tour' },
-						{ label: 'Why are you walking in circles?', next: 'why' },
-						{ label: 'See you around.', next: 'end' },
-					],
-				},
-				tour: {
-					speaker: 'Anna',
-					text: 'Cars are parked behind you, the helipad is over the hill, the boats sit at the dock east of here, and the rocketship lives on the island.',
-					choices: [
-						{ label: 'Why are you walking in circles?', next: 'why' },
-						{ label: 'Thanks!', next: 'end' },
-					],
-				},
-				why: {
-					speaker: 'Anna',
-					text: 'I\'m a path-following NPC. There are four invisible nodes around this area and I just walk between them. Ben does the same in reverse.',
-					choices: [
-						{ label: 'What\'s here to see?', next: 'tour' },
-						{ label: 'Got it.', next: 'end' },
-					],
-				},
-			},
-		},
-	},
-	Ben: {
-		role: 'Path Walker',
-		dialog: {
-			start: 'greet',
-			nodes: {
-				greet: {
-					speaker: 'Ben',
-					text: 'Hey. If you bumped into Anna she\'ll have told you about the loop — same deal here, just the other way around.',
-					choices: [
-						{ label: 'Any tips for the races?', next: 'races' },
-						{ label: 'Tell me about the rocket.', next: 'rocket' },
-						{ label: 'See you around.', next: 'end' },
-					],
-				},
-				races: {
-					speaker: 'Ben',
-					text: 'Oval and Figure-8 are car races. The Tunnel is faster but the curves bite. Boat Race uses the marina — get in a boat and drive over the start.',
-					choices: [
-						{ label: 'Tell me about the rocket.', next: 'rocket' },
-						{ label: 'Cool, thanks.', next: 'end' },
-					],
-				},
-				rocket: {
-					speaker: 'Ben',
-					text: 'It launches you to the moon. Get in, hold W to start the countdown, and a planet picker shows up at apogee. Lunar gravity is real — be careful with the controls up there.',
-					choices: [
-						{ label: 'Any tips for the races?', next: 'races' },
-						{ label: 'Got it.', next: 'end' },
-					],
+export function getDefaultDialogs(): { [name: string]: { role: string; dialog: Dialog } }
+{
+	return {
+		Anna:
+		{
+			role: t('npc.anna.role'),
+			dialog:
+			{
+				start: 'greet',
+				nodes:
+				{
+					greet:
+					{
+						speaker: 'Anna',
+						text: t('npc.anna.greet.text'),
+						choices:
+						[
+							{ label: t('npc.anna.greet.c0'), next: 'tour' },
+							{ label: t('npc.anna.greet.c1'), next: 'why' },
+							{ label: t('npc.anna.greet.c2'), next: 'end' },
+						],
+					},
+					tour:
+					{
+						speaker: 'Anna',
+						text: t('npc.anna.tour.text'),
+						choices:
+						[
+							{ label: t('npc.anna.tour.c0'), next: 'why' },
+							{ label: t('npc.anna.tour.c1'), next: 'end' },
+						],
+					},
+					why:
+					{
+						speaker: 'Anna',
+						text: t('npc.anna.why.text'),
+						choices:
+						[
+							{ label: t('npc.anna.why.c0'), next: 'tour' },
+							{ label: t('npc.anna.why.c1'), next: 'end' },
+						],
+					},
 				},
 			},
 		},
-	},
-	Carla: {
-		role: 'Greeter',
-		dialog: {
-			start: 'greet',
-			nodes: {
-				greet: {
-					speaker: 'Carla',
-					text: 'Welcome to Sketchbook! Press Esc anytime if you need a pause menu — Resume, Settings, Restart, Reload.',
-					choices: [
-						{ label: 'How do I drive a car?', next: 'cars' },
-						{ label: 'How do the controls work?', next: 'controls' },
-						{ label: 'Bye!', next: 'end' },
-					],
-				},
-				cars: {
-					speaker: 'Carla',
-					text: 'Walk up to a vehicle, press F to enter, then WASD to drive. Press F again to leave. Same goes for boats, helis and the rocket — Shift makes air vehicles boost.',
-					choices: [
-						{ label: 'How do the controls work?', next: 'controls' },
-						{ label: 'Got it.', next: 'end' },
-					],
-				},
-				controls: {
-					speaker: 'Carla',
-					text: 'WASD moves you, Space jumps, Shift sprints. Z toggles the on-screen control hint. Shift+C is the free camera; T teleports you there.',
-					choices: [
-						{ label: 'How do I drive a car?', next: 'cars' },
-						{ label: 'Thanks!', next: 'end' },
-					],
-				},
-			},
-		},
-	},
-	Dieter: {
-		role: 'Mechanic',
-		dialog: {
-			start: 'greet',
-			nodes: {
-				greet: {
-					speaker: 'Dieter',
-					text: 'You can tune the cars from the Vehicles folder in the right-hand debug panel — friction, suspension, engine force. Changes apply to anything you spawn next.',
-					choices: [
-						{ label: 'What can I tune exactly?', next: 'tuning' },
-						{ label: 'What\'s in the World folder?', next: 'world' },
-						{ label: 'Cool, thanks.', next: 'end' },
-					],
-				},
-				tuning: {
-					speaker: 'Dieter',
-					text: 'Friction Slip, Suspension Stiffness, Max Suspension, Damping Compression, Damping Relaxation, and Engine Force. Crank Engine Force up if you want to launch off the ramps.',
-					choices: [
-						{ label: 'What\'s in the World folder?', next: 'world' },
-						{ label: 'Got it.', next: 'end' },
-					],
-				},
-				world: {
-					speaker: 'Dieter',
-					text: 'Time scale, sun position, day/night cycle, gravity scale (0–2x), free-cam speed. Plus a Reset button if you mess everything up.',
-					choices: [
-						{ label: 'What can I tune exactly?', next: 'tuning' },
-						{ label: 'Thanks!', next: 'end' },
-					],
+		Ben:
+		{
+			role: t('npc.ben.role'),
+			dialog:
+			{
+				start: 'greet',
+				nodes:
+				{
+					greet:
+					{
+						speaker: 'Ben',
+						text: t('npc.ben.greet.text'),
+						choices:
+						[
+							{ label: t('npc.ben.greet.c0'), next: 'races' },
+							{ label: t('npc.ben.greet.c1'), next: 'rocket' },
+							{ label: t('npc.ben.greet.c2'), next: 'end' },
+						],
+					},
+					races:
+					{
+						speaker: 'Ben',
+						text: t('npc.ben.races.text'),
+						choices:
+						[
+							{ label: t('npc.ben.races.c0'), next: 'rocket' },
+							{ label: t('npc.ben.races.c1'), next: 'end' },
+						],
+					},
+					rocket:
+					{
+						speaker: 'Ben',
+						text: t('npc.ben.rocket.text'),
+						choices:
+						[
+							{ label: t('npc.ben.rocket.c0'), next: 'races' },
+							{ label: t('npc.ben.rocket.c1'), next: 'end' },
+						],
+					},
 				},
 			},
 		},
-	},
-};
+		Carla:
+		{
+			role: t('npc.carla.role'),
+			dialog:
+			{
+				start: 'greet',
+				nodes:
+				{
+					greet:
+					{
+						speaker: 'Carla',
+						text: t('npc.carla.greet.text'),
+						choices:
+						[
+							{ label: t('npc.carla.greet.c0'), next: 'cars' },
+							{ label: t('npc.carla.greet.c1'), next: 'controls' },
+							{ label: t('npc.carla.greet.c2'), next: 'end' },
+						],
+					},
+					cars:
+					{
+						speaker: 'Carla',
+						text: t('npc.carla.cars.text'),
+						choices:
+						[
+							{ label: t('npc.carla.cars.c0'), next: 'controls' },
+							{ label: t('npc.carla.cars.c1'), next: 'end' },
+						],
+					},
+					controls:
+					{
+						speaker: 'Carla',
+						text: t('npc.carla.controls.text'),
+						choices:
+						[
+							{ label: t('npc.carla.controls.c0'), next: 'cars' },
+							{ label: t('npc.carla.controls.c1'), next: 'end' },
+						],
+					},
+				},
+			},
+		},
+		Dieter:
+		{
+			role: t('npc.dieter.role'),
+			dialog:
+			{
+				start: 'greet',
+				nodes:
+				{
+					greet:
+					{
+						speaker: 'Dieter',
+						text: t('npc.dieter.greet.text'),
+						choices:
+						[
+							{ label: t('npc.dieter.greet.c0'), next: 'tuning' },
+							{ label: t('npc.dieter.greet.c1'), next: 'world' },
+							{ label: t('npc.dieter.greet.c2'), next: 'end' },
+						],
+					},
+					tuning:
+					{
+						speaker: 'Dieter',
+						text: t('npc.dieter.tuning.text'),
+						choices:
+						[
+							{ label: t('npc.dieter.tuning.c0'), next: 'world' },
+							{ label: t('npc.dieter.tuning.c1'), next: 'end' },
+						],
+					},
+					world:
+					{
+						speaker: 'Dieter',
+						text: t('npc.dieter.world.text'),
+						choices:
+						[
+							{ label: t('npc.dieter.world.c0'), next: 'tuning' },
+							{ label: t('npc.dieter.world.c1'), next: 'end' },
+						],
+					},
+				},
+			},
+		},
+	};
+}

@@ -8,6 +8,7 @@ import * as Utils from '../core/FunctionLibrary';
 import { attachNameLabel } from './NameLabel';
 import { ProximityPrompt } from './ProximityPrompt';
 import { Dialog } from './DialogBox';
+import { t } from '../i18n';
 
 let anonymousNpcCounter = 1;
 
@@ -61,7 +62,7 @@ export class NPCSpawnPoint implements ISpawnPoint
 			// still distinguish them.
 			const tag = (typeof this.object.userData.name === 'string' && this.object.userData.name.length > 0)
 				? this.object.userData.name
-				: `NPC #${anonymousNpcCounter++}`;
+				: t('prompt.npcAnonymous', { n: String(anonymousNpcCounter++) });
 			attachNameLabel(npc, tag, false);
 
 			// ProximityPrompt anchored to the NPC — moves with them so a
@@ -79,7 +80,7 @@ export class NPCSpawnPoint implements ISpawnPoint
 				}
 				const prompt = new ProximityPrompt(
 					() => npc.position.clone(),
-					{ text: `Press E to talk to ${tag}`, maxInteractDistance: 3, dialog },
+					{ text: t('prompt.talkTo', { name: tag }), maxInteractDistance: 3, dialog },
 				);
 				prompt.addToWorld(world);
 			}

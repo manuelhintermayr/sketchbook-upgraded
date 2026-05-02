@@ -7,6 +7,7 @@ import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { EntityType } from '../enums/EntityType';
 import { CollisionGroups } from '../enums/CollisionGroups';
 import { attachNameLabel } from './NameLabel';
+import { t } from '../i18n';
 
 // Wandering dogs and cats around the player spawn. Each animal runs
 // a small state machine — dogs notice the player and approach to bark,
@@ -175,7 +176,7 @@ export class WanderingAnimals implements IWorldEntity
 		for (const animal of this.animals)
 		{
 			world.graphicsWorld.add(animal.labelAnchor);
-			const text = animal.kind === 'dog' ? 'Hund' : 'Katze';
+			const text = animal.kind === 'dog' ? t('animal.dog') : t('animal.cat');
 			const className = animal.kind === 'dog' ? 'name-label animal dog' : 'name-label animal cat';
 			attachNameLabel(animal.labelAnchor, text, false, {
 				className,

@@ -44,8 +44,9 @@ import { Grass } from './Grass';
 import { Speaker } from './Speaker';
 import { NPCSpawnPoint } from './NPCSpawnPoint';
 import { PauseMenu } from './PauseMenu';
-import { DefaultDialogs } from './defaultDialogs';
+import { getDefaultDialogs } from './defaultDialogs';
 import { SettingsModal } from './SettingsModal';
+import { t } from '../i18n';
 import { IrisTransition } from './IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './AmbientSound';
@@ -113,9 +114,9 @@ export class World
 		{
 			Swal.fire({
 				icon: 'warning',
-				title: 'WebGL compatibility',
-				text: 'This browser doesn\'t seem to have the required WebGL 2 capabilities. The application may not work correctly.',
-				footer: '<a href="https://get.webgl.org/" target="_blank">Click here for more information</a>',
+				title: t('world.webgl.title'),
+				text: t('world.webgl.body'),
+				footer: '<a href="https://get.webgl.org/" target="_blank">' + t('world.webgl.footer') + '</a>',
 				showConfirmButton: false,
 				buttonsStyling: false
 			});
@@ -141,7 +142,7 @@ export class World
 		// Scenario.launch() flips visibility when a tracked race starts.
 		this.lapCounter = document.createElement('h1');
 		this.lapCounter.id = 'laps';
-		this.lapCounter.innerHTML = 'Lap: 0';
+		this.lapCounter.innerHTML = t('world.lap', { n: '0' });
 		this.lapCounter.style.position = 'absolute';
 		this.lapCounter.style.top = '0';
 		this.lapCounter.style.left = '50px';
@@ -327,10 +328,10 @@ export class World
 				this.setTimeScale(1);
 
 				Swal.fire({
-					title: 'Welcome to Sketchbook!',
-					text: 'Feel free to explore the world and interact with available vehicles. There are also various scenarios ready to launch from the right panel.',
+					title: t('world.welcome.title'),
+					text: t('world.welcome.body'),
 					footer: '<a href="https://github.com/swift502/Sketchbook" target="_blank">GitHub page</a><a href="https://discord.gg/fGuEqCe" target="_blank">Discord server</a>',
-					confirmButtonText: 'Okay',
+					confirmButtonText: t('world.welcome.button'),
 					buttonsStyling: false
 				}).then((result) => {
 					if (result.isConfirmed) {
@@ -365,8 +366,8 @@ export class World
 			UIManager.setLoadingScreenVisible(false);
 			Swal.fire({
 				icon: 'success',
-				title: 'Hello world!',
-				text: 'Empty Sketchbook world was succesfully initialized. Enjoy the blueness of the sky.',
+				title: t('world.empty.title'),
+				text: t('world.empty.body'),
 				buttonsStyling: false
 			});
 		}
@@ -865,8 +866,11 @@ export class World
 			defaultScenario.rootNode.add(marker);
 
 			// Hand-written dialogs from defaultDialogs.ts; absent NPCs
-			// just stand silent (no prompt appears).
-			const dialogEntry = DefaultDialogs[s.name];
+			// just stand silent (no prompt appears). getDefaultDialogs()
+			// resolves text via i18n at lookup time, so a scenario
+			// restart picks up a new locale.
+			const dialogs = getDefaultDialogs();
+			const dialogEntry = dialogs[s.name];
 			defaultScenario.spawnPoints.push(
 				new NPCSpawnPoint(marker, dialogEntry !== undefined
 					? { dialog: dialogEntry.dialog, role: dialogEntry.role }
@@ -972,7 +976,7 @@ export class World
 	public updateControls(controls: any): void
 	{
 		let html = '';
-		html += '<h2 class="controls-title">Controls:</h2>';
+		html += '<h2 class="controls-title">' + t('controls.header') + '</h2>';
 
 		controls.forEach((row) =>
 		{
@@ -1018,7 +1022,7 @@ export class World
 				</div>
 				<div id="loading-percent">0%</div>
 				<div id="loading-bar-track"><div id="loading-bar-fill"></div></div>
-				<div id="loading-text">Loading world assets...</div>
+				<div id="loading-text">${t('world.loading')}</div>
 			</div>
 		`);
 
@@ -1048,14 +1052,14 @@ export class World
 		// jQuery here, we do it in vanilla DOM during construction).
 		document.body.insertAdjacentHTML('beforeend', `
 			<div id="planet-menu" class="planet-menu-hidden">
-				<h1 class="planet-heading">Which planet do you want to go to?</h1>
+				<h1 class="planet-heading">${t('world.planet.heading')}</h1>
 				<div class="planet-item" id="earth">
-					<img src="src/img/hemisphere-earth.png" alt="Earth">
-					<p>Earth</p>
+					<img src="src/img/hemisphere-earth.png" alt="${t('world.planet.earth')}">
+					<p>${t('world.planet.earth')}</p>
 				</div>
 				<div class="planet-item" id="moon">
-					<img src="src/img/full-moon.png" alt="Moon">
-					<p>Moon</p>
+					<img src="src/img/full-moon.png" alt="${t('world.planet.moon')}">
+					<p>${t('world.planet.moon')}</p>
 				</div>
 			</div>
 		`);

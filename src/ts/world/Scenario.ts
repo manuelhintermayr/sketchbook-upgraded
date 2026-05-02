@@ -6,6 +6,7 @@ import { ShapeSpawnPoint } from './ShapeSpawnPoint';
 import { World } from '../world/World';
 import { LoadingManager } from '../core/LoadingManager';
 import { RaceContent } from './RaceContent';
+import { t } from '../i18n';
 import * as THREE from 'three';
 
 // Scenarios whose lap counter runs off the curve-based RaceContent
@@ -155,7 +156,7 @@ export class Scenario
 		// scenario before starting (or skipping) a new one.
 		for (const s of world.scenarios) s.cancelRaceTimer();
 
-		world.lapCounter.innerHTML = 'Lap: 0';
+		world.lapCounter.innerHTML = t('world.lap', { n: '0' });
 		world.lapCounter.style.visibility = 'hidden';
 
 		if (RACE_TITLES.has(this.descriptionTitle))
@@ -166,7 +167,7 @@ export class Scenario
 				this.isRace = true;
 				this.raceContent = rc;
 				rc.onLap = (lap) => {
-					world.lapCounter.innerHTML = `Lap: ${lap}`;
+					world.lapCounter.innerHTML = t('world.lap', { n: String(lap) });
 				};
 				world.lapCounter.style.visibility = 'visible';
 			}

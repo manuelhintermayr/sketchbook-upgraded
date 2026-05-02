@@ -9,6 +9,7 @@ import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import * as Utils from '../core/FunctionLibrary';
 import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/EngineSound';
+import { t } from '../i18n';
 
 export class Airplane extends Vehicle implements IControllable, IWorldEntity
 {
@@ -384,46 +385,16 @@ export class Airplane extends Vehicle implements IControllable, IWorldEntity
 		super.inputReceiverInit();
 
 		this.world.updateControls([
-			{
-				keys: ['Shift'],
-				desc: 'Accelerate'
-			},
-			{
-				keys: ['Space'],
-				desc: 'Decelerate'
-			},
-			{
-				keys: ['W', 'S'],
-				desc: 'Elevators'
-			},
-			{
-				keys: ['A', 'D'],
-				desc: 'Ailerons'
-			},
-			{
-				keys: ['Q', 'E'],
-				desc: 'Rudder / Steering'
-			},
-			{
-				keys: ['B'],
-				desc: 'Brake'
-			},
-			{
-				keys: ['V'],
-				desc: 'View select'
-			},
-			{
-				keys: ['F'],
-				desc: 'Exit vehicle'
-			},
-			{
-				keys: ['Shift', '+', 'R'],
-				desc: 'Respawn'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Free camera'
-			},
+			{ keys: ['Shift'],           desc: t('controls.accelerate') },
+			{ keys: ['Space'],           desc: t('controls.decelerate') },
+			{ keys: ['W', 'S'],          desc: t('controls.elevators') },
+			{ keys: ['A', 'D'],          desc: t('controls.ailerons') },
+			{ keys: ['Q', 'E'],          desc: t('controls.rudderSteering') },
+			{ keys: ['B'],               desc: t('controls.brake') },
+			{ keys: ['V'],               desc: t('controls.viewSelect') },
+			{ keys: ['F'],               desc: t('controls.exitVehicle') },
+			{ keys: ['Shift', '+', 'R'], desc: t('controls.respawn') },
+			{ keys: ['Shift', '+', 'C'], desc: t('controls.freeCamera') },
 		]);
 	}
 }

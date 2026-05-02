@@ -8,6 +8,7 @@ import { Character } from '../characters/Character';
 import * as _ from 'lodash';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { EntityType } from '../enums/EntityType';
+import { t } from '../i18n';
 
 export class CameraOperator implements IInputReceiver, IUpdatable
 {
@@ -251,22 +252,10 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 		// this.world.dirLight.target = this.world.camera;
 
 		this.world.updateControls([
-			{
-				keys: ['W', 'S', 'A', 'D'],
-				desc: 'Move around'
-			},
-			{
-				keys: ['E', 'Q'],
-				desc: 'Move up / down'
-			},
-			{
-				keys: ['Shift'],
-				desc: 'Speed up'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Exit free camera mode'
-			},
+			{ keys: ['W', 'S', 'A', 'D'], desc: t('controls.moveAround') },
+			{ keys: ['E', 'Q'],           desc: t('controls.moveUpDown') },
+			{ keys: ['Shift'],            desc: t('controls.speedUp') },
+			{ keys: ['Shift', '+', 'C'],  desc: t('controls.freeCameraExit') },
 		]);
 	}
 

@@ -27,6 +27,7 @@ import { GroundImpactData } from './GroundImpactData';
 import { ClosestObjectFinder } from '../core/ClosestObjectFinder';
 import { Object3D } from 'three';
 import { EntityType } from '../enums/EntityType';
+import { t } from '../i18n';
 
 export class Character extends THREE.Object3D implements IWorldEntity
 {
@@ -457,30 +458,12 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	public displayControls(): void
 	{
 		this.world.updateControls([
-			{
-				keys: ['W', 'A', 'S', 'D'],
-				desc: 'Movement'
-			},
-			{
-				keys: ['Shift'],
-				desc: 'Sprint'
-			},
-			{
-				keys: ['Space'],
-				desc: 'Jump'
-			},
-			{
-				keys: ['F', 'or', 'G'],
-				desc: 'Enter vehicle'
-			},
-			{
-				keys: ['Shift', '+', 'R'],
-				desc: 'Respawn'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Free camera'
-			},
+			{ keys: ['W', 'A', 'S', 'D'],   desc: t('controls.movement') },
+			{ keys: ['Shift'],              desc: t('controls.sprint') },
+			{ keys: ['Space'],              desc: t('controls.jump') },
+			{ keys: ['F', 'or', 'G'],       desc: t('controls.enterVehicle') },
+			{ keys: ['Shift', '+', 'R'],    desc: t('controls.respawn') },
+			{ keys: ['Shift', '+', 'C'],    desc: t('controls.freeCamera') },
 		]);
 	}
 

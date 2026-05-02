@@ -4,6 +4,7 @@ import { IUpdatable } from '../interfaces/IUpdatable';
 import { Character } from '../characters/Character';
 import { TriggerCube, TriggerCenter } from './TriggerCube';
 import { DialogBox, Dialog } from './DialogBox';
+import { t } from '../i18n';
 
 export interface ProximityPromptParams
 {
@@ -44,7 +45,7 @@ export class ProximityPrompt implements IUpdatable
 
 	constructor(center: TriggerCenter, params: ProximityPromptParams)
 	{
-		this.text = params.text ?? 'Press E to interact';
+		this.text = params.text ?? t('prompt.interact');
 		this.maxInteractDistance = params.maxInteractDistance ?? 3;
 		this.interactionCooldown = params.interactionCooldown ?? 1000;
 		this.onInteract = params.onInteract;

@@ -7,6 +7,7 @@ import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { KeyBinding } from '../core/KeyBinding';
 import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/EngineSound';
+import { t } from '../i18n';
 
 // Ported from Inthenew/Sketchbook (MIT). The rocketship reuses the
 // vehicle scaffolding (chassis collision shapes, seat, rotors marked in
@@ -469,11 +470,11 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 	{
 		super.inputReceiverInit();
 		this.world.updateControls([
-			{ keys: ['Space'], desc: 'Blast off' },
-			{ keys: ['V'], desc: 'View select' },
-			{ keys: ['F'], desc: 'Exit vehicle' },
-			{ keys: ['Shift', '+', 'R'], desc: 'Respawn' },
-			{ keys: ['Shift', '+', 'C'], desc: 'Free camera' },
+			{ keys: ['Space'],           desc: t('controls.blastOff') },
+			{ keys: ['V'],               desc: t('controls.viewSelect') },
+			{ keys: ['F'],               desc: t('controls.exitVehicle') },
+			{ keys: ['Shift', '+', 'R'], desc: t('controls.respawn') },
+			{ keys: ['Shift', '+', 'C'], desc: t('controls.freeCamera') },
 		]);
 	}
 

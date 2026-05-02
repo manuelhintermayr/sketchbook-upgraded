@@ -9,6 +9,7 @@ import { KeyBinding } from '../core/KeyBinding';
 import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/EngineSound';
+import { t } from '../i18n';
 
 export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 {
@@ -219,42 +220,15 @@ export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 		super.inputReceiverInit();
 
 		this.world.updateControls([
-			{
-				keys: ['Shift'],
-				desc: 'Ascend'
-			},
-			{
-				keys: ['Space'],
-				desc: 'Descend'
-			},
-			{
-				keys: ['W', 'S'],
-				desc: 'Pitch'
-			},
-			{
-				keys: ['Q', 'E'],
-				desc: 'Yaw'
-			},
-			{
-				keys: ['A', 'D'],
-				desc: 'Roll'
-			},
-			{
-				keys: ['V'],
-				desc: 'View select'
-			},
-			{
-				keys: ['F'],
-				desc: 'Exit vehicle'
-			},
-			{
-				keys: ['Shift', '+', 'R'],
-				desc: 'Respawn'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Free camera'
-			},
+			{ keys: ['Shift'],           desc: t('controls.ascend') },
+			{ keys: ['Space'],           desc: t('controls.descend') },
+			{ keys: ['W', 'S'],          desc: t('controls.pitch') },
+			{ keys: ['Q', 'E'],          desc: t('controls.yaw') },
+			{ keys: ['A', 'D'],          desc: t('controls.roll') },
+			{ keys: ['V'],               desc: t('controls.viewSelect') },
+			{ keys: ['F'],               desc: t('controls.exitVehicle') },
+			{ keys: ['Shift', '+', 'R'], desc: t('controls.respawn') },
+			{ keys: ['Shift', '+', 'C'], desc: t('controls.freeCamera') },
 		]);
 	}
 }

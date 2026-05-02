@@ -18,9 +18,9 @@ export function installErrorOverlay(): void
 	overlay.innerHTML = `
 		<div class="error-card">
 			<div class="error-icon">!</div>
-			<div class="error-code" data-code>ERROR</div>
-			<h2 class="error-title" data-title>Something went wrong</h2>
-			<p class="error-desc" data-desc>The game engine encountered an unexpected error. You can try reloading the page; if the problem persists, please report it.</p>
+			<div class="error-code" data-code>${t('error.code')}</div>
+			<h2 class="error-title" data-title>${t('error.title')}</h2>
+			<p class="error-desc" data-desc>${t('error.desc')}</p>
 			<div class="error-stack" data-stack></div>
 			<div class="error-actions">
 				<button class="error-btn error-btn-primary" data-reload>${t('error.reload')}</button>
@@ -35,8 +35,8 @@ export function installErrorOverlay(): void
 	window.addEventListener('error', (e: ErrorEvent) =>
 	{
 		showError({
-			code: 'RUNTIME ERROR',
-			title: e.message || 'Uncaught exception',
+			code: t('error.runtime'),
+			title: e.message || t('error.fallbackUncaught'),
 			stack: e.error?.stack || `${e.filename}:${e.lineno}:${e.colno}`,
 		});
 	});
@@ -45,8 +45,8 @@ export function installErrorOverlay(): void
 	{
 		const reason = e.reason;
 		showError({
-			code: 'UNHANDLED PROMISE',
-			title: typeof reason === 'string' ? reason : (reason?.message ?? 'Unhandled promise rejection'),
+			code: t('error.unhandled'),
+			title: typeof reason === 'string' ? reason : (reason?.message ?? t('error.fallbackRejection')),
 			stack: reason?.stack || String(reason),
 		});
 	});

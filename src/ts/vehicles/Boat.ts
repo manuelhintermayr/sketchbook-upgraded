@@ -8,6 +8,7 @@ import * as Utils from '../core/FunctionLibrary';
 import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/EngineSound';
+import { t } from '../i18n';
 
 // Ported from Inthenew/Sketchbook (MIT). The boat reuses the cannon
 // raycast vehicle base for collision and wheel contacts, but drives
@@ -273,12 +274,12 @@ export class Boat extends Vehicle implements IControllable
 	{
 		super.inputReceiverInit();
 		this.world.updateControls([
-			{ keys: ['W', 'S'], desc: 'Accelerate / Reverse' },
-			{ keys: ['A', 'D'], desc: 'Steering' },
-			{ keys: ['V'], desc: 'View select' },
-			{ keys: ['F'], desc: 'Exit vehicle' },
-			{ keys: ['Shift', '+', 'R'], desc: 'Respawn' },
-			{ keys: ['Shift', '+', 'C'], desc: 'Free camera' },
+			{ keys: ['W', 'S'],          desc: t('controls.accelReverse') },
+			{ keys: ['A', 'D'],          desc: t('controls.steering') },
+			{ keys: ['V'],               desc: t('controls.viewSelect') },
+			{ keys: ['F'],               desc: t('controls.exitVehicle') },
+			{ keys: ['Shift', '+', 'R'], desc: t('controls.respawn') },
+			{ keys: ['Shift', '+', 'C'], desc: t('controls.freeCamera') },
 		]);
 	}
 

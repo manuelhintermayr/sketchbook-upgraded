@@ -14,6 +14,8 @@
 // keyboard events instead to slot into Sketchbook's InputManager
 // without touching the engine.
 
+import { t } from '../i18n';
+
 const JOYSTICK_RADIUS = 70;     // px — full deflection at this displacement
 const JOYSTICK_DEADZONE = 0.2;  // ignore tiny finger jitter
 const SPRINT_AUTO_THRESHOLD = 0.85; // auto-sprint when joystick is at the rim
@@ -82,9 +84,9 @@ export class TouchControls
 		this.joystickBase.appendChild(this.joystickThumb);
 		this.root.appendChild(this.joystickBase);
 
-		this.btnJump = this.makeActionButton('touch-btn-jump', 'JUMP', 'Space');
-		this.btnAction = this.makeActionButton('touch-btn-action', 'F', 'KeyF');
-		this.btnSprint = this.makeActionButton('touch-btn-sprint', 'RUN', 'ShiftLeft');
+		this.btnJump = this.makeActionButton('touch-btn-jump', t('touch.jump'), 'Space');
+		this.btnAction = this.makeActionButton('touch-btn-action', t('touch.action'), 'KeyF');
+		this.btnSprint = this.makeActionButton('touch-btn-sprint', t('touch.run'), 'ShiftLeft');
 		this.root.appendChild(this.btnJump);
 		this.root.appendChild(this.btnAction);
 		this.root.appendChild(this.btnSprint);
