@@ -7,7 +7,7 @@ import { KeyBinding } from '../core/KeyBinding';
 import * as Utils from '../core/FunctionLibrary';
 import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import { EntityType } from '../enums/EntityType';
-import { ENGINE_PROFILES } from '../world/EngineSound';
+import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { t } from '../i18n';
 
 // Ported from Inthenew/Sketchbook (MIT). The boat reuses the cannon

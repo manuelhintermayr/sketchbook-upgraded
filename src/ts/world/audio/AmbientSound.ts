@@ -1,29 +1,21 @@
-import { World } from './World';
-import { IUpdatable } from '../interfaces/IUpdatable';
+import { World } from '../World';
+import { ProceduralAudio } from './ProceduralAudio';
 
 // Procedural ambient atmosphere — wind (filtered white noise), bird
 // chirps (FM-synthesised sine bursts on a Poisson-ish schedule), and
-// water (bandpass-filtered noise modulated by an LFO, gated by camera
-// proximity to the ocean). Pure Web Audio synthesis, no sample files.
+// water (bandpass-filtered noise modulated by an LFO, gated by
+// camera proximity to the ocean). All procedural — no sample files.
 //
-// Pattern adapted from manuelhintermayr-portfolio/three-js
-// useAmbientSound. Reshaped from a React hook into a World-level
-// IUpdatable. Master volume reads world.params.Master_Volume each
-// frame so the existing Settings slider drives ambience too.
-//
-// Lifecycle is symmetric with EngineSound: AudioContext is created
-// only when the user enables ambience AND a user gesture has happened
-// (browser autoplay policy). Stops cleanly on disable; re-creates on
-// re-enable.
+// Lifecycle (start / stop / master volume sync / autoplay-resume) is
+// inherited from ProceduralAudio; this file only builds the synth
+// graph and updates per-frame water-proximity gating.
 
-const MASTER_DEFAULT = 0.7;
 const WIND_GAIN = 0.08;
 const BIRD_GAIN = 0.05;
 const WATER_GAIN = 0.12;
 
 interface AmbientNodes
 {
-	ctx: AudioContext;
 	windSource: AudioBufferSourceNode;
 	windLowpass: BiquadFilterNode;
 	windHighpass: BiquadFilterNode;
@@ -38,78 +30,33 @@ interface AmbientNodes
 	waterLfo: OscillatorNode;
 	waterLfoGain: GainNode;
 	waterGain: GainNode;
-	masterGain: GainNode;
 }
 
-export class AmbientSound implements IUpdatable
+export class AmbientSound extends ProceduralAudio
 {
-	public updateOrder: number = 11;
+	protected readonly masterMix = 0.7;
 
-	private world: World;
 	private nodes: AmbientNodes | null = null;
-	private active: boolean = false;
 	private chirpTimeout: ReturnType<typeof setTimeout> | undefined;
 
 	constructor(world: World)
 	{
-		this.world = world;
+		super(world);
 	}
 
-	public update(_timeStep: number, _unscaledTimeStep: number): void
+	protected shouldPlay(): boolean
 	{
-		const enabled = !!this.world.params?.Ambient_Sound;
-
-		if (enabled && !this.active)
-		{
-			this.start();
-			this.active = true;
-		}
-		else if (!enabled && this.active)
-		{
-			this.stop();
-			this.active = false;
-		}
-
-		const n = this.nodes;
-		if (n === null || n.ctx.state === 'closed') return;
-
-		if (n.ctx.state === 'suspended')
-		{
-			n.ctx.resume();
-		}
-
-		// Water proximity — Sketchbook's Inthenew ocean sits at y=12, the
-		// wave grid covers a large area around the origin. Near-water is
-		// any time the camera is below ~25 and Ocean exists. Cheap
-		// approximation; getWaveHeightAt would be more accurate but
-		// allocates per call which is wasted for an on/off gate.
-		const cam = this.world.camera.position;
-		const nearWater = this.world.ocean !== null && cam.y < 25;
-		n.waterGain.gain.setTargetAtTime(nearWater ? WATER_GAIN : 0, n.ctx.currentTime, 0.3);
-
-		// Master gain follows world.params.Master_Volume so the existing
-		// SettingsModal slider drives ambience + engine + positional audio.
-		const master = (this.world.params?.Master_Volume ?? 80) / 100;
-		const muted = !this.world.params?.Ambient_Sound;
-		const target = muted ? 0 : master * MASTER_DEFAULT;
-		n.masterGain.gain.setTargetAtTime(target, n.ctx.currentTime, 0.1);
+		return !!this.world.params?.Ambient_Sound;
 	}
 
-	private start(): void
+	protected buildSynth(ctx: AudioContext, master: GainNode): void
 	{
-		if (this.nodes !== null) return;
-
-		const ctx = new AudioContext();
 		const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
 		const noiseData = noiseBuffer.getChannelData(0);
 		for (let i = 0; i < noiseData.length; i++)
 		{
 			noiseData[i] = Math.random() * 2 - 1;
 		}
-
-		const masterGain = ctx.createGain();
-		masterGain.gain.value = MASTER_DEFAULT * ((this.world.params?.Master_Volume ?? 80) / 100);
-		masterGain.connect(ctx.destination);
 
 		// Wind — looped white noise through a low + highpass to land in
 		// the rumbly mid-low range a real outdoor breeze sits in.
@@ -133,7 +80,7 @@ export class AmbientSound implements IUpdatable
 		windSource.connect(windLowpass);
 		windLowpass.connect(windHighpass);
 		windHighpass.connect(windGain);
-		windGain.connect(masterGain);
+		windGain.connect(master);
 		windSource.start();
 
 		// Birds — FM synthesis on a sine carrier; modulator frequency
@@ -162,7 +109,7 @@ export class AmbientSound implements IUpdatable
 		birdModGain.connect(birdCarrier.frequency);
 		birdCarrier.connect(birdFilter);
 		birdFilter.connect(birdGain);
-		birdGain.connect(masterGain);
+		birdGain.connect(master);
 		birdCarrier.start();
 		birdModulator.start();
 
@@ -191,31 +138,73 @@ export class AmbientSound implements IUpdatable
 		waterLfoGain.connect(waterFilter.frequency);
 		waterSource.connect(waterFilter);
 		waterFilter.connect(waterGain);
-		waterGain.connect(masterGain);
+		waterGain.connect(master);
 		waterSource.start();
 		waterLfo.start();
 
 		this.nodes =
 		{
-			ctx,
 			windSource, windLowpass, windHighpass, windGain,
 			birdCarrier, birdModulator, birdModGain, birdFilter, birdGain,
 			waterSource, waterFilter, waterLfo, waterLfoGain, waterGain,
-			masterGain,
 		};
 
 		this.scheduleChirp();
 	}
 
+	protected teardownSynth(): void
+	{
+		if (this.chirpTimeout !== undefined)
+		{
+			clearTimeout(this.chirpTimeout);
+			this.chirpTimeout = undefined;
+		}
+
+		const n = this.nodes;
+		if (n === null) return;
+		try
+		{
+			n.windSource.stop();
+			n.birdCarrier.stop();
+			n.birdModulator.stop();
+			n.waterSource.stop();
+			n.waterLfo.stop();
+		}
+		catch (_e)
+		{
+			// Already stopped.
+		}
+		this.nodes = null;
+	}
+
+	protected updateSynth(_unscaledTimeStep: number): void
+	{
+		const n = this.nodes;
+		if (n === null || this.ctx === null) return;
+
+		// Water proximity — Sketchbook's Inthenew ocean sits at y=12, the
+		// wave grid covers a large area around the origin. Near-water is
+		// any time the camera is below ~25 and Ocean exists. Cheap
+		// approximation; getWaveHeightAt would be more accurate but
+		// allocates per call which is wasted for an on/off gate.
+		const cam = this.world.camera.position;
+		const nearWater = this.world.ocean !== null && cam.y < 25;
+		n.waterGain.gain.setTargetAtTime(nearWater ? WATER_GAIN : 0, this.ctx.currentTime, 0.3);
+	}
+
+	// FM-synthesised bird chirp scheduler. Pokes birdCarrier frequency +
+	// briefly opens birdGain for a short burst; reschedules itself on a
+	// random 2-7s delay. Cleared in teardownSynth so a stop doesn't
+	// leave a dangling timer poking dead nodes.
 	private scheduleChirp(): void
 	{
 		const delay = 2000 + Math.random() * 5000;
 		this.chirpTimeout = setTimeout(() =>
 		{
 			const n = this.nodes;
-			if (n === null || n.ctx.state === 'closed') return;
+			if (n === null || this.ctx === null || this.ctx.state === 'closed') return;
 
-			const now = n.ctx.currentTime;
+			const now = this.ctx.currentTime;
 			const chirpCount = 1 + Math.floor(Math.random() * 4);
 			const chirpDuration = 0.1 + Math.random() * 0.2;
 
@@ -230,39 +219,5 @@ export class AmbientSound implements IUpdatable
 
 			this.scheduleChirp();
 		}, delay);
-	}
-
-	private stop(): void
-	{
-		if (this.chirpTimeout !== undefined)
-		{
-			clearTimeout(this.chirpTimeout);
-			this.chirpTimeout = undefined;
-		}
-
-		const n = this.nodes;
-		if (n === null) return;
-
-		const now = n.ctx.currentTime;
-		n.masterGain.gain.setTargetAtTime(0, now, 0.05);
-
-		setTimeout(() =>
-		{
-			try
-			{
-				n.windSource.stop();
-				n.birdCarrier.stop();
-				n.birdModulator.stop();
-				n.waterSource.stop();
-				n.waterLfo.stop();
-				n.ctx.close();
-			}
-			catch (_e)
-			{
-				// Already stopped.
-			}
-		}, 100);
-
-		this.nodes = null;
 	}
 }

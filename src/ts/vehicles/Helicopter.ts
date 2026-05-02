@@ -8,7 +8,7 @@ import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { KeyBinding } from '../core/KeyBinding';
 import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
-import { ENGINE_PROFILES } from '../world/EngineSound';
+import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { t } from '../i18n';
 
 export class Helicopter extends Vehicle implements IControllable, IWorldEntity

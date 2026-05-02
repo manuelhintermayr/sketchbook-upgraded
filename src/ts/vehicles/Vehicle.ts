@@ -13,7 +13,7 @@ import { SwitchingSeats } from '../characters/character_states/vehicles/Switchin
 import { EntityType } from '../enums/EntityType';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { CameraShake } from '../core/CameraShake';
-import { EngineSound, EngineProfile } from '../world/EngineSound';
+import { EngineSound, EngineProfile } from '../world/audio/EngineSound';
 
 export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 {

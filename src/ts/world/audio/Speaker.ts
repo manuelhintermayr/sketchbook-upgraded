@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { World } from './World';
-import { IWorldEntity } from '../interfaces/IWorldEntity';
-import { EntityType } from '../enums/EntityType';
+import { World } from '../World';
+import { IWorldEntity } from '../../interfaces/IWorldEntity';
+import { EntityType } from '../../enums/EntityType';
 
 // 3D positional audio source, simplified port of tkkaushik369/socketControl's
 // Speaker. The original spawned an HTMLMesh with a play/pause checkbox;

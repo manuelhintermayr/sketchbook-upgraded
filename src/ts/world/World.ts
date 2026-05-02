@@ -41,7 +41,7 @@ import { Scenario } from './Scenario';
 import { Sky } from './Sky';
 import { Ocean } from './Ocean';
 import { Grass } from './Grass';
-import { Speaker } from './Speaker';
+import { Speaker } from './audio/Speaker';
 import { NPCSpawnPoint } from './NPCSpawnPoint';
 import { PauseMenu } from './PauseMenu';
 import { getDefaultDialogs } from './defaultDialogs';
@@ -49,7 +49,7 @@ import { SettingsModal } from './SettingsModal';
 import { t } from '../i18n';
 import { IrisTransition } from './IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
-import { AmbientSound } from './AmbientSound';
+import { AmbientSound } from './audio/AmbientSound';
 import { WanderingAnimals } from './WanderingAnimals';
 import { WorldLabels } from './WorldLabels';
 

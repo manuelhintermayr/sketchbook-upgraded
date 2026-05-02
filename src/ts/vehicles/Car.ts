@@ -8,7 +8,7 @@ import * as Utils from '../core/FunctionLibrary';
 import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
-import { ENGINE_PROFILES } from '../world/EngineSound';
+import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { t } from '../i18n';
 
 export class Car extends Vehicle implements IControllable

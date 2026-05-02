@@ -6,7 +6,7 @@ import { IControllable } from '../interfaces/IControllable';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { KeyBinding } from '../core/KeyBinding';
 import { EntityType } from '../enums/EntityType';
-import { ENGINE_PROFILES } from '../world/EngineSound';
+import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { t } from '../i18n';
 
 // Ported from Inthenew/Sketchbook (MIT). The rocketship reuses the

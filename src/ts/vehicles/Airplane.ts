@@ -8,7 +8,7 @@ import { KeyBinding } from '../core/KeyBinding';
 import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import * as Utils from '../core/FunctionLibrary';
 import { EntityType } from '../enums/EntityType';
-import { ENGINE_PROFILES } from '../world/EngineSound';
+import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { t } from '../i18n';
 
 export class Airplane extends Vehicle implements IControllable, IWorldEntity
