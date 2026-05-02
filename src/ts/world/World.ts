@@ -17,7 +17,6 @@ import CannonDebugger from 'cannon-es-debugger';
 import * as _ from 'lodash';
 
 import { InputManager } from '../core/InputManager';
-import * as Utils from '../core/FunctionLibrary';
 import { LoadingManager } from '../core/LoadingManager';
 import { InfoStack } from '../core/InfoStack';
 import { UIManager } from '../core/UIManager';
@@ -26,11 +25,7 @@ import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { Character } from '../characters/Character';
 import { Path } from './scenarios/Path';
-import { CollisionGroups } from '../enums/CollisionGroups';
 import { RenderLayer } from '../enums/RenderLayers';
-import { BoxCollider } from '../physics/colliders/BoxCollider';
-import { TrimeshCollider } from '../physics/colliders/TrimeshCollider';
-import { CylinderCollider } from '../physics/colliders/CylinderCollider';
 import { Vehicle } from '../vehicles/Vehicle';
 import { Helicopter } from '../vehicles/Helicopter';
 import { Airplane } from '../vehicles/Airplane';
@@ -40,8 +35,6 @@ import { RocketShip } from '../vehicles/RocketShip';
 import { Scenario } from './scenarios/Scenario';
 import { Sky } from './Sky';
 import { Ocean } from './Ocean';
-import { Grass } from './Grass';
-import { Speaker } from './audio/Speaker';
 import { PauseMenu } from './ui/PauseMenu';
 import { SettingsModal } from './ui/SettingsModal';
 import { t } from '../i18n';
@@ -49,10 +42,8 @@ import { IrisTransition } from './ui/IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './audio/AmbientSound';
 import { bootstrapHTML } from './setup/HTMLBootstrap';
-import { addMapSwitcher } from './setup/MapSwitcher';
-import { injectDefaultSceneNPCs } from './setup/DefaultNPCInjector';
-import { injectWanderingAnimals } from './setup/AnimalInjector';
 import { createParamsGUI } from './setup/ParamsGUI';
+import { loadScene } from './loading/SceneLoader';
 import { WorldLabels } from './ui/WorldLabels';
 
 export class World
@@ -354,7 +345,7 @@ export class World
 			{
 				loadingManager.loadGLTF(worldScenePath, (gltf) =>
 				{
-					this.loadScene(loadingManager, gltf);
+					loadScene(this, loadingManager, gltf);
 				}
 				);
 			}
@@ -366,7 +357,7 @@ export class World
 				// in case no other async loads (vehicle GLBs) follow.
 				const entry = loadingManager.addLoadingEntry('sandbox-scene');
 				const fakeGltf = { scene: worldScenePath.scene, animations: worldScenePath.sceneAnimations || [] };
-				this.loadScene(loadingManager, fakeGltf);
+				loadScene(this, loadingManager, fakeGltf);
 				loadingManager.doneLoading(entry);
 			}
 		}
@@ -634,157 +625,6 @@ export class World
 	public unregisterUpdatable(registree: IUpdatable): void
 	{
 		_.pull(this.updatables, registree);
-	}
-
-	public loadScene(loadingManager: LoadingManager, gltf: any): void
-	{
-		gltf.scene.traverse((child) => {
-			if (child.hasOwnProperty('userData'))
-			{
-				if (child.type === 'Mesh')
-				{
-					child.geometry = child.geometry.toNonIndexed();
-					Utils.setupMeshProperties(child);
-					this.sky.csm.setupMaterial(child.material);
-
-					if (child.material.name === 'ocean' || child.material.name === 'ocean.001')
-					{
-						this.ocean = new Ocean(child, this);
-						this.registerUpdatable(this.ocean);
-					}
-
-					// socketControl-style instanced grass field. Any mesh in
-					// world.glb whose material is named 'grass' becomes a
-					// shimmering 300k-blade lawn anchored at the mesh's
-					// transform; the original mesh stays as the dark base.
-					if (child.material.name === 'grass')
-					{
-						const grass = new Grass(child, this);
-						this.add(grass);
-					}
-
-					// Inthenew's map tags the moon-surface mesh with name
-					// 'Layer0_001' (an Adobe Illustrator export artifact).
-					// Inthenew loaded an external Farmers Almanac photo here;
-					// we use the DALL-E moon-with-flowers texture instead.
-					if (child.name === 'Layer0_001')
-					{
-						const tex = new THREE.TextureLoader().load('src/img/moon-with-flowers.png');
-						tex.colorSpace = THREE.SRGBColorSpace;
-						child.material = new THREE.MeshBasicMaterial({ map: tex });
-					}
-				}
-
-				if (child.userData.hasOwnProperty('data'))
-				{
-					if (child.userData.data === 'physics')
-					{
-						if (child.userData.hasOwnProperty('type')) 
-						{
-							//child.geometry = child.geometry.toNonIndexed();
-
-							// Convex doesn't work! Stick to boxes!
-							if (child.userData.type === 'box')
-							{
-								let phys = new BoxCollider({size: new THREE.Vector3(child.scale.x, child.scale.y, child.scale.z)});
-								phys.body.position.copy(new CANNON.Vec3(child.position.x, child.position.y, child.position.z));
-								phys.body.quaternion.copy(new CANNON.Quaternion(child.quaternion.x, child.quaternion.y, child.quaternion.z, child.quaternion.w));
-								phys.body.updateAABB();
-
-								phys.body.shapes.forEach((shape) => {
-									shape.collisionFilterMask = ~CollisionGroups.TrimeshColliders;
-								});
-
-								//console.log("Box: ");
-								//console.log(phys.body);
-
-								this.physicsWorld.addBody(phys.body);
-							}
-							else if (child.userData.type === 'trimesh')
-							{
-								let phys = new TrimeshCollider(child, {});
-
-								//console.log("TriMesh: ");
-								//console.log(phys.body);
-
-								this.physicsWorld.addBody(phys.body);
-							}
-							else if (child.userData.type === 'cylinder')
-							{
-								// socketControl-style cylinder shape. Authored
-								// scale.x is read as radius, scale.y as height
-								// (Sketchbook convention — empties are
-								// uniformly scaled and rotated).
-								const phys = new CylinderCollider({
-									radius: child.scale.x,
-									height: child.scale.y,
-									segment: 12,
-								});
-								phys.body.position.copy(new CANNON.Vec3(child.position.x, child.position.y, child.position.z));
-								phys.body.quaternion.copy(new CANNON.Quaternion(child.quaternion.x, child.quaternion.y, child.quaternion.z, child.quaternion.w));
-								phys.body.updateAABB();
-								phys.body.shapes.forEach((shape) => {
-									shape.collisionFilterMask = ~CollisionGroups.TrimeshColliders;
-								});
-								this.physicsWorld.addBody(phys.body);
-							}
-
-							child.visible = false;
-						}
-					}
-
-					if (child.userData.data === 'path')
-					{
-						this.paths.push(new Path(child));
-					}
-
-					if (child.userData.data === 'scenario')
-					{
-						this.scenarios.push(new Scenario(child, this));
-					}
-
-					// socketControl-style positional audio source. The map
-					// marker carries the audio asset path; Speaker handles
-					// the autoplay-policy gating so multiple sources start
-					// together on the first user gesture.
-					if (child.userData.data === 'speaker' && typeof child.userData.audio === 'string')
-					{
-						const sp = new Speaker(child.userData.audio, this);
-						sp.position.copy(child.getWorldPosition(new THREE.Vector3()));
-						this.add(sp);
-					}
-				}
-			}
-		});
-
-		this.graphicsWorld.add(gltf.scene);
-
-		// Map switcher in the Scenarios panel — sits below the scenario
-		// list and reloads the page with the alternate world.glb. Default
-		// (no localStorage entry) is the Inthenew map; the SocketControl
-		// map is opt-in and persists across reloads.
-		addMapSwitcher(this);
-
-		// Hand-placed NPCs around the Inthenew default spawn — gives the
-		// world some visible occupants without authoring markers in
-		// Blender. Tied to the default scenario so they re-spawn alongside
-		// it and get cleared on switch like other entities.
-		injectDefaultSceneNPCs(this);
-
-		// Wandering dogs / cats around the spawn area — only on the
-		// Inthenew map (the sandboxes are testing zones with their own
-		// flat layouts, animals would just walk off the edge).
-		injectWanderingAnimals(this);
-
-		// Launch default scenario
-		let defaultScenarioID: string;
-		for (const scenario of this.scenarios) {
-			if (scenario.default) {
-				defaultScenarioID = scenario.id;
-				break;
-			}
-		}
-		if (defaultScenarioID !== undefined) this.launchScenario(defaultScenarioID, loadingManager);
 	}
 
 	public launchScenario(scenarioID: string, loadingManager?: LoadingManager): void
