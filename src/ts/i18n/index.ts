@@ -49,6 +49,10 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'settings.audio':    { en: 'Audio',            de: 'Audio',             es: 'Audio' },
 	'settings.controls': { en: 'Controls',         de: 'Steuerung',         es: 'Controles' },
 	'settings.done':     { en: 'Done',             de: 'Fertig',            es: 'Listo' },
+	'settings.presets':  { en: 'Quality preset',   de: 'Qualitäts-Preset',  es: 'Preset de calidad' },
+	'settings.presetLow':{ en: 'Low',              de: 'Niedrig',           es: 'Bajo' },
+	'settings.presetHigh':{ en: 'High',            de: 'Hoch',              es: 'Alto' },
+	'settings.presetDesc':{ en: 'Quick toggles for shadows + post-FX', de: 'Schatten + Post-FX en bloc', es: 'Atajos para sombras + post-FX' },
 
 	'error.reload':      { en: 'Reload',           de: 'Neu laden',         es: 'Recargar' },
 	'error.copy':        { en: 'Copy details',     de: 'Details kopieren',  es: 'Copiar detalles' },

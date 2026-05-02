@@ -86,6 +86,16 @@ export class SettingsModal
 
 				<div class="settings-card">
 					<h3>${t('settings.graphics')}</h3>
+					<div class="setting-row">
+						<div>
+							<div class="setting-label">${t('settings.presets')}</div>
+							<div class="setting-desc">${t('settings.presetDesc')}</div>
+						</div>
+						<div class="setting-control">
+							<button type="button" class="preset-btn" data-preset="low">${t('settings.presetLow')}</button>
+							<button type="button" class="preset-btn" data-preset="high">${t('settings.presetHigh')}</button>
+						</div>
+					</div>
 					${this.toggleRow('Shadows', 'Shadows', 'Cascaded shadow maps')}
 					${this.toggleRow('FXAA', 'Anti-aliasing', 'FXAA post-process')}
 					${this.toggleRow('Has_Day_Night_Cycle', 'Day / night cycle', 'Sun moves automatically')}
@@ -136,8 +146,28 @@ export class SettingsModal
 		{
 			toggle.addEventListener('click', () => this.applyToggle(toggle));
 		});
+		wrap.querySelectorAll<HTMLButtonElement>('.preset-btn').forEach((btn) =>
+		{
+			btn.addEventListener('click', () => this.applyPreset(btn.dataset.preset as 'low' | 'high'));
+		});
 
 		return wrap;
+	}
+
+	// Quick toggles for the heavy graphics features. "Low" disables
+	// shadows + every post-FX (the things that actually move the FPS
+	// needle on integrated GPUs / mobile). "High" turns them all on so
+	// users can flip back without remembering which row was where.
+	private applyPreset(preset: 'low' | 'high'): void
+	{
+		const targets: { [k: string]: boolean } = preset === 'low'
+			? { Shadows: false, Outlines: false, Bloom: false, Depth_Of_Field: false }
+			: { Shadows: true,  Outlines: true,  Bloom: true,  Depth_Of_Field: true };
+		for (const key in targets)
+		{
+			this.write(key, targets[key]);
+		}
+		this.refresh();
 	}
 
 	private toggleRow(key: string, label: string, desc: string): string
