@@ -803,9 +803,12 @@ export class World
 			'test3 (socketControl sandbox)': 'sc-test3',
 			'example (socketControl sandbox)': 'sc-example',
 		};
-		const validValues: string[] = [];
-		for (const k in choices) validValues.push(choices[k]);
-		this.params.Map = (stored !== null && validValues.indexOf(stored) !== -1) ? stored : 'inthenew';
+		// Validate the stored selection against the map's values without
+		// allocating an intermediate array. (Object.values would be the
+		// natural fit but we target ES2015.)
+		let storedIsValid = false;
+		for (const k in choices) if (choices[k] === stored) { storedIsValid = true; break; }
+		this.params.Map = storedIsValid ? stored : 'inthenew';
 
 		this.scenarioGUIFolder.add(this.params, 'Map', choices)
 			.onChange((value: string) =>
