@@ -1,10 +1,10 @@
-import { ISpawnPoint } from '../interfaces/ISpawnPoint';
+import { ISpawnPoint } from '../../interfaces/ISpawnPoint';
 import * as THREE from 'three';
-import { World } from './World';
-import { Character } from '../characters/Character';
-import { LoadingManager } from '../core/LoadingManager';
-import * as Utils from '../core/FunctionLibrary';
-import { attachNameLabel } from './NameLabel';
+import { World } from '../World';
+import { Character } from '../../characters/Character';
+import { LoadingManager } from '../../core/LoadingManager';
+import * as Utils from '../../core/FunctionLibrary';
+import { attachNameLabel } from '../NameLabel';
 
 export class CharacterSpawnPoint implements ISpawnPoint
 {

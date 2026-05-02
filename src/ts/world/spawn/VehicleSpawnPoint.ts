@@ -1,17 +1,17 @@
 import * as THREE from 'three';
-import { ISpawnPoint } from '../interfaces/ISpawnPoint';
-import { World } from '../world/World';
-import { Helicopter } from '../vehicles/Helicopter';
-import { Airplane } from '../vehicles/Airplane';
-import { Car } from '../vehicles/Car';
-import { Boat } from '../vehicles/Boat';
-import { RocketShip } from '../vehicles/RocketShip';
-import * as Utils from '../core/FunctionLibrary';
-import { Vehicle } from '../vehicles/Vehicle';
-import { Character } from '../characters/Character';
-import { FollowPath } from '../characters/character_ai/FollowPath';
-import { LoadingManager } from '../core/LoadingManager';
-import { IWorldEntity } from '../interfaces/IWorldEntity';
+import { ISpawnPoint } from '../../interfaces/ISpawnPoint';
+import { World } from '../World';
+import { Helicopter } from '../../vehicles/Helicopter';
+import { Airplane } from '../../vehicles/Airplane';
+import { Car } from '../../vehicles/Car';
+import { Boat } from '../../vehicles/Boat';
+import { RocketShip } from '../../vehicles/RocketShip';
+import * as Utils from '../../core/FunctionLibrary';
+import { Vehicle } from '../../vehicles/Vehicle';
+import { Character } from '../../characters/Character';
+import { FollowPath } from '../../characters/character_ai/FollowPath';
+import { LoadingManager } from '../../core/LoadingManager';
+import { IWorldEntity } from '../../interfaces/IWorldEntity';
 
 export class VehicleSpawnPoint implements ISpawnPoint
 {

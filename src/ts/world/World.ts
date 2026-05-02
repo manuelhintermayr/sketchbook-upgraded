@@ -43,7 +43,7 @@ import { Sky } from './Sky';
 import { Ocean } from './Ocean';
 import { Grass } from './Grass';
 import { Speaker } from './audio/Speaker';
-import { NPCSpawnPoint } from './NPCSpawnPoint';
+import { NPCSpawnPoint } from './spawn/NPCSpawnPoint';
 import { PauseMenu } from './PauseMenu';
 import { getDefaultDialogs } from './defaultDialogs';
 import { SettingsModal } from './SettingsModal';

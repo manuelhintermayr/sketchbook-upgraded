@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { ISpawnPoint } from '../interfaces/ISpawnPoint';
-import { World } from './World';
-import { Character } from '../characters/Character';
-import { FollowPath } from '../characters/character_ai/FollowPath';
-import { LoadingManager } from '../core/LoadingManager';
-import * as Utils from '../core/FunctionLibrary';
-import { attachNameLabel } from './NameLabel';
-import { ProximityPrompt } from './ProximityPrompt';
-import { Dialog } from './DialogBox';
-import { t } from '../i18n';
+import { ISpawnPoint } from '../../interfaces/ISpawnPoint';
+import { World } from '../World';
+import { Character } from '../../characters/Character';
+import { FollowPath } from '../../characters/character_ai/FollowPath';
+import { LoadingManager } from '../../core/LoadingManager';
+import * as Utils from '../../core/FunctionLibrary';
+import { attachNameLabel } from '../NameLabel';
+import { ProximityPrompt } from '../ProximityPrompt';
+import { Dialog } from '../DialogBox';
+import { t } from '../../i18n';
 
 let anonymousNpcCounter = 1;
 

@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 
-import { World } from './World';
-import { IWorldEntity } from '../interfaces/IWorldEntity';
-import { EntityType } from '../enums/EntityType';
-import { UpdateOrder } from '../enums/UpdateOrder';
-import { CollisionGroups } from '../enums/CollisionGroups';
-import { BoxCollider } from '../physics/colliders/BoxCollider';
-import { SphereCollider } from '../physics/colliders/SphereCollider';
+import { World } from '../World';
+import { IWorldEntity } from '../../interfaces/IWorldEntity';
+import { EntityType } from '../../enums/EntityType';
+import { UpdateOrder } from '../../enums/UpdateOrder';
+import { CollisionGroups } from '../../enums/CollisionGroups';
+import { BoxCollider } from '../../physics/colliders/BoxCollider';
+import { SphereCollider } from '../../physics/colliders/SphereCollider';
 
 // Dynamic physics primitive driven by a CANNON shape. Combines
 // socketControl's ShapeEntityBase + BoxShapeEntity + SphereShapeEntity

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { ISpawnPoint } from '../interfaces/ISpawnPoint';
-import { World } from './World';
-import { LoadingManager } from '../core/LoadingManager';
+import { ISpawnPoint } from '../../interfaces/ISpawnPoint';
+import { World } from '../World';
+import { LoadingManager } from '../../core/LoadingManager';
 import { ShapeEntity } from './ShapeEntity';
 
 // Map-driven dynamic-shape spawner ported from tkkaushik369/socketControl.

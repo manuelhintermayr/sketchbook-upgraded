@@ -1,8 +1,8 @@
 import { ISpawnPoint } from '../interfaces/ISpawnPoint';
-import { VehicleSpawnPoint } from './VehicleSpawnPoint';
-import { CharacterSpawnPoint } from './CharacterSpawnPoint';
-import { NPCSpawnPoint } from './NPCSpawnPoint';
-import { ShapeSpawnPoint } from './ShapeSpawnPoint';
+import { VehicleSpawnPoint } from './spawn/VehicleSpawnPoint';
+import { CharacterSpawnPoint } from './spawn/CharacterSpawnPoint';
+import { NPCSpawnPoint } from './spawn/NPCSpawnPoint';
+import { ShapeSpawnPoint } from './spawn/ShapeSpawnPoint';
 import { World } from '../world/World';
 import { LoadingManager } from '../core/LoadingManager';
 import { RaceContent } from './RaceContent';
