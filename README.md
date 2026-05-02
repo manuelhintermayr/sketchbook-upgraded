@@ -108,6 +108,18 @@ Sketchbook needs to run on a local server (e.g. `npm run dev`) to load assets.
 4. `npm run dev` and open <http://localhost:8080>.
 5. `npm run lint` to run ESLint over `src/ts/`.
 
+## Documentation
+
+Beyond this README, the repo carries a handful of complementary docs — pick the one that matches what you're doing:
+
+- [`CHANGELOG.md`](./CHANGELOG.md) — per-version release notes in [Keep a Changelog](https://keepachangelog.com/) format. The 0.8.0 entry has every commit grouped by category (UI, new features, performance, refactoring, fixed); earlier versions are condensed.
+- [`docs/architecture.md`](./docs/architecture.md) — engine internals: module layers, the per-frame loop, the `UpdateOrder` slot table, World's construction sequence, lifecycle interfaces, physics setup, rendering pipeline, audio subsystem, UI shell, and persistence layout.
+- [`docs/map-authoring.md`](./docs/map-authoring.md) — full reference for the `userData` markers `loadScene` recognises (physics shapes, spawn points, scenarios, paths, speakers, ocean / grass material names) with copy-pasteable code examples for each.
+- [`docs/ui-system.md`](./docs/ui-system.md) — design tokens (`tokens.css`) catalogue and the overlay walkthrough (TitleScreen, PauseMenu, SettingsModal, DialogBox, ErrorOverlay, NameLabel, etc.) — what each one is, where it lives, and how to add a new one.
+- [`CLAUDE.md`](./CLAUDE.md) — Claude Code session memory. Repository layout, code conventions, frame mental model, mistakes to avoid. Mostly the same content as `context.md`, slightly different framing.
+- [`context.md`](./context.md) — the same orientation primer for any other AI coding assistant (Cursor, Continue, Aider, Copilot Workspace, …). Read either this or `CLAUDE.md`, not both.
+- [`ui-guide/`](./ui-guide/) — the original static HTML mockups that shaped the May 2026 UI pass. Reference material; not loaded at runtime.
+
 ---
 
 # Project timeline

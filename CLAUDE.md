@@ -6,7 +6,7 @@ This file is loaded automatically by [Claude Code](https://claude.com/claude-cod
 
 A maintained extension of [swift502/Sketchbook](https://github.com/swift502/Sketchbook) — a small web-based 3D game engine on three.js + cannon-es with third-person controls, vehicles, scripted scenarios. Curated features from later community forks (Inthenew, socketControl, Notblox, benhatsor) are merged in. See `README.md` for the full timeline.
 
-Status: actively developed on branch `claude/external-features` (May 2026). Latest baseline: `e097071` (UI design system).
+Status: actively developed on branch `claude/external-features` (May 2026). Latest baseline: post-0.8.0 — UI overhaul + new features + a long internals pass (World.ts split, Vehicle StuckRecovery extracted, etc.).
 
 ## Build / run / lint
 
@@ -45,14 +45,22 @@ The bundle is **not** committed; do not assume `build/sketchbook.min.js` exists 
 ## Architecture map
 
 - `src/ts/sketchbook.ts` — bundle entry point, exports `Sketchbook.World`, the four sandbox classes, `showTitleScreen`, `installErrorOverlay`.
-- `src/ts/world/World.ts` — god-class. Holds renderer, physics world, scenarios, registered updatables, lil-gui, audio listener, pause menu. ~1100 LOC. Search here first.
-- `src/ts/core/` — shared infra: `LoadingManager`, `InputManager`, `CameraOperator`, `UIManager`, `FunctionLibrary` (math helpers).
-- `src/ts/world/` — world entities (Ocean, Sky, Grass, Speaker, Race*, Trigger*, ProximityPrompt, NPCSpawnPoint, ShapeEntity, etc.) + UI shell (PauseMenu, SettingsModal, TitleScreen, ErrorOverlay, DialogBox, NameLabel). All implement `IUpdatable` or `IWorldEntity` from `src/ts/interfaces/`.
-- `src/ts/world/sandboxes/` — procedural test scenes ported from socketControl (BaseScene + TestScene/Test2Scene/Test3Scene/ExampleScene). They build their world in the constructor by populating `this.scene` with userData markers.
+- `src/ts/world/World.ts` — central orchestrator (~636 LOC after the 0.8.0 split). Holds renderer / physics / scenarios / updatables registry / lil-gui / audio listener / pause menu, plus the per-frame `update` + `render` loops. Heavy setup lives in dedicated helpers (see below).
+- `src/ts/world/setup/` — single-function helpers called from World's constructor: `bootstrapHTML` (DOM scaffolding), `setupRendererPipeline` (renderer + composer + post-FX + resize), `createParamsGUI` (lil-gui panel + persistence), `addMapSwitcher` (Scenarios-folder dropdown), `injectDefaultSceneNPCs` (Anna/Ben/Carla/Dieter), `injectWanderingAnimals` (dogs/cats).
+- `src/ts/world/loading/SceneLoader.ts` — `loadScene(world, loadingManager, gltf)`: walks the GLTF and dispatches by `userData.data` to physics / spawn / scenario / path / ocean / grass / speaker constructors.
+- `src/ts/world/scenarios/` — `Scenario`, `Path`, `PathNode`, `defaultDialogs`. The scenario subsystem.
+- `src/ts/world/spawn/` — `Character/NPC/Vehicle/Shape SpawnPoint` + `ShapeEntity`. Marker-driven entity factories.
+- `src/ts/world/ui/` — DOM/CSS2D overlays: `TitleScreen`, `PauseMenu`, `SettingsModal`, `DialogBox`, `ErrorOverlay`, `IrisTransition`, `NameLabel`, `WorldLabels`.
+- `src/ts/world/audio/` — `ProceduralAudio` base + `EngineSound` / `AmbientSound` / `Speaker`. Shared `AudioContext` lifecycle.
+- `src/ts/world/animals/` — `WanderingAnimals` manager + `AnimalBehavior` / `DogBehavior` / `CatBehavior` (Strategy pattern, singleton instances).
+- `src/ts/world/sandboxes/` — procedural test scenes ported from socketControl (`BaseScene` + `TestScene` / `Test2Scene` / `Test3Scene` / `ExampleScene`). They build their world in the constructor by populating `this.scene` with userData markers.
+- `src/ts/world/` (root) — visual environment entities + small subsystems: `Sky`, `Ocean`, `Grass`/`GrassShader`/`Perlin`, `OutlineEffect`, `RaceCheckpoint`/`RaceContent`, `TriggerCube`, `ProximityPrompt`.
+- `src/ts/core/` — shared infra: `LoadingManager`, `InputManager`, `CameraOperator`, `CameraShake`, `CommonControls`, `UIManager`, `FunctionLibrary`, `TouchControls`.
 - `src/ts/characters/` — Character class + state machine (Idle, Walk, Sprint, Falling, Drop*, JumpRunning, vehicle states, etc.) + character_ai/ behaviours (FollowPath, FollowTarget, RandomBehaviour).
-- `src/ts/vehicles/` — Car, Helicopter, Airplane, Boat, RocketShip and their input states.
-- `src/ts/physics/colliders/` — BoxCollider, SphereCollider, CylinderCollider, CapsuleCollider, TrimeshCollider — thin wrappers around CANNON shapes.
-- `src/ts/enums/` — EntityType, CollisionGroups, GroundImpactData, etc.
+- `src/ts/vehicles/` — `Vehicle` base, `Car` / `Helicopter` / `Airplane` / `Boat` / `RocketShip`, plus `StuckRecovery` helper extracted from Vehicle.
+- `src/ts/physics/colliders/` — `BoxCollider`, `SphereCollider`, `CylinderCollider`, `CapsuleCollider`, `TrimeshCollider` — thin wrappers around CANNON shapes.
+- `src/ts/enums/` — `EntityType`, `CollisionGroups`, `SeatType`, `Side`, `Space`, `UpdateOrder` (semantic slot order), `RenderLayers`.
+- `src/ts/i18n/` — `t(key, vars)` lookup, flat translation table (en/de/es), persisted to localStorage.
 - `src/css/main.css` — imports all module CSS. `tokens.css` defines every shared CSS custom property; everything else uses `var(--…)`.
 
 For deeper pointers see `docs/architecture.md` and `docs/map-authoring.md`.
@@ -60,9 +68,10 @@ For deeper pointers see `docs/architecture.md` and `docs/map-authoring.md`.
 ## Mental model: how a frame happens
 
 1. `World.render()` → request RAF → compute timestep
-2. `World.update(timeStep)` runs every registered `IUpdatable.update()` in `updateOrder` order. InputManager (3), CameraOperator, Sky (5), RaceContent (6), Speaker (11), TriggerCube (12), ProximityPrompt (13), Grass (10), Character/Vehicle physics (10).
-3. `composer.render()` (FXAA) or direct `renderer.render()`.
-4. `labelRenderer.render()` projects CSS2D name labels above their anchors.
+2. `World.update(timeStep)` runs every registered `IUpdatable.update()` sorted by `updateOrder`. Slots are named in `enums/UpdateOrder.ts` (× 10 spacing): `CharacterPhysics` (10) → `VehiclePhysics` (20) → `Input` (30) → `Camera` (40) → `Environment` (50, Sky/ShapeEntity) → `Scenarios` (60, RaceContent) → `World` (100, Grass/Ocean/WanderingAnimals) → `Audio` (110) → `Triggers` (120) → `Prompts` (130) → `Labels` (140) → `PostCamera` (150, CameraShake).
+3. `composer.render()` (FXAA + Bloom + DoF) or direct `renderer.render()`.
+4. `outlineEffect.renderPass()` overlays the depth-Sobel outline if `params.Outlines` is on.
+5. `labelRenderer.render()` projects CSS2D name labels above their anchors.
 
 `world.params.Time_Scale` is the throttle. `setTimeScale(0)` pauses the physics + state updates entirely (PauseMenu uses this).
 
@@ -70,7 +79,7 @@ For deeper pointers see `docs/architecture.md` and `docs/map-authoring.md`.
 
 The level lives in `build/assets/world.glb` (the Inthenew default) plus two socketControl alternatives (`world_sc_v03.glb`, `world_sc_v04.glb`) plus four code-built sandboxes. All are switchable from the **Scenarios** GUI panel; the choice persists in `localStorage['sketchbook.map']`.
 
-`World.loadScene(loadingManager, gltf)` walks every node in the scene and acts on `userData`:
+`loadScene(world, loadingManager, gltf)` (in `src/ts/world/loading/SceneLoader.ts`) walks every node in the scene and acts on `userData`:
 - `data: 'physics'` + `type: box|trimesh|cylinder` → spawn matching CANNON body
 - `data: 'spawn'` + `type: car|heli|airplane|boat|rocketship|player|npc|character_ai|character_follow|shape` → matching SpawnPoint
 - `data: 'scenario'` → new Scenario container

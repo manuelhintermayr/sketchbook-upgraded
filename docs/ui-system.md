@@ -33,19 +33,19 @@ NameLabel          (CSS2D pass)                    attachNameLabel(target, name,
 StatsBox           --z-stats     (10000)           stats.js, toggle via Debug_FPS
 ```
 
-### TitleScreen (`src/ts/world/TitleScreen.ts`)
+### TitleScreen (`src/ts/world/ui/TitleScreen.ts`)
 
 Pre-game card with bouncing cube + version label + "click or press any key to start". Lives at `--z-modal`. Returns a `Promise<void>` that resolves on first user gesture; the gesture also unblocks browser audio autoplay (Speaker depends on this). Bootstraps fonts itself so it looks correct even before `main.css` has finished applying.
 
 ### LoadingScreen + progress (`src/css/modules/loadingScreen.css`, `src/ts/core/UIManager.ts`)
 
-Built into the `<div id="loading-screen">` injected by `World.generateHTML()`. The percentage label and bar are driven by `UIManager.setLoadingProgress(percent)`, called by `LoadingManager` on every `xhr.progress` and on each `doneLoading()`. Width animates via `transition: width var(--motion-fast)`.
+Built into the `<div id="loading-screen">` injected by `bootstrapHTML(world)` (in `src/ts/world/setup/HTMLBootstrap.ts`). The percentage label and bar are driven by `UIManager.setLoadingProgress(percent)`, called by `LoadingManager` on every `xhr.progress` and on each `doneLoading()`. Width animates via `transition: width var(--motion-fast)`.
 
 ### PlanetMenu (`src/css/modules/planetMenu.css`)
 
 Earth/Moon picker that opens at the rocketship's apogee. Pre-existing; not new in this pass — listed here for completeness.
 
-### DialogBox (`src/ts/world/DialogBox.ts`)
+### DialogBox (`src/ts/world/ui/DialogBox.ts`)
 
 Singleton bottom-anchored card. Schema:
 
@@ -74,9 +74,9 @@ interface DialogChoice
 
 Mouse + 1–9 keys pick a choice. Esc closes. ProximityPrompt auto-closes the dialog when the player walks out of the trigger area (`onExit` calls `DialogBox.getInstance().close()`).
 
-Default NPC dialogs live in `src/ts/world/defaultDialogs.ts`.
+Default NPC dialogs live in `src/ts/world/scenarios/defaultDialogs.ts`. The dialog tree is cached by locale, so successive scenario launches in the same language reuse the previous build instead of re-running the ~36 `t()` lookups.
 
-### PauseMenu (`src/ts/world/PauseMenu.ts`)
+### PauseMenu (`src/ts/world/ui/PauseMenu.ts`)
 
 Esc-driven full-screen overlay. Disabled (`isEnabled = false`) until `world.pauseMenu.enable()` is called from the welcome-dialog success branch — that prevents Esc from opening pause over the loader.
 
@@ -99,9 +99,9 @@ Buttons:
 
 The handler also peeks at `.swal2-container`, `#dialog-bar.visible`, `#settings-modal.visible` so Esc on a higher-priority modal doesn't open Pause.
 
-### SettingsModal (`src/ts/world/SettingsModal.ts`)
+### SettingsModal (`src/ts/world/ui/SettingsModal.ts`)
 
-Three cards — Graphics / Audio / Controls. Every control writes to `world.params[X]` and forwards via `world.gui.controllersRecursive().find(c.property === X).setValue(value)` so every existing lil-gui `onChange` handler (CSM enable, mouse-sensitivity push to CameraOperator, pointer-lock toggle on InputManager, etc.) fires automatically. No duplication of logic — the modal is a *view* over the same controllers.
+Three cards — Graphics / Audio / Controls — plus a Low / High quality preset shortcut row at the top of the Graphics card. Every control writes to `world.params[X]` and forwards via a lazy-built `Map<string, controller>` cache (built once from `world.gui.controllersRecursive()` on the first lookup) so every existing lil-gui `onChange` handler (CSM enable, mouse-sensitivity push to CameraOperator, pointer-lock toggle on InputManager, etc.) fires automatically. No duplication of logic — the modal is a *view* over the same controllers.
 
 Audio is a special case — `Master_Volume` doesn't have a lil-gui controller, so the modal calls `world.setMasterVolume(v)` directly. That writes to params and pushes `v / 100` into `world.audioListener.setMasterVolume()` (the listener is attached lazily by Speaker on the camera).
 
@@ -109,7 +109,7 @@ Audio is a special case — `Master_Volume` doesn't have a lil-gui controller, s
 
 `refresh()` is called on `open()` to pull the latest values back from params (in case lil-gui changed them while the modal was closed).
 
-### ErrorOverlay (`src/ts/world/ErrorOverlay.ts`)
+### ErrorOverlay (`src/ts/world/ui/ErrorOverlay.ts`)
 
 `installErrorOverlay()` registers `window.onerror` and `window.onunhandledrejection`. The first error to fire shows the overlay; subsequent errors are swallowed (a cascade drowns out the useful first one). The card has:
 
@@ -121,11 +121,11 @@ Audio is a special case — `Master_Volume` doesn't have a lil-gui controller, s
 
 Installed from `index.html` *before* `Sketchbook.World()` is constructed so even bootstrap failures get the friendly card.
 
-### NameLabel (`src/ts/world/NameLabel.ts`)
+### NameLabel (`src/ts/world/ui/NameLabel.ts`)
 
 `attachNameLabel(target: THREE.Object3D, name: string, isPlayer: boolean): CSS2DObject`. Creates a `<div class="name-label">` (or `.name-label.me` for the player), wraps it in a CSS2DObject anchored at `(0, 1.2, 0)` relative to the target, and adds it as a child. The label follows the target's world transform automatically.
 
-Rendered each frame by `world.labelRenderer.render(graphicsWorld, camera)` — a `CSS2DRenderer` with its own absolutely-positioned overlay div (`pointer-events: none`).
+Rendered each frame by `world.labelRenderer.render(graphicsWorld, camera)` — a `CSS2DRenderer` with its own absolutely-positioned overlay div (`pointer-events: none`). Distance culling and feature-flag gating run through `WorldLabels` (`src/ts/world/ui/WorldLabels.ts`), the registry on top of the CSS2D pass.
 
 `CharacterSpawnPoint` calls this with `'Du'` + `isPlayer=true` after `takeControl()`. `NPCSpawnPoint` calls it with `userData.name` (or `NPC #N` fallback).
 
@@ -133,11 +133,12 @@ Rendered each frame by `world.labelRenderer.render(graphicsWorld, camera)` — a
 
 1. Create `src/css/modules/yourOverlay.css` using token vars only.
 2. `@import "modules/yourOverlay.css";` from `src/css/main.css`.
-3. Create `src/ts/world/YourOverlay.ts` — class with `open()` / `close()`, builds the DOM in the constructor, appends to `document.body`.
+3. Create `src/ts/world/ui/YourOverlay.ts` — class with `open()` / `close()`, builds the DOM in the constructor, appends to `document.body`.
 4. Pick a z-index from the tokens scale; don't introduce new ones.
 5. If it's modal: peek at the document for higher-priority modals before responding to Esc, so you don't fight PauseMenu.
 6. Wire the trigger (PauseMenu button, World event, key handler).
 7. If it's keyboard-driven, attach the listener in the constructor and remove it in any `dispose()` you add. Most overlays are singletons that live for the page lifetime, so cleanup is rarely needed.
+8. If the overlay needs i18n strings, add the keys to `src/ts/i18n/index.ts` (en/de/es flat table) and look them up via `t('your.key')`.
 
 ## Theming
 

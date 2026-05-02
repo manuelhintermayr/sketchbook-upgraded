@@ -25,21 +25,34 @@ src/
 └── ts/
     ├── sketchbook.ts               ← bundle entry; re-exports public API
     ├── characters/                 ← Character + state machine + AI behaviours
-    ├── core/                       ← LoadingManager, InputManager, CameraOperator, UIManager
-    ├── enums/                      ← EntityType, CollisionGroups
+    ├── core/                       ← LoadingManager, InputManager, CameraOperator, CameraShake,
+    │                                  CommonControls, UIManager, TouchControls, FunctionLibrary
+    ├── enums/                      ← EntityType, CollisionGroups, SeatType, Side, Space,
+    │                                  UpdateOrder (semantic slots), RenderLayers
+    ├── i18n/                       ← t(key, vars) flat translation table (en/de/es)
     ├── interfaces/                 ← IUpdatable, IWorldEntity, ISpawnPoint, ICollider
     ├── physics/colliders/          ← Box, Sphere, Cylinder, Capsule, Trimesh wrappers
-    ├── vehicles/                   ← Car, Helicopter, Airplane, Boat, RocketShip
+    ├── vehicles/                   ← Vehicle + Car/Helicopter/Airplane/Boat/RocketShip + StuckRecovery
     └── world/
-        ├── World.ts                ← god-class; ~1100 LOC; everything starts here
-        ├── Scenario.ts             ← parses scenario subtree, launches it
-        ├── Sky.ts, Ocean.ts, Grass.ts, Speaker.ts
+        ├── World.ts                ← orchestrator; ~636 LOC; per-frame loop + updatables registry
+        ├── Sky.ts, Ocean.ts        ← visual environment entities at root
+        ├── Grass.ts, GrassShader.ts, Perlin.ts
+        ├── OutlineEffect.ts        ← depth-Sobel toon outline post-process
         ├── RaceCheckpoint.ts, RaceContent.ts
-        ├── TriggerCube.ts, ProximityPrompt.ts, DialogBox.ts
-        ├── NPCSpawnPoint.ts, defaultDialogs.ts, NameLabel.ts
-        ├── PauseMenu.ts, SettingsModal.ts, TitleScreen.ts, ErrorOverlay.ts
+        ├── TriggerCube.ts, ProximityPrompt.ts
+        ├── setup/                  ← bootstrapHTML, setupRendererPipeline, createParamsGUI,
+        │                              addMapSwitcher, injectDefaultSceneNPCs, injectWanderingAnimals
+        ├── loading/SceneLoader.ts  ← loadScene(world, lm, gltf): GLTF userData dispatcher
+        ├── scenarios/              ← Scenario, Path, PathNode, defaultDialogs
+        ├── spawn/                  ← Character/NPC/Vehicle/Shape SpawnPoint, ShapeEntity
+        ├── ui/                     ← TitleScreen, PauseMenu, SettingsModal, DialogBox,
+        │                              ErrorOverlay, IrisTransition, NameLabel, WorldLabels
+        ├── audio/                  ← ProceduralAudio base + EngineSound, AmbientSound, Speaker
+        ├── animals/                ← WanderingAnimals + AnimalBehavior/DogBehavior/CatBehavior
         └── sandboxes/              ← BaseScene + Test/Test2/Test3/Example procedural scenes
 build/assets/                       ← world.glb, world_sc_v03.glb, world_sc_v04.glb, vehicles
+vendor/joycon/                      ← Joycon.min.js + Client.js + joycon-sketchbook.js (loaded
+                                       directly via <script> from index.html, no bundling)
 ui-guide/                           ← static HTML mockups for the design system (reference only)
 ThreejsEditor/project.json          ← upstream THREE.js editor compat — leave as-is
 ```
@@ -61,22 +74,25 @@ ThreejsEditor/project.json          ← upstream THREE.js editor compat — leav
 
 ## Engine mental model
 
-- **Frame loop:** `World.render()` (RAF) → `World.update(timeStep)` → every registered `IUpdatable.update()` in `updateOrder` order → `composer.render()` → `labelRenderer.render()` (CSS2D name tags).
+- **Frame loop:** `World.render()` (RAF) → `World.update(timeStep)` → every registered `IUpdatable.update()` sorted by `updateOrder` → `composer.render()` (FXAA + Bloom + DoF) → `outlineEffect.renderPass()` (if Outlines on) → `labelRenderer.render()` (CSS2D name tags).
+- **Update order slots:** named in `enums/UpdateOrder.ts` — `CharacterPhysics → VehiclePhysics → Input → Camera → Environment → Scenarios → World → Audio → Triggers → Prompts → Labels → PostCamera`. Spaced by 10 so new slots can squeeze between two existing ones without renumbering.
 - **Pause:** `world.setTimeScale(0)` freezes everything. `PauseMenu` uses this; `SettingsModal` adjusts `params.Master_Volume` etc. through lil-gui controllers so existing onChange handlers fire.
-- **Updatables:** anything visible (Ocean, Grass, Speaker, RaceContent, TriggerCube, ProximityPrompt, Sky, Character, Vehicle) implements `IUpdatable` and is registered via `world.registerUpdatable()` (or `world.add()` which also registers).
-- **Map authoring:** scenarios + spawns + physics + paths + grass + speakers all come from `userData` on nodes inside `world.glb`. Markers are documented in `docs/map-authoring.md`.
+- **Updatables:** anything visible (Ocean, Grass, Speaker, RaceContent, TriggerCube, ProximityPrompt, Sky, Character, Vehicle, WanderingAnimals, etc.) implements `IUpdatable` and is registered via `world.registerUpdatable()` (or `world.add()` which also registers).
+- **Map authoring:** scenarios + spawns + physics + paths + grass + speakers all come from `userData` on nodes inside `world.glb`. The dispatcher is `loadScene(world, lm, gltf)` in `world/loading/SceneLoader.ts`. Markers are documented in `docs/map-authoring.md`.
 
 ## Where to add things
 
 | You want to… | Touch this |
 |---|---|
-| Add a new vehicle | `src/ts/vehicles/`, register in `EntityType`, recognise in `VehicleSpawnPoint` |
-| Add a new world entity | implement `IUpdatable` (or `IWorldEntity` if it has add/remove lifecycle), add to `World.loadScene` if map-driven |
-| Add a UI overlay | new file in `src/ts/world/`, new module in `src/css/modules/`, `@import` it from `src/css/main.css` |
+| Add a new vehicle | `src/ts/vehicles/`, register in `EntityType`, recognise in `src/ts/world/spawn/VehicleSpawnPoint` |
+| Add a new world entity | implement `IUpdatable` (or `IWorldEntity` if it has add/remove lifecycle), pick an `UpdateOrder` slot, add to `src/ts/world/loading/SceneLoader.ts` if map-driven |
+| Add a UI overlay | new file in `src/ts/world/ui/`, new module in `src/css/modules/`, `@import` it from `src/css/main.css` |
 | Add an in-game shortcut | `World.ts` listens to a few `keydown` directly (`KeyT`, `KeyZ`); `InputManager` handles per-receiver input |
-| Add a setting | add to `World.params`, register a lil-gui controller, optionally add a row in `SettingsModal.refresh/build` |
-| Add an NPC dialog | edit `src/ts/world/defaultDialogs.ts`, hand it to `NPCSpawnPoint` constructor |
-| Add a new map marker convention | add a `userData.data === 'X'` branch in `World.loadScene` and document it in `docs/map-authoring.md` |
+| Add a setting | extend `params` defaults in `src/ts/world/setup/ParamsGUI.ts`, register a lil-gui controller there; optionally add a row in `SettingsModal.refresh/build` |
+| Add an NPC dialog | edit `src/ts/world/scenarios/defaultDialogs.ts`, hand it to `NPCSpawnPoint` constructor |
+| Add a new map marker convention | add a `userData.data === 'X'` branch in `src/ts/world/loading/SceneLoader.ts` and document it in `docs/map-authoring.md` |
+| Add a new spawn type | new file in `src/ts/world/spawn/` implementing `ISpawnPoint`, dispatch from `SceneLoader.ts` |
+| Add a new translation | add the key to the flat table in `src/ts/i18n/index.ts` (entries cover en/de/es); look it up via `t(key)` |
 
 ## Hard rules
 
@@ -89,6 +105,7 @@ ThreejsEditor/project.json          ← upstream THREE.js editor compat — leav
 ## Reference docs
 
 - `README.md` — user-facing feature list + project timeline + credits.
+- `CHANGELOG.md` — per-version Keep-a-Changelog detail (the 0.8.0 entry has every commit grouped by category).
 - `CLAUDE.md` — Claude Code memory (~ same content as this file, slightly different audience).
 - `docs/architecture.md` — deeper engine internals.
 - `docs/map-authoring.md` — full userData marker reference.

@@ -1,6 +1,6 @@
 # Map authoring
 
-`World.loadScene(loadingManager, gltf)` walks every node in the loaded scene (either a `.glb` or a procedural `BaseScene` subclass) and dispatches on `userData.data` / `userData.type` / `material.name`. This is the entire surface for adding content without writing TypeScript.
+`loadScene(world, loadingManager, gltf)` (in `src/ts/world/loading/SceneLoader.ts`) walks every node in the loaded scene (either a `.glb` or a procedural `BaseScene` subclass) and dispatches on `userData.data` / `userData.type` / `material.name`. This is the entire surface for adding content without writing TypeScript.
 
 The bundled level (`build/assets/world.glb`) is authored in Blender and exported with userData passed through. The four sandbox scenes (`src/ts/world/sandboxes/Test*.ts`) demonstrate the same conventions in code and are good copy-paste starting points.
 
@@ -109,11 +109,11 @@ scenario.add(aiCar);
 
 ### A standing NPC with a dialog
 
-NPC dialog isn't authored in the GLB — `userData.first_node` is the only interesting property on the marker. The dialog tree is wired in code from `defaultDialogs.ts`; pass it to `NPCSpawnPoint` via the constructor `options` parameter:
+NPC dialog isn't authored in the GLB — `userData.first_node` is the only interesting property on the marker. The dialog tree is wired in code from `world/scenarios/defaultDialogs.ts`; pass it to `NPCSpawnPoint` via the constructor `options` parameter:
 
 ```ts
-import { NPCSpawnPoint } from './NPCSpawnPoint';
-import { DefaultDialogs } from './defaultDialogs';
+import { NPCSpawnPoint } from './spawn/NPCSpawnPoint';
+import { getDefaultDialogs } from './scenarios/defaultDialogs';
 
 const marker = new THREE.Object3D();
 marker.position.set(5, 18, -5);
@@ -121,7 +121,7 @@ marker.userData.name = 'Anna';
 marker.userData.first_node = 'npc_node_1';   // optional — wandering
 defaultScenario.rootNode.add(marker);
 
-const { dialog, role } = DefaultDialogs['Anna'];
+const { dialog, role } = getDefaultDialogs()['Anna'];
 defaultScenario.spawnPoints.push(new NPCSpawnPoint(marker, { dialog, role }));
 ```
 
@@ -146,7 +146,7 @@ grass.material.userData = { instances: 50000 };
 this.scene.add(grass);
 ```
 
-`World.loadScene` instantiates `Grass(child, this)`. Default instance count is 300 000; override via `material.userData.instances`.
+`SceneLoader` instantiates `Grass(child, world)`. Default instance count is 300 000; override via `material.userData.instances`.
 
 ### A dynamic shape (box) the player can knock around
 
@@ -189,4 +189,4 @@ The audio path is fed to `<audio>` directly. Loops by default; `THREE.Positional
 - **`spawn_always` + `invisible`:** scenarios with both flags load on every map open and don't appear in the Scenarios picker — useful for "ambient vehicles" (e.g. the air-vehicles scenario in the Inthenew map).
 - **`first_node`:** any AI driver or path-following NPC reads this; it's the *name* of the first `pathNode` node in any path.
 - **Race detection:** the curve-based race system fires only if `desc_title` matches `RACE_TITLES` *and* the scenario contains an AI vehicle spawn with a `first_node`. Without the AI spawn there's no curve to fit.
-- **Layer0_001 quirk:** Inthenew's Adobe-Illustrator export named the moon-surface mesh this way. We hard-code recognition in `World.loadScene` to apply the moon texture. If you make a fresh map, name your moon mesh whatever — but if you keep Inthenew's, leave the name alone.
+- **Layer0_001 quirk:** Inthenew's Adobe-Illustrator export named the moon-surface mesh this way. We hard-code recognition in `world/loading/SceneLoader.ts` to apply the moon texture. If you make a fresh map, name your moon mesh whatever — but if you keep Inthenew's, leave the name alone.
