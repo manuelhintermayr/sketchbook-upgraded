@@ -1,15 +1,32 @@
 import { Dialog } from './DialogBox';
-import { t } from '../i18n';
+import { t, getLocale, Locale } from '../i18n';
 
 // Hand-written conversation trees for the four programmatically-injected
 // NPCs at the Inthenew default spawn (Anna, Ben, Carla, Dieter). Loaded
 // from World.injectDefaultSceneNPCs.
 //
 // Translatable: text + choice labels resolve via i18n at lookup time.
-// `getDefaultDialogs()` is called each scenario launch — locale switch
-// + scenario restart picks up the new language without a page reload.
+// Cached by locale — getDefaultDialogs() is called once per scenario
+// launch, but a stable language across launches reuses the same tree
+// instead of rebuilding ~36 t() lookups + four nested object literals
+// each time. Cache invalidates the moment the player picks a new
+// language at the title screen.
 
-export function getDefaultDialogs(): { [name: string]: { role: string; dialog: Dialog } }
+type DialogMap = { [name: string]: { role: string; dialog: Dialog } };
+
+let cache: { locale: Locale; dialogs: DialogMap } | null = null;
+
+export function getDefaultDialogs(): DialogMap
+{
+	const locale = getLocale();
+	if (cache !== null && cache.locale === locale) return cache.dialogs;
+
+	const dialogs: DialogMap = build();
+	cache = { locale, dialogs };
+	return dialogs;
+}
+
+function build(): DialogMap
 {
 	return {
 		Anna:
