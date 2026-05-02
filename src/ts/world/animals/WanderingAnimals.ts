@@ -2,22 +2,27 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-import { World } from './World';
-import { IWorldEntity } from '../interfaces/IWorldEntity';
-import { EntityType } from '../enums/EntityType';
-import { CollisionGroups } from '../enums/CollisionGroups';
-import { attachNameLabel } from './NameLabel';
-import { t } from '../i18n';
+import { World } from '../World';
+import { IWorldEntity } from '../../interfaces/IWorldEntity';
+import { EntityType } from '../../enums/EntityType';
+import { CollisionGroups } from '../../enums/CollisionGroups';
+import { attachNameLabel } from '../NameLabel';
+import { t } from '../../i18n';
 
-// Wandering dogs and cats around the player spawn. Each animal runs
-// a small state machine — dogs notice the player and approach to bark,
-// cats flee. Both can be tamed by repeated interaction (the threshold
-// is low because Sketchbook sessions are short — gives a quick payoff).
+import { Animal, AnimalKind, targetSpeedFor } from './AnimalBehavior';
+import { DOG_BEHAVIOR } from './DogBehavior';
+import { CAT_BEHAVIOR } from './CatBehavior';
+
+// Wandering dogs and cats around the player spawn. This file is the
+// *manager*: it owns the InstancedMeshes, the spawn placement, the
+// per-frame integration of velocity into position, the ground-height
+// raycasts, and the CSS2D label anchors. All per-animal state-machine
+// decisions live in DogBehavior / CatBehavior — see their files for
+// the rules each species follows.
 //
-// Movement is graphics-only: animals are not physics bodies. They
-// query the cannon trimesh terrain via raycast for ground height each
-// frame, which is cheap (≤18 raycasts per frame) and avoids needing
-// a separate per-animal RigidBody.
+// Movement is graphics-only: animals are not physics bodies. Ground
+// height is queried via a cannon raycast against the trimesh terrain
+// (throttled — see GROUND_QUERY_INTERVAL_S below).
 //
 // Pattern adapted from manuelhintermayr-portfolio/three-js
 // WanderingAnimals — reshaped from a React useFrame hook into an
@@ -29,51 +34,6 @@ const DOG_COUNT = 8;
 const CAT_COUNT = 10;
 const SPAWN_INNER = 18;   // keep clear of the spawn pad
 const SPAWN_OUTER = 80;   // Inthenew map's playable area is ~200 wide
-
-const DOG_NOTICE = 15;
-const DOG_BARK_DIST = 3;
-const DOG_PURSUE_SPEED = 3;
-const DOG_GIVEUP = 10;
-
-const CAT_FLEE_DIST = 10;
-const CAT_FLEE_SPEED = 10;
-
-const TAME_THRESHOLD = 2;
-const TAME_FOLLOW_DIST = 5;
-const TAME_FOLLOW_SPEED = 2.5;
-
-const WANDER_SPEED = 1.5;
-
-type AnimalKind = 'dog' | 'cat';
-type AnimalState = 'idle' | 'wander' | 'flee' | 'approach' | 'bark' | 'tame';
-
-interface Animal
-{
-	kind: AnimalKind;
-	position: THREE.Vector3;
-	velocity: THREE.Vector3;
-	heading: number;
-	state: AnimalState;
-	stateTimer: number;
-	target: THREE.Vector3;
-	animPhase: number;
-	scale: number;
-	interactionCount: number;
-	homePosition: THREE.Vector3;
-	// Empty Object3D added to graphicsWorld; its position is updated
-	// each frame to match the instanced animal so its CSS2D label
-	// follows along. The label itself lives as a child of this anchor.
-	labelAnchor: THREE.Object3D;
-	// Cached ground Y from the most recent raycast hit. Cannon trimesh
-	// raycasts are expensive (~60µs each on Inthenew's terrain) and
-	// 18 animals × 60 fps would be 1080 raycasts/sec just for ground
-	// tracking. We refresh once every GROUND_QUERY_INTERVAL_S seconds
-	// and lerp the visible Y toward the cached value between samples
-	// — animals barely move horizontally in 100ms so the cached
-	// terrain height stays accurate to within a few centimetres.
-	targetGroundY: number;
-	groundQueryTimer: number;
-}
 
 // Re-sample the trimesh terrain every 100ms per animal. Combined with
 // the lerp toward targetGroundY this stays visually smooth on slopes.
@@ -161,11 +121,21 @@ export class WanderingAnimals implements IWorldEntity
 		this.dogMesh.receiveShadow = true;
 		this.catMesh.castShadow = true;
 		this.catMesh.receiveShadow = true;
-		// InstancedMesh's bounding sphere doesn't account for instance
-		// positions so frustum-culling would clip them at the wrong
-		// distance. 18 instances is cheap enough to skip culling.
-		this.dogMesh.frustumCulled = false;
-		this.catMesh.frustumCulled = false;
+
+		// Frustum culling for InstancedMesh reads the *geometry's*
+		// bounding sphere, not the per-instance positions. A dog
+		// geometry is ~0.5 units, so the default sphere is tiny and
+		// culling would chop the herd whenever the camera looks past
+		// origin. Override with a sphere big enough to contain the
+		// whole roaming area: spawns happen in the SPAWN_INNER..OUTER
+		// ring, fleeing cats add ~40 units, terrain-Y up to ~50.
+		// Centred at (0, 25, 0) with radius 130 covers everything
+		// safely while still letting Three skip the meshes when the
+		// camera looks the other way (saves a draw call per pass +
+		// shadow pass).
+		const cullSphere = new THREE.Sphere(new THREE.Vector3(0, 25, 0), 130);
+		dogGeo.boundingSphere = cullSphere;
+		catGeo.boundingSphere = cullSphere;
 	}
 
 	public addToWorld(world: World): void
@@ -185,7 +155,7 @@ export class WanderingAnimals implements IWorldEntity
 		// Attach label anchors + CSS2D tags. WorldLabels distance-culls
 		// at 30 units and feature-gates on params.Animal_Labels (off by
 		// default — opt-in via the Settings panel, otherwise the spawn
-		// looks busy).
+		// looks busy with 18 tags floating).
 		for (const animal of this.animals)
 		{
 			world.graphicsWorld.add(animal.labelAnchor);
@@ -226,17 +196,9 @@ export class WanderingAnimals implements IWorldEntity
 			const playerDist = _toPlayer.length();
 
 			animal.stateTimer -= dt;
+			animal.behavior.update(animal, playerDist, playerPos);
 
-			if (animal.kind === 'cat')
-			{
-				this.updateCat(animal, playerDist, playerPos);
-			}
-			else
-			{
-				this.updateDog(animal, playerDist, playerPos);
-			}
-
-			const targetSpeed = this.targetSpeedFor(animal.state);
+			const targetSpeed = targetSpeedFor(animal.state);
 			if (targetSpeed > 0)
 			{
 				_toTarget.subVectors(animal.target, animal.position);
@@ -346,6 +308,7 @@ export class WanderingAnimals implements IWorldEntity
 					// Stagger first raycast across the interval so all 18
 					// animals don't sample on the same frame and tank it.
 					groundQueryTimer: rng() * GROUND_QUERY_INTERVAL_S,
+					behavior: kind === 'dog' ? DOG_BEHAVIOR : CAT_BEHAVIOR,
 				});
 				placed++;
 			}
@@ -371,177 +334,6 @@ export class WanderingAnimals implements IWorldEntity
 			_rayResult,
 		);
 		return hit ? _rayResult.hitPointWorld.y : null;
-	}
-
-	private updateCat(cat: Animal, playerDist: number, playerPos: THREE.Vector3): void
-	{
-		const isTame = cat.interactionCount >= TAME_THRESHOLD;
-
-		if (isTame)
-		{
-			if (playerDist > CAT_FLEE_DIST)
-			{
-				this.transitionToIdleOrWander(cat);
-			}
-			else if (playerDist < TAME_FOLLOW_DIST)
-			{
-				cat.state = 'idle';
-				cat.stateTimer = 1;
-			}
-			else
-			{
-				cat.target.set(playerPos.x, 0, playerPos.z);
-				cat.state = 'tame';
-			}
-			return;
-		}
-
-		if (cat.state !== 'flee' && playerDist < CAT_FLEE_DIST)
-		{
-			cat.state = 'flee';
-			cat.stateTimer = 3 + Math.random() * 2;
-			cat.interactionCount++;
-			_toPlayer.subVectors(cat.position, playerPos);
-			_toPlayer.y = 0;
-			_toPlayer.normalize().multiplyScalar(40);
-			cat.target.set(cat.position.x + _toPlayer.x, 0, cat.position.z + _toPlayer.z);
-			return;
-		}
-
-		if (cat.stateTimer <= 0 && cat.state !== 'flee')
-		{
-			this.transitionToIdleOrWander(cat);
-		}
-
-		if (cat.state === 'flee' && cat.stateTimer <= 0)
-		{
-			cat.state = 'idle';
-			cat.stateTimer = 2 + Math.random() * 3;
-		}
-	}
-
-	private updateDog(dog: Animal, playerDist: number, playerPos: THREE.Vector3): void
-	{
-		const isTame = dog.interactionCount >= TAME_THRESHOLD;
-
-		if (isTame)
-		{
-			if (playerDist > DOG_NOTICE)
-			{
-				this.transitionToIdleOrWander(dog);
-			}
-			else if (playerDist < TAME_FOLLOW_DIST)
-			{
-				dog.state = 'idle';
-				dog.stateTimer = 1;
-			}
-			else
-			{
-				dog.target.set(playerPos.x, 0, playerPos.z);
-				dog.state = 'tame';
-			}
-			return;
-		}
-
-		if (dog.state !== 'approach' && dog.state !== 'bark' && playerDist < DOG_NOTICE)
-		{
-			dog.state = 'approach';
-			dog.stateTimer = 10;
-		}
-
-		if (dog.state === 'approach')
-		{
-			dog.target.set(playerPos.x, 0, playerPos.z);
-
-			if (playerDist < DOG_BARK_DIST * 2)
-			{
-				dog.state = 'bark';
-				dog.stateTimer = 3 + Math.random() * 2;
-				dog.interactionCount++;
-			}
-
-			if (playerDist > DOG_NOTICE + DOG_GIVEUP)
-			{
-				dog.state = 'wander';
-				dog.stateTimer = 3;
-				dog.target.copy(dog.homePosition);
-			}
-		}
-
-		if (dog.state === 'bark')
-		{
-			_toPlayer.subVectors(playerPos, dog.position);
-			_toPlayer.y = 0;
-			const dist = _toPlayer.length();
-			if (dist > DOG_BARK_DIST)
-			{
-				dog.target.set(playerPos.x, 0, playerPos.z);
-			}
-			else
-			{
-				dog.velocity.multiplyScalar(0.8);
-			}
-
-			if (playerDist > DOG_NOTICE + DOG_GIVEUP)
-			{
-				dog.state = 'wander';
-				dog.stateTimer = 3;
-				dog.target.copy(dog.homePosition);
-			}
-
-			if (dog.stateTimer <= 0)
-			{
-				if (playerDist < DOG_NOTICE)
-				{
-					dog.state = 'approach';
-					dog.stateTimer = 5;
-				}
-				else
-				{
-					dog.state = 'idle';
-					dog.stateTimer = 3;
-				}
-			}
-		}
-
-		if ((dog.state === 'idle' || dog.state === 'wander') && dog.stateTimer <= 0)
-		{
-			this.transitionToIdleOrWander(dog);
-		}
-	}
-
-	private transitionToIdleOrWander(animal: Animal): void
-	{
-		if (Math.random() < 0.5)
-		{
-			animal.state = 'idle';
-			animal.stateTimer = 2 + Math.random() * 4;
-		}
-		else
-		{
-			animal.state = 'wander';
-			animal.stateTimer = 2 + Math.random() * 3;
-			const wanderAngle = animal.heading + (Math.random() - 0.5) * Math.PI;
-			const wanderDist = 10 + Math.random() * 20;
-			animal.target.set(
-				animal.position.x + Math.cos(wanderAngle) * wanderDist,
-				0,
-				animal.position.z + Math.sin(wanderAngle) * wanderDist,
-			);
-		}
-	}
-
-	private targetSpeedFor(state: AnimalState): number
-	{
-		switch (state)
-		{
-			case 'flee':     return CAT_FLEE_SPEED;
-			case 'approach': return DOG_PURSUE_SPEED;
-			case 'bark':     return DOG_PURSUE_SPEED * 0.5;
-			case 'tame':     return TAME_FOLLOW_SPEED;
-			case 'wander':   return WANDER_SPEED;
-			default:         return 0;
-		}
 	}
 
 	private writeInstances(): void

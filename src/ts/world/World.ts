@@ -50,7 +50,7 @@ import { t } from '../i18n';
 import { IrisTransition } from './IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './audio/AmbientSound';
-import { WanderingAnimals } from './WanderingAnimals';
+import { WanderingAnimals } from './animals/WanderingAnimals';
 import { WorldLabels } from './WorldLabels';
 
 export class World
