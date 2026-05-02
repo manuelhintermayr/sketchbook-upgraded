@@ -107,9 +107,13 @@ export class OutlineEffect
 		const w = Math.floor(window.innerWidth * pr);
 		const h = Math.floor(window.innerHeight * pr);
 
+		// HalfFloat (16-bit) is plenty for the [0..1] normalised depth
+		// the pre-pass writes — its ~3 decimal-digit precision sits well
+		// below the Sobel threshold of 0.003. FloatType (32-bit) doubles
+		// the RT's VRAM and bandwidth for no visible gain.
 		this.depthRT = new THREE.WebGLRenderTarget(w, h, {
 			format: THREE.RGBAFormat,
-			type: THREE.FloatType,
+			type: THREE.HalfFloatType,
 			minFilter: THREE.NearestFilter,
 			magFilter: THREE.NearestFilter,
 		});
