@@ -28,6 +28,7 @@ import { IUpdatable } from '../interfaces/IUpdatable';
 import { Character } from '../characters/Character';
 import { Path } from './Path';
 import { CollisionGroups } from '../enums/CollisionGroups';
+import { RenderLayer } from '../enums/RenderLayers';
 import { BoxCollider } from '../physics/colliders/BoxCollider';
 import { TrimeshCollider } from '../physics/colliders/TrimeshCollider';
 import { CylinderCollider } from '../physics/colliders/CylinderCollider';
@@ -191,6 +192,11 @@ export class World
 		// 50000 is plenty for the authored geometry while still keeping
 		// the depth buffer well-conditioned.
 		this.camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 50000);
+		// Main camera sees both the default layer and the outline-skip
+		// layer so background meshes (sky, stars, grass, ocean) still
+		// render normally. OutlineEffect.renderPass strips this bit
+		// briefly to skip them during the depth pre-pass.
+		this.camera.layers.enable(RenderLayer.OutlineSkip);
 
 		// Passes
 		let renderPass = new RenderPass( this.graphicsWorld, this.camera );

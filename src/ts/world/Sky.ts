@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { World } from './World';
 import { EntityType } from '../enums/EntityType';
 import { UpdateOrder } from '../enums/UpdateOrder';
+import { RenderLayer } from '../enums/RenderLayers';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { CSM } from 'three/examples/jsm/csm/CSM.js';
 
@@ -74,11 +75,15 @@ export class Sky extends THREE.Object3D implements IUpdatable
 			side: THREE.BackSide
 		});
 
-		// Mesh
+		// Mesh. Sky shell, Earth/Moon spheres, and the star points all
+		// move to OutlineSkip — they're "background" geometry whose
+		// silhouette would just create flickering Sobel noise on the
+		// outline pass without adding anything readable.
 		this.skyMesh = new THREE.Mesh(
 			new THREE.SphereGeometry(1000, 24, 12),
 			this.skyMaterial
 		);
+		this.skyMesh.layers.set(RenderLayer.OutlineSkip);
 		this.attach(this.skyMesh);
 
 		// Earth and Moon visuals (ported from Inthenew/Sketchbook).
@@ -95,6 +100,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 				map: textureLoader.load('src/img/equirectangular-earth.png'),
 			}),
 		);
+		earthMesh.layers.set(RenderLayer.OutlineSkip);
 		world.graphicsWorld.add(earthMesh);
 
 		// Inthenew uses radius 1252.5 (matching their gravity sphere).
@@ -109,6 +115,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 			}),
 		);
 		moonMesh.position.set(15.2758, 3852.67, -11696.4);
+		moonMesh.layers.set(RenderLayer.OutlineSkip);
 		world.graphicsWorld.add(moonMesh);
 
 		// Stars — 2000 points on the upper hemisphere of a 800-unit
@@ -121,6 +128,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		this.starsMaterial = this.buildStarsMaterial();
 		this.starsPoints = new THREE.Points(this.buildStarsGeometry(), this.starsMaterial);
 		this.starsPoints.frustumCulled = false;
+		this.starsPoints.layers.set(RenderLayer.OutlineSkip);
 		this.attach(this.starsPoints);
 
 		// Ambient light

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { World } from './World';
+import { RenderLayer } from '../enums/RenderLayers';
 
 // Depth-edge outline pass. Renders the scene's depth into a float
 // render target with an override material, then runs a Sobel kernel
@@ -55,6 +56,7 @@ uniform vec2 resolution;
 uniform vec3 outlineColor;
 uniform float outlineStrength;
 uniform float depthThreshold;
+uniform float depthFalloff;
 
 varying vec2 vUv;
 
@@ -75,7 +77,15 @@ void main()
 	float gy = -tl - 2.0*tc - tr + bl + 2.0*bc + br;
 	float edge = sqrt(gx * gx + gy * gy);
 
-	float outline = smoothstep(depthThreshold * 0.5, depthThreshold, edge);
+	// Distance-aware threshold: far pixels need a bigger depth gap
+	// before they count as an edge. Without this the linear-depth
+	// buffer's relatively low precision near the far plane lights up
+	// terrain seams and distant chassis edges with flickering Sobel
+	// noise.
+	float avgDepth = (tl + tc + tr + ml + mr + bl + bc + br) * 0.125;
+	float adjusted = depthThreshold * (1.0 + avgDepth * depthFalloff);
+
+	float outline = smoothstep(adjusted * 0.5, adjusted, edge);
 	gl_FragColor = vec4(outlineColor, outline * outlineStrength);
 }
 `;
@@ -122,6 +132,10 @@ export class OutlineEffect
 				outlineColor: { value: new THREE.Color(0x222222) },
 				outlineStrength: { value: 1.0 },
 				depthThreshold: { value: 0.003 },
+				// Higher = far objects need more contrast to register an
+				// edge. 4.0 keeps near silhouettes (player, vehicles)
+				// crisp while killing flicker on distant terrain.
+				depthFalloff: { value: 4.0 },
 			},
 			transparent: true,
 			depthTest: false,
@@ -165,11 +179,17 @@ export class OutlineEffect
 		// 1. Override every material with the linear-depth shader and
 		//    render to the depth RT. Restoring afterwards is critical —
 		//    without it the next composer.render would draw flat depth
-		//    onto the screen.
+		//    onto the screen. We also strip the OutlineSkip layer bit
+		//    on the camera so the depth pre-pass walks only the meshes
+		//    we care about silhouetting (Character, Vehicles, NPCs,
+		//    static buildings) — sky, stars, ocean tiles, grass blades
+		//    sit out this pass.
 		const origOverride = scene.overrideMaterial;
 		scene.overrideMaterial = this.depthMat;
+		camera.layers.disable(RenderLayer.OutlineSkip);
 		renderer.setRenderTarget(this.depthRT);
 		renderer.render(scene, camera);
+		camera.layers.enable(RenderLayer.OutlineSkip);
 		scene.overrideMaterial = origOverride;
 		renderer.setRenderTarget(null);
 

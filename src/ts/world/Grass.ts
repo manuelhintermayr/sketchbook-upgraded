@@ -4,6 +4,7 @@ import { World } from './World';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { EntityType } from '../enums/EntityType';
 import { UpdateOrder } from '../enums/UpdateOrder';
+import { RenderLayer } from '../enums/RenderLayers';
 import { Noise } from './Perlin';
 import { GrassShader } from './GrassShader';
 
@@ -155,6 +156,11 @@ export class Grass implements IWorldEntity
 		grassLod.addLevel(new THREE.Mesh(), 30);
 
 		grassLod.position.copy(transform.position);
+
+		// Move every node in the LOD onto OutlineSkip — outlining 300k
+		// grass blades looks like static, and the depth pre-pass would
+		// pay the full instanced draw call for nothing.
+		grassLod.traverse(child => child.layers.set(RenderLayer.OutlineSkip));
 
 		this.meshes.push(grassLod);
 	}

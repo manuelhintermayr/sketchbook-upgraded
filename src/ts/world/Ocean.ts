@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { World } from './World';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { UpdateOrder } from '../enums/UpdateOrder';
+import { RenderLayer } from '../enums/RenderLayers';
 
 // Wave-based ocean ported from Inthenew/Sketchbook (MIT). The shader is
 // applied via MeshStandardMaterial.onBeforeCompile so three's lighting
@@ -191,6 +192,10 @@ export class Ocean implements IUpdatable
 			{
 				const tile = new THREE.Mesh(this.waveGeometry, this.waveMaterial);
 				tile.position.set(this.tileXOffsets[x], 12, -this.tileZOffsets[z]);
+				// Outline pass skips ocean tiles — wave displacement
+				// would otherwise generate constant Sobel noise across
+				// the whole water surface every frame.
+				tile.layers.set(RenderLayer.OutlineSkip);
 				this.world.graphicsWorld.add(tile);
 				this.tiles[n] = tile;
 				n++;
