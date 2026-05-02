@@ -183,20 +183,10 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 		for (let i = 0; i < this.rayCastVehicle.wheelInfos.length; i++)
 		{
 			this.rayCastVehicle.updateWheelTransform(i);
-			//let transform = this.rayCastVehicle.wheelInfos[i].worldTransform;
-			let transform = this.rayCastVehicle.getWheelTransformWorld(i);
-			let p = new THREE.Vector3(transform.position.x, transform.position.y, transform.position.z);
-			let q = new THREE.Quaternion(transform.quaternion.x, transform.quaternion.y, transform.quaternion.z, transform.quaternion.w);
-
-			let wheelObject = this.wheels[i].wheelObject;
-			wheelObject.position.copy(p);
-			wheelObject.quaternion.copy(q);
-
-			let upAxisWorld = new CANNON.Vec3();
-			let axisIndex = this.rayCastVehicle.indexUpAxis;
-			upAxisWorld.set(axisIndex === 0 ? 1 : 0, axisIndex === 1 ? 1 : 0, axisIndex === 2 ? 1 : 0);
-			this.rayCastVehicle.chassisBody.vectorToWorldFrame(upAxisWorld, upAxisWorld);
-			//this.rayCastVehicle.getVehicleAxisWorld(this.rayCastVehicle.indexUpAxis, upAxisWorld);
+			const transform = this.rayCastVehicle.getWheelTransformWorld(i);
+			const wheelObject = this.wheels[i].wheelObject;
+			wheelObject.position.set(transform.position.x, transform.position.y, transform.position.z);
+			wheelObject.quaternion.set(transform.quaternion.x, transform.quaternion.y, transform.quaternion.z, transform.quaternion.w);
 		}
 
 		this.updateMatrixWorld();

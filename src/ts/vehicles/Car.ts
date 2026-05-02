@@ -11,6 +11,25 @@ import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { t } from '../i18n';
 
+// Module-scoped scratch — physicsPreStep runs at 60Hz per car, so
+// every `new Vector3` / `new Vec3` here would cost 12 allocations ×
+// frame × instance. Reuse these instead. Constants ending in _AXIS are
+// immutable seeds that we copy() into a working scratch before applying
+// transforms.
+const _quat = new THREE.Quaternion();
+const _right = new THREE.Vector3();
+const _up = new THREE.Vector3();
+const _forward = new THREE.Vector3();
+const _velocityNorm = new THREE.Vector3();
+const _spinFwd = new CANNON.Vec3();
+const _spinRight = new CANNON.Vec3();
+const _effSpinFwd = new CANNON.Vec3();
+const _effSpinRight = new CANNON.Vec3();
+const _RIGHT_AXIS = new THREE.Vector3(1, 0, 0);
+const _UP_AXIS = new THREE.Vector3(0, 1, 0);
+const _FORWARD_AXIS = new THREE.Vector3(0, 0, 1);
+const _DOWN_AXIS = new THREE.Vector3(0, -1, 0);
+
 export class Car extends Vehicle implements IControllable
 {
 	public entityType: EntityType = EntityType.Car;
@@ -198,71 +217,67 @@ export class Car extends Vehicle implements IControllable
 	public physicsPreStep(body: CANNON.Body, car: Car): void
 	{
 		// Constants
-		const quat = new THREE.Quaternion(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
-		const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat);
-		const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quat);
-		const up = new THREE.Vector3(0, 1, 0).applyQuaternion(quat);
+		_quat.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
+		_forward.copy(_FORWARD_AXIS).applyQuaternion(_quat);
+		_right.copy(_RIGHT_AXIS).applyQuaternion(_quat);
+		_up.copy(_UP_AXIS).applyQuaternion(_quat);
 
-		// Measure speed
-		this._speed = this.collision.velocity.dot(new CANNON.Vec3(forward.x, forward.y, forward.z));
+		// Measure speed. Inline the dot product to avoid building a
+		// CANNON.Vec3 just to call .dot() on it.
+		const v = this.collision.velocity;
+		this._speed = v.x * _forward.x + v.y * _forward.y + v.z * _forward.z;
 
 		// Air spin
 		// It takes 2 seconds until you have max spin air control since you leave the ground
 		let airSpinInfluence = THREE.MathUtils.clamp(this.airSpinTimer / 2, 0, 1);
 		airSpinInfluence *= THREE.MathUtils.clamp(this.speed, 0, 1);
-		
+
 		const flipSpeedFactor = THREE.MathUtils.clamp(1 - this.speed, 0, 1);
-		const upFactor = (up.dot(new THREE.Vector3(0, -1, 0)) / 2) + 0.5;
+		const upFactor = (_up.dot(_DOWN_AXIS) / 2) + 0.5;
 		const flipOverInfluence = flipSpeedFactor * upFactor * 3;
 
 		const maxAirSpinMagnitude = 2.0;
 		const airSpinAcceleration = 0.15;
 		const angVel = this.collision.angularVelocity;
 
-		//const spinVectorForward = Utils.cannonVector(forward.clone());
-		const spinVectorForward = new CANNON.Vec3(forward.x, forward.y, forward.z);
-		//const spinVectorRight = Utils.cannonVector(right.clone());
-		const spinVectorRight = new CANNON.Vec3(right.x, right.y, right.z);
+		_spinFwd.set(_forward.x, _forward.y, _forward.z);
+		_spinRight.set(_right.x, _right.y, _right.z);
 
-		//const effectiveSpinVectorForward = Utils.cannonVector(forward.clone().multiplyScalar(airSpinAcceleration * (airSpinInfluence + flipOverInfluence)));
-		const effectiveSpinVectorForward = new CANNON.Vec3(forward.x, forward.y, forward.z).scale(airSpinAcceleration * (airSpinInfluence + flipOverInfluence));
-		//const effectiveSpinVectorRight = Utils.cannonVector(right.clone().multiplyScalar(airSpinAcceleration * (airSpinInfluence)));
-		const effectiveSpinVectorRight = new CANNON.Vec3(right.x, right.y, right.z).scale(airSpinAcceleration * (airSpinInfluence));
-		//console.log(right)
-		//console.log(spinVectorRight)
-		//console.log(effectiveSpinVectorRight)
+		const fwdScale = airSpinAcceleration * (airSpinInfluence + flipOverInfluence);
+		const rightScale = airSpinAcceleration * airSpinInfluence;
+		_effSpinFwd.set(_forward.x * fwdScale, _forward.y * fwdScale, _forward.z * fwdScale);
+		_effSpinRight.set(_right.x * rightScale, _right.y * rightScale, _right.z * rightScale);
 
 		// Right
 		if (this.actions.right.isPressed && !this.actions.left.isPressed) {
-			if (angVel.dot(spinVectorForward) < maxAirSpinMagnitude) {
-				angVel.vadd(effectiveSpinVectorForward, angVel);
+			if (angVel.dot(_spinFwd) < maxAirSpinMagnitude) {
+				angVel.vadd(_effSpinFwd, angVel);
 			}
 		} else
 		// Left
 			if (this.actions.left.isPressed && !this.actions.right.isPressed) {
-				if (angVel.dot(spinVectorForward) > -maxAirSpinMagnitude) {
-					angVel.vsub(effectiveSpinVectorForward, angVel);
+				if (angVel.dot(_spinFwd) > -maxAirSpinMagnitude) {
+					angVel.vsub(_effSpinFwd, angVel);
 				}
 			}
 
 		// Forwards
 		if (this.canTiltForwards && this.actions.throttle.isPressed && !this.actions.reverse.isPressed) {
-			if (angVel.dot(spinVectorRight) < maxAirSpinMagnitude) {
-				angVel.vadd(effectiveSpinVectorRight, angVel);
+			if (angVel.dot(_spinRight) < maxAirSpinMagnitude) {
+				angVel.vadd(_effSpinRight, angVel);
 			}
 		} else
 		// Backwards
 			if (this.actions.reverse.isPressed && !this.actions.throttle.isPressed) {
-				if (angVel.dot(spinVectorRight) > -maxAirSpinMagnitude) {
-					angVel.vsub(effectiveSpinVectorRight, angVel);
+				if (angVel.dot(_spinRight) > -maxAirSpinMagnitude) {
+					angVel.vsub(_effSpinRight, angVel);
 				}
 			}
 
-		// Steering
-		const velocity = new CANNON.Vec3().copy(this.collision.velocity);
-		velocity.normalize();
-		let velocity_THREE = new THREE.Vector3(velocity.x, velocity.y, velocity.z);
-		let driftCorrection = Utils.getSignedAngleBetweenVectors(velocity_THREE, forward);
+		// Steering. Normalize velocity into a THREE scratch directly so
+		// we don't allocate a CANNON.Vec3 just to copy out of it.
+		_velocityNorm.set(v.x, v.y, v.z).normalize();
+		let driftCorrection = Utils.getSignedAngleBetweenVectors(_velocityNorm, _forward);
 
 		const maxSteerVal = 0.8;
 		let speedFactor = THREE.MathUtils.clamp(this.speed * 0.3, 1, Number.MAX_VALUE);

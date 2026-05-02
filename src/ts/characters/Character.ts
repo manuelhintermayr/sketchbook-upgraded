@@ -29,6 +29,20 @@ import { Object3D } from 'three';
 import { EntityType } from '../enums/EntityType';
 import { t } from '../i18n';
 
+// Module-scoped scratch — physicsPostStep + springRotation run every
+// physics tick per character, so per-call allocations multiply across
+// all characters in the scene. Reuse these instead of new'ing each
+// call. _Y_AXIS is an immutable seed.
+const _simulatedVelocity = new THREE.Vector3();
+const _newVelocity = new THREE.Vector3();
+const _addThree = new THREE.Vector3();
+const _normal = new THREE.Vector3();
+const _q = new THREE.Quaternion();
+const _m = new THREE.Matrix4();
+const _pointVel = new CANNON.Vec3();
+const _addCannon = new CANNON.Vec3();
+const _Y_AXIS = new THREE.Vector3(0, 1, 0);
+
 export class Character extends THREE.Object3D implements IWorldEntity
 {
 	public updateOrder: number = 1;
@@ -527,7 +541,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		let rot = this.rotationSimulator.position;
 
 		// Updating values
-		this.orientation.applyAxisAngle(new THREE.Vector3(0, 1, 0), rot);
+		this.orientation.applyAxisAngle(_Y_AXIS, rot);
 		this.angularVelocity = this.rotationSimulator.velocity;
 	}
 
@@ -816,33 +830,34 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	public physicsPostStep(body: CANNON.Body, character: Character): void
 	{
 		// Get velocities
-		let simulatedVelocity = new THREE.Vector3(body.velocity.x, body.velocity.y, body.velocity.z);
+		_simulatedVelocity.set(body.velocity.x, body.velocity.y, body.velocity.z);
 
-		// Take local velocity
-		let arcadeVelocity = new THREE.Vector3().copy(character.velocity).multiplyScalar(character.moveSpeed);
-		// Turn local into global
-		arcadeVelocity = Utils.appplyVectorMatrixXZ(character.orientation, arcadeVelocity);
-
-		let newVelocity = new THREE.Vector3();
+		// Take local velocity, then turn local into global. The helper
+		// allocates internally — leave that as the helper's contract;
+		// pulling it apart here would couple us to its math.
+		const arcadeLocal = _addThree.copy(character.velocity).multiplyScalar(character.moveSpeed);
+		const arcadeVelocity = Utils.appplyVectorMatrixXZ(character.orientation, arcadeLocal);
 
 		// Additive velocity mode
 		if (character.arcadeVelocityIsAdditive)
 		{
-			newVelocity.copy(simulatedVelocity);
+			_newVelocity.copy(_simulatedVelocity);
 
-			let globalVelocityTarget = Utils.appplyVectorMatrixXZ(character.orientation, character.velocityTarget);
-			let add = new THREE.Vector3().copy(arcadeVelocity).multiply(character.arcadeVelocityInfluence);
+			const globalVelocityTarget = Utils.appplyVectorMatrixXZ(character.orientation, character.velocityTarget);
+			const addX = arcadeVelocity.x * character.arcadeVelocityInfluence.x;
+			const addY = arcadeVelocity.y * character.arcadeVelocityInfluence.y;
+			const addZ = arcadeVelocity.z * character.arcadeVelocityInfluence.z;
 
-			if (Math.abs(simulatedVelocity.x) < Math.abs(globalVelocityTarget.x * character.moveSpeed) || Utils.haveDifferentSigns(simulatedVelocity.x, arcadeVelocity.x)) { newVelocity.x += add.x; }
-			if (Math.abs(simulatedVelocity.y) < Math.abs(globalVelocityTarget.y * character.moveSpeed) || Utils.haveDifferentSigns(simulatedVelocity.y, arcadeVelocity.y)) { newVelocity.y += add.y; }
-			if (Math.abs(simulatedVelocity.z) < Math.abs(globalVelocityTarget.z * character.moveSpeed) || Utils.haveDifferentSigns(simulatedVelocity.z, arcadeVelocity.z)) { newVelocity.z += add.z; }
+			if (Math.abs(_simulatedVelocity.x) < Math.abs(globalVelocityTarget.x * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.x, arcadeVelocity.x)) { _newVelocity.x += addX; }
+			if (Math.abs(_simulatedVelocity.y) < Math.abs(globalVelocityTarget.y * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.y, arcadeVelocity.y)) { _newVelocity.y += addY; }
+			if (Math.abs(_simulatedVelocity.z) < Math.abs(globalVelocityTarget.z * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.z, arcadeVelocity.z)) { _newVelocity.z += addZ; }
 		}
 		else
 		{
-			newVelocity = new THREE.Vector3(
-				THREE.MathUtils.lerp(simulatedVelocity.x, arcadeVelocity.x, character.arcadeVelocityInfluence.x),
-				THREE.MathUtils.lerp(simulatedVelocity.y, arcadeVelocity.y, character.arcadeVelocityInfluence.y),
-				THREE.MathUtils.lerp(simulatedVelocity.z, arcadeVelocity.z, character.arcadeVelocityInfluence.z),
+			_newVelocity.set(
+				THREE.MathUtils.lerp(_simulatedVelocity.x, arcadeVelocity.x, character.arcadeVelocityInfluence.x),
+				THREE.MathUtils.lerp(_simulatedVelocity.y, arcadeVelocity.y, character.arcadeVelocityInfluence.y),
+				THREE.MathUtils.lerp(_simulatedVelocity.z, arcadeVelocity.z, character.arcadeVelocityInfluence.z),
 			);
 		}
 
@@ -850,42 +865,40 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		if (character.rayHasHit)
 		{
 			// Flatten velocity
-			newVelocity.y = 0;
+			_newVelocity.y = 0;
 
-			// Move on top of moving objects
+			// Move on top of moving objects. Inline the .add() instead
+			// of going through Utils.threeVector (which would allocate).
 			if (character.rayResult.body.mass > 0)
 			{
-				let pointVelocity = new CANNON.Vec3();
-				character.rayResult.body.getVelocityAtWorldPoint(character.rayResult.hitPointWorld, pointVelocity);
-				newVelocity.add(Utils.threeVector(pointVelocity));
+				character.rayResult.body.getVelocityAtWorldPoint(character.rayResult.hitPointWorld, _pointVel);
+				_newVelocity.x += _pointVel.x;
+				_newVelocity.y += _pointVel.y;
+				_newVelocity.z += _pointVel.z;
 			}
 
 			// Measure the normal vector offset from direct "up" vector
 			// and transform it into a matrix
-			let up = new THREE.Vector3(0, 1, 0);
-			let normal = new THREE.Vector3(character.rayResult.hitNormalWorld.x, character.rayResult.hitNormalWorld.y, character.rayResult.hitNormalWorld.z);
-			let q = new THREE.Quaternion().setFromUnitVectors(up, normal);
-			let m = new THREE.Matrix4().makeRotationFromQuaternion(q);
+			_normal.set(character.rayResult.hitNormalWorld.x, character.rayResult.hitNormalWorld.y, character.rayResult.hitNormalWorld.z);
+			_q.setFromUnitVectors(_Y_AXIS, _normal);
+			_m.makeRotationFromQuaternion(_q);
 
 			// Rotate the velocity vector
-			newVelocity.applyMatrix4(m);
-
-			// Compensate for gravity
-			// newVelocity.y -= body.world.physicsWorld.gravity.y / body.character.world.physicsFrameRate;
+			_newVelocity.applyMatrix4(_m);
 
 			// Apply velocity
-			body.velocity.x = newVelocity.x;
-			body.velocity.y = newVelocity.y;
-			body.velocity.z = newVelocity.z;
+			body.velocity.x = _newVelocity.x;
+			body.velocity.y = _newVelocity.y;
+			body.velocity.z = _newVelocity.z;
 			// Ground character
-			body.position.y = character.rayResult.hitPointWorld.y + character.rayCastLength + (newVelocity.y / character.world.physicsFrameRate);
+			body.position.y = character.rayResult.hitPointWorld.y + character.rayCastLength + (_newVelocity.y / character.world.physicsFrameRate);
 		}
 		else
 		{
 			// If we're in air
-			body.velocity.x = newVelocity.x;
-			body.velocity.y = newVelocity.y;
-			body.velocity.z = newVelocity.z;
+			body.velocity.x = _newVelocity.x;
+			body.velocity.y = _newVelocity.y;
+			body.velocity.z = _newVelocity.z;
 
 			// Save last in-air information
 			character.groundImpactData.velocity.x = body.velocity.x;
@@ -901,17 +914,20 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			{
 				// Flatten velocity
 				body.velocity.y = 0;
-				let speed = Math.max(character.velocitySimulator.position.length() * 4, character.initJumpSpeed);
-				body.velocity = Utils.cannonVector(character.orientation.clone().multiplyScalar(speed));
+				const speed = Math.max(character.velocitySimulator.position.length() * 4, character.initJumpSpeed);
+				body.velocity.set(
+					character.orientation.x * speed,
+					character.orientation.y * speed,
+					character.orientation.z * speed,
+				);
 			}
 			else {
 				// Moving objects compensation
-				let add = new CANNON.Vec3();
-				character.rayResult.body.getVelocityAtWorldPoint(character.rayResult.hitPointWorld, add);
-				body.velocity.vsub(add, body.velocity);
+				character.rayResult.body.getVelocityAtWorldPoint(character.rayResult.hitPointWorld, _addCannon);
+				body.velocity.vsub(_addCannon, body.velocity);
 			}
 
-			// Add positive vertical velocity 
+			// Add positive vertical velocity
 			body.velocity.y += 4;
 			// Move above ground by 2x safe offset value
 			body.position.y += character.raySafeOffset * 2;
