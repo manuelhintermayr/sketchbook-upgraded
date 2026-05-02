@@ -145,7 +145,10 @@ export class Sky extends THREE.Object3D implements IUpdatable
 			maxFar: 250,	// maxFar
 			lightIntensity: 2.5,
 			cascades: 3,
-			shadowMapSize: 2048,
+			// 1024 keeps shadow-map work down to ~3 MP/frame across the
+			// 3 cascades. 2048 looked marginally crisper on hard edges
+			// but cost 4× the GPU work and ~50 MB of VRAM.
+			shadowMapSize: 1024,
 			camera: world.camera,
 			parent: world.graphicsWorld,
 			mode: 'custom',
