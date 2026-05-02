@@ -9,6 +9,7 @@ import { SpringSimulator } from '../physics/spring_simulation/SpringSimulator';
 import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/audio/EngineSound';
+import { commonVehicleControls } from '../core/CommonControls';
 import { t } from '../i18n';
 
 // Module-scoped scratch — physicsPreStep runs at 60Hz per car, so
@@ -337,13 +338,10 @@ export class Car extends Vehicle implements IControllable
 		super.inputReceiverInit();
 
 		this.world.updateControls([
-			{ keys: ['W', 'S'],          desc: t('controls.accelBrake') },
-			{ keys: ['A', 'D'],          desc: t('controls.steering') },
-			{ keys: ['Space'],           desc: t('controls.handbrake') },
-			{ keys: ['V'],               desc: t('controls.viewSelect') },
-			{ keys: ['F'],               desc: t('controls.exitVehicle') },
-			{ keys: ['Shift', '+', 'R'], desc: t('controls.respawn') },
-			{ keys: ['Shift', '+', 'C'], desc: t('controls.freeCamera') },
+			{ keys: ['W', 'S'],   desc: t('controls.accelBrake') },
+			{ keys: ['A', 'D'],   desc: t('controls.steering') },
+			{ keys: ['Space'],    desc: t('controls.handbrake') },
+			...commonVehicleControls(),
 		]);
 	}
 

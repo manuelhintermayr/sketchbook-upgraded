@@ -28,6 +28,7 @@ import { ClosestObjectFinder } from '../core/ClosestObjectFinder';
 import { Object3D } from 'three';
 import { EntityType } from '../enums/EntityType';
 import { UpdateOrder } from '../enums/UpdateOrder';
+import { commonGlobalControls } from '../core/CommonControls';
 import { t } from '../i18n';
 
 // Module-scoped scratch — physicsPostStep + springRotation run every
@@ -477,8 +478,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			{ keys: ['Shift'],              desc: t('controls.sprint') },
 			{ keys: ['Space'],              desc: t('controls.jump') },
 			{ keys: ['F', 'or', 'G'],       desc: t('controls.enterVehicle') },
-			{ keys: ['Shift', '+', 'R'],    desc: t('controls.respawn') },
-			{ keys: ['Shift', '+', 'C'],    desc: t('controls.freeCamera') },
+			...commonGlobalControls(),
 		]);
 	}
 

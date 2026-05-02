@@ -9,6 +9,7 @@ import { KeyBinding } from '../core/KeyBinding';
 import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/audio/EngineSound';
+import { commonVehicleControls } from '../core/CommonControls';
 import { t } from '../i18n';
 
 // Module-scoped scratch — physicsPreStep runs at 60Hz per heli, so
@@ -234,15 +235,12 @@ export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 		super.inputReceiverInit();
 
 		this.world.updateControls([
-			{ keys: ['Shift'],           desc: t('controls.ascend') },
-			{ keys: ['Space'],           desc: t('controls.descend') },
-			{ keys: ['W', 'S'],          desc: t('controls.pitch') },
-			{ keys: ['Q', 'E'],          desc: t('controls.yaw') },
-			{ keys: ['A', 'D'],          desc: t('controls.roll') },
-			{ keys: ['V'],               desc: t('controls.viewSelect') },
-			{ keys: ['F'],               desc: t('controls.exitVehicle') },
-			{ keys: ['Shift', '+', 'R'], desc: t('controls.respawn') },
-			{ keys: ['Shift', '+', 'C'], desc: t('controls.freeCamera') },
+			{ keys: ['Shift'],   desc: t('controls.ascend') },
+			{ keys: ['Space'],   desc: t('controls.descend') },
+			{ keys: ['W', 'S'],  desc: t('controls.pitch') },
+			{ keys: ['Q', 'E'],  desc: t('controls.yaw') },
+			{ keys: ['A', 'D'],  desc: t('controls.roll') },
+			...commonVehicleControls(),
 		]);
 	}
 }
