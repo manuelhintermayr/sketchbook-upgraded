@@ -47,6 +47,16 @@ This fork pulls in the features from later community forks that I felt were wort
 - Rocketship — 4-stage liftoff, smoke particle trail, planet-selection modal, automated Earth↔Moon transfer with soft auto-landing.
 - Stuck / flip auto-recovery for player vehicles (lifts and yaw-resets after 6s of no movement under throttle, or 3s upside-down). Boats / Rocket opt out; air vehicles use flip-only.
 
+### UI
+
+- Title screen with bouncing-cube animation + language picker (gates audio autoplay).
+- Loading screen with live percentage and progress bar driven by `LoadingManager`.
+- Pause menu on Esc (timeScale=0, exits pointer lock) — Resume / Settings / Restart Scenario / Reload.
+- Settings modal with Graphics / Audio / Controls cards — writes through lil-gui controllers so existing `onChange` handlers fire.
+- Branching NPC dialog with typewriter reveal (28ms cadence) — click bar or press E / Enter / Space to skip, choices appear after typing finishes.
+- Error overlay catches `window.onerror` + `unhandledrejection` into a frosted card with stack + Reload + Copy details.
+- Centralised design tokens (`tokens.css`) with `class="dark"` dark mode toggle on `<html>`.
+
 ### Scenarios & Maps
 
 - Free-roam (default and aviation), Oval / Tunnel / Figure-8 car races, Boat Race, stunt ramps.
@@ -104,10 +114,18 @@ Sketchbook needs to run on a local server (e.g. `npm run dev`) to load assets.
 
 > **Attribution policy:** every port below tries to preserve the original commits or at least the original authors via `git format-patch` / `git am` or `git commit --author="…" --date="…"`. The intent is to honour each upstream author's work — and only their work — in `git log`.
 
-## May 2026 — portfolio polish pass ([manuelhintermayr](https://github.com/manuelhintermayr))
+## May 2026 — version 0.8.0 — New features ([manuelhintermayr](https://github.com/manuelhintermayr))
 
-Adopts the highest-value pieces of [manuelhintermayr/portfolio three-js](https://github.com/manuelhintermayr/portfolio) — a separate React Three Fiber project with stronger feel/polish than this fork shipped with. Each feature ships as its own commit, ported from the React/Zustand idiom into Sketchbook's vanilla TypeScript + lil-gui idiom (Allman braces, IUpdatable pattern, lil-gui controllers as the source of truth).
+A round of new features added in this release. Each ships as its own commit linked below.
 
+- **Design tokens** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) — central `tokens.css` (~50 colour / typography / spacing / shadow / motion custom properties; `class="dark"` on `<html>` flips the surface palette to dark mode). All existing CSS modules refactored to reference the tokens — no more scattered magic numbers.
+- **Title screen** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) — bouncing cube + "press any key" gate that doubles as the audio-autoplay user gesture.
+- **Loading screen** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) — live percentage + bar driven by `LoadingManager`.
+- **Pause menu** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) — opens on Esc and actually pauses (timeScale=0, exits pointer lock, restores prior state on Resume) with Resume / Settings / Restart Scenario / Reload.
+- **Settings modal** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) — Graphics / Audio / Controls cards that write through lil-gui controllers so every existing `onChange` handler (CSM, pointer-lock, mouse sensitivity) keeps firing.
+- **Branching NPC dialog** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) — layered on top of `ProximityPrompt` (portrait, speaker line, numbered choices, mouse + 1–9 keys, auto-closes when the player walks away — Anna / Ben / Carla / Dieter all got hand-written 3-node trees explaining the world).
+- **Error overlay** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) — catches `window.onerror` + `unhandledrejection` into a frosted card with stack + Reload + Copy details.
+- **Floating CSS2D name tags** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) — player tagged "Du" in blue, NPCs in their own names.
 - **Camera Shake** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b9dd34c550f8da366970f9a0009558fa77af45f7)) — sineNoise-based per-frame camera offset triggered by vehicle hard landings; static fire-and-forget API, three presets (collision / land / boost), quadratic decay envelope, toggle in Settings.
 - **Stuck / flip auto-recovery** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/cf9cb1060d441713e23e4e8630a817a46bf12c72)) — Vehicle base method that watches a per-frame distance-traveled window and an upside-down timer; lifts and yaw-resets when either threshold trips, fires a `collision` camera shake on recovery. Per-subclass opt-out (boats / rockets fully off, air vehicles flip-only).
 - **Procedural engine sound** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/181e92140fa35381ea41f6ba234175943d8dbf6e)) — per-vehicle Web Audio synthesiser (2-layer exhaust + intake), RPM modulated by chassis speed, five timbre profiles (car / heli / airplane / boat / rocket). Master_Volume routes through the same slider that already drives THREE.AudioListener for positional audio.
@@ -122,19 +140,19 @@ Adopts the highest-value pieces of [manuelhintermayr/portfolio three-js](https:/
 - **Centralised world labels** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/cc03c9d3333de6dc261c3b453d1537bf7195b539)) — `WorldLabels` registry on top of the existing CSS2DRenderer that adds distance culling and feature-flag gating. `attachNameLabel` keeps its old signature (back-compat) and gains options for `maxDistance`/`feature`. Wandering animals use it for opt-in "Hund" / "Katze" tags.
 - **Dialog typewriter** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/08f05dc281dfe962df47acc0faa353e327fcfe6c)) — NPC dialog text reveals one character at a time (28ms cadence). Choices stay hidden until the line finishes. Click the bar or press E / Enter / Space to skip.
 
-## May 2026 — UI design system & in-game shell ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb))
+## March 2026 — version 0.7.5 — Notblox features port ([iErcann](https://github.com/iErcann)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/31c51c472c3c908cdb2c28b75e973aa7ec565c9f))
 
-Adopts the seven highest-value pieces of the in-house ui-guide design system: a central `tokens.css` (~50 colour / typography / spacing / shadow / motion custom properties — drops a `class="dark"` on `<html>` for dark mode), a real **title screen** (bouncing cube + "press any key" gate that doubles as the audio-autoplay user gesture), a **loading screen** with a live percentage + bar driven by `LoadingManager`, a **pause menu** on Esc that actually pauses (timeScale=0, exits pointer lock, restores prior state on Resume) with Resume / Settings / Restart Scenario / Reload, a **settings modal** with Graphics / Audio / Controls cards that writes through lil-gui controllers so every existing `onChange` handler (CSM, pointer-lock, mouse sensitivity) keeps firing, a **branching NPC dialog** system layered on top of `ProximityPrompt` (portrait, speaker line, numbered choices, mouse + 1–9 keys, auto-closes when the player walks away — Anna / Ben / Carla / Dieter all got hand-written 3-node trees explaining the world), and an **error overlay** that catches `window.onerror` + `unhandledrejection` into a frosted card with stack + Reload + Copy details. Floating CSS2D name tags above every character: the player is tagged "Du" in blue, NPCs in their own names. All existing CSS modules refactored to reference the new tokens — no more scattered magic numbers.
+Brings the **TriggerCube + ProximityPrompt** entity pair from [iErcann/Notblox](https://github.com/iErcann/Notblox) — the multiplayer / ECS layer is dropped, the entities themselves are reshaped into single-player Sketchbook-style classes. They underpin the in-game NPC interaction prompts and any future "step into a zone to do X" mechanic.
 
-## May 2026 — external-features port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/c37b6f35b46354c8abaa7589a4a2a2d7a63d31c9))
+## November 2025 — version 0.7.0 — socketControl features port ([tkkaushik369](https://github.com/tkkaushik369)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1c8619d546617a3b4a963fa83fb58bde2a7fffa9))
 
-Mines features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl) (MIT) and [iErcann/Notblox](https://github.com/iErcann/Notblox), skipping their multiplayer layers entirely. Each feature ships as its own commit attributed to the upstream author where identifiable.
+Mines features from [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl) (MIT), skipping its multiplayer / ECS layer entirely. Each feature ships as its own commit attributed to tkkaushik369 where identifiable.
 
-What landed: curve-based race tracking with checkpoint planes; instanced grass field with LOD; 3D positional audio Speaker; CylinderCollider + SphereCollider; ShapeSpawnPoint for dynamic box/sphere primitives; TriggerCube + ProximityPrompt; NPC system (standing or path-following) with floating name tags via a CSS2D pass; sketchbook v0.3 + v0.4 maps from socketControl plus four code-built sandbox scenes (`test`, `test2`, `test3`, `example`); Scenarios-panel map switcher; THREE.js Editor compatibility (`ThreejsEditor/project.json`).
+What landed: curve-based race tracking with checkpoint planes; instanced grass field with LOD; 3D positional audio Speaker; CylinderCollider + SphereCollider; ShapeSpawnPoint for dynamic box/sphere primitives; NPC system (standing or path-following) with floating name tags via a CSS2D pass; sketchbook v0.3 + v0.4 maps from socketControl plus four code-built sandbox scenes (`test`, `test2`, `test3`, `example`); Scenarios-panel map switcher; THREE.js Editor compatibility (`ThreejsEditor/project.json`).
 
-Skipped: water (Inthenew's wave ocean is better), extended character states (already in upstream), all multiplayer/ECS/networking plumbing.
+Skipped: water (Inthenew's wave ocean is better), extended character states (already in upstream), all multiplayer / ECS / networking plumbing.
 
-## May 2026 — version 0.6.0 — Inthenew port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/39683190407013aafda257406287e162f0363f2d))
+## August 2025 — version 0.6.0 — day/night cycle, boats & rocketship ([inthenew](https://github.com/Inthenew)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e939ca075ef2468e419b67921ab6d8b26e216fb5))
 
 Pulls in [Inthenew/Sketchbook](https://github.com/Inthenew/Sketchbook): day/night cycle, wave-based ocean replacing the original flat water, boats with wave-aware physics + Boat Race scenario, lap tracking on the three car races, the full Rocketship feature (chassis, smoke particles, planet-select modal, Earth↔Moon flight + auto-landing), Earth + Moon as celestial bodies, lunar gravity, Vehicles GUI tuning sliders, Free-camera quality-of-life (`T` teleport, `Z` overlay toggle, return-to-forward slerp).
 
@@ -142,19 +160,19 @@ Inthenew squashes upstream commits, so each feature was re-ported individually w
 
 **Asset re-creation:** Inthenew's upstream hotlinked six third-party images that couldn't legally be vendored (DeviantArt fan-art, an anonymous Imgur upload, Farmers Almanac and Adobe Stock photos, a Future plc CDN asset, and a Wikimedia photo with attribution requirements). All were dropped and replaced with DALL-E generated equivalents shipped under `src/img/` — same intent and visual style, no licence baggage.
 
-## May 2026 — version 0.5.0 — Joy-Con port ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/afff1ec38b1768a85ee0c8e53cc1b3540cc04042))
-
-Adds Joy-Con / gamepad support originally written by [Bar Hatsor](https://github.com/barhatsor) in [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). Original commits preserved via `format-patch` / `am`. The controller layer only synthesises keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` was vendored under `vendor/joycon/`.
-
-## September 2024 — version 0.4.1 — [cjmott](https://github.com/cjmott) ([commit](https://github.com/cjmott/Sketchbook/commit/088fffc743818d13babeecd87c8ba3165cf13fcb))
+## September 2024 — version 0.5.1 — [cjmott](https://github.com/cjmott) ([commit](https://github.com/cjmott/Sketchbook/commit/088fffc743818d13babeecd87c8ba3165cf13fcb))
 
 > I plan to use Sketchbook as a basis to develop another project, so I have updated the code to run on the latest version of all the packages and switched from cannon.js, which is no longer maintained, to cannon-es.js. […] The biggest change has involved updating to the new version of THREE.js, which no longer supports the object types `Geometry` and `Face3`, replacing both with `BufferGeometry`. Note that I have also updated the sky shaders to use an example provided on the THREE.js website.
 
-### April 2026 follow-up — toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1a99803b366f49385dfac80c76ab86371f154915))
+### April 2026 follow-up — version 0.4.1.2 — toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1a99803b366f49385dfac80c76ab86371f154915))
 
 A second pass on top of cjmott's work: dependencies updated to current versions (TypeScript 6, ESLint, three.js r183, webpack 5), legacy in-repo utility copies replaced with maintained npm packages (lil-gui, stats.js, cannon-es-debugger), unused legacy files dropped. Behaviour and architecture preserved — gameplay changes start in May.
 
-## February 2023 — version 0.4 — [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook-upgraded/commit/62f4b7986fd1ce1e4f91daba89ef032c20a6ce55)), final update from the original author
+## February 2024 — version 0.5.0 — Joy-Con port ([barhatsor](https://github.com/barhatsor)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1db12aa2ef697886b049386ef28a55e12f08acdd))
+
+Adds Joy-Con / gamepad support originally written by [Bar Hatsor](https://github.com/barhatsor) in [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). Original commits preserved via `format-patch` / `am`. The controller layer only synthesises keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` was vendored under `vendor/joycon/`.
+
+## February 2023 — version 0.4.0 — [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook-upgraded/commit/62f4b7986fd1ce1e4f91daba89ef032c20a6ce55)), final update from the original author
 
 > As I have no more interest in developing this project, it comes to a conclusion. […] If you wish to modify Sketchbook feel free to fork it. The [NPM package](https://www.npmjs.com/package/sketchbook) name is available, and I'll give it away to anyone who asks for it. The package has never worked properly.
 
