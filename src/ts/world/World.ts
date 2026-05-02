@@ -43,15 +43,16 @@ import { Sky } from './Sky';
 import { Ocean } from './Ocean';
 import { Grass } from './Grass';
 import { Speaker } from './audio/Speaker';
-import { NPCSpawnPoint } from './spawn/NPCSpawnPoint';
 import { PauseMenu } from './ui/PauseMenu';
-import { getDefaultDialogs } from './scenarios/defaultDialogs';
 import { SettingsModal } from './ui/SettingsModal';
 import { t } from '../i18n';
 import { IrisTransition } from './ui/IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './audio/AmbientSound';
-import { WanderingAnimals } from './animals/WanderingAnimals';
+import { bootstrapHTML } from './setup/HTMLBootstrap';
+import { addMapSwitcher } from './setup/MapSwitcher';
+import { injectDefaultSceneNPCs } from './setup/DefaultNPCInjector';
+import { injectWanderingAnimals } from './setup/AnimalInjector';
 import { WorldLabels } from './ui/WorldLabels';
 
 export class World
@@ -140,7 +141,7 @@ export class World
 		//this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		// Note: Soft shadows leads to animation errors with car tires
 
-		this.generateHTML();
+		bootstrapHTML(this);
 
 		// Lap counter overlay (Inthenew/Sketchbook). Initially hidden;
 		// Scenario.launch() flips visibility when a tracked race starts.
@@ -762,18 +763,18 @@ export class World
 		// list and reloads the page with the alternate world.glb. Default
 		// (no localStorage entry) is the Inthenew map; the SocketControl
 		// map is opt-in and persists across reloads.
-		this.addMapSwitcher();
+		addMapSwitcher(this);
 
 		// Hand-placed NPCs around the Inthenew default spawn — gives the
 		// world some visible occupants without authoring markers in
 		// Blender. Tied to the default scenario so they re-spawn alongside
 		// it and get cleared on switch like other entities.
-		this.injectDefaultSceneNPCs();
+		injectDefaultSceneNPCs(this);
 
 		// Wandering dogs / cats around the spawn area — only on the
 		// Inthenew map (the sandboxes are testing zones with their own
 		// flat layouts, animals would just walk off the edge).
-		this.injectWanderingAnimals();
+		injectWanderingAnimals(this);
 
 		// Launch default scenario
 		let defaultScenarioID: string;
@@ -784,124 +785,6 @@ export class World
 			}
 		}
 		if (defaultScenarioID !== undefined) this.launchScenario(defaultScenarioID, loadingManager);
-	}
-
-	private addMapSwitcher(): void
-	{
-		// Default = Inthenew (v0.6). Five socketControl maps follow:
-		// the two GLB-backed Sketchbook variants (v0.3 with grass material,
-		// v0.4 with their full scenario set), plus four code-built test
-		// sandboxes (test, test2, test3, example) that BaseScene
-		// subclasses construct procedurally at runtime.
-		const stored = localStorage.getItem('sketchbook.map');
-		const choices: { [label: string]: string } = {
-			'Inthenew (v0.6, default)': 'inthenew',
-			'sketchbook v0.3 (socketControl)': 'sc-v03',
-			'sketchbook v0.4 (socketControl)': 'sc-v04',
-			'test (socketControl sandbox)': 'sc-test',
-			'test2 (socketControl sandbox)': 'sc-test2',
-			'test3 (socketControl sandbox)': 'sc-test3',
-			'example (socketControl sandbox)': 'sc-example',
-		};
-		// Validate the stored selection against the map's values without
-		// allocating an intermediate array. (Object.values would be the
-		// natural fit but we target ES2015.)
-		let storedIsValid = false;
-		for (const k in choices) if (choices[k] === stored) { storedIsValid = true; break; }
-		this.params.Map = storedIsValid ? stored : 'inthenew';
-
-		this.scenarioGUIFolder.add(this.params, 'Map', choices)
-			.onChange((value: string) =>
-			{
-				localStorage.setItem('sketchbook.map', value);
-				// Cover the canvas before reloading so the page-reload flash
-				// happens behind a black iris instead of a white flicker.
-				IrisTransition.getInstance().close().then(() => location.reload());
-			});
-	}
-
-	private injectDefaultSceneNPCs(): void
-	{
-		// Only the Inthenew map has the Default-spawn layout these
-		// coordinates were eyeballed against; SocketControl maps have
-		// their own scene topology and don't get NPCs here.
-		const stored = localStorage.getItem('sketchbook.map');
-		if (stored && stored !== 'inthenew') return;
-
-		const defaultScenario = this.scenarios.find((s) => s.id === 'default');
-		if (defaultScenario === undefined) return;
-
-		// Build a synthetic 4-node loop near the spawn and register it
-		// as a Path so two NPCs can FollowPath their way around it.
-		// Same pattern Test3Scene uses (data:'pathNode', nextNode/
-		// previousNode userData wiring) so we don't need a new code
-		// path on the consumer side.
-		const pathRoot = new THREE.Object3D();
-		pathRoot.userData = { data: 'path', name: 'default_npc_loop' };
-		const loopNodes: { name: string, prev: string, next: string, x: number, z: number }[] = [
-			{ name: 'npc_node_1', prev: 'npc_node_4', next: 'npc_node_2', x:  8, z:  5 },
-			{ name: 'npc_node_2', prev: 'npc_node_1', next: 'npc_node_3', x:  8, z: -5 },
-			{ name: 'npc_node_3', prev: 'npc_node_2', next: 'npc_node_4', x: -8, z: -5 },
-			{ name: 'npc_node_4', prev: 'npc_node_3', next: 'npc_node_1', x: -8, z:  5 },
-		];
-		for (const n of loopNodes)
-		{
-			const node = new THREE.Object3D();
-			node.name = n.name;
-			node.position.set(n.x, 18, n.z);
-			node.userData = { data: 'pathNode', name: n.name, previousNode: n.prev, nextNode: n.next };
-			pathRoot.add(node);
-		}
-		defaultScenario.rootNode.add(pathRoot);
-		this.paths.push(new Path(pathRoot));
-
-		// Two walking NPCs (Anna, Ben) trace the loop in opposite
-		// directions; two standing NPCs (Carla, Dieter) flank the
-		// player spawn so the area still has visible occupants.
-		const npcSpawns: { x: number, y: number, z: number, faceX?: number, faceZ?: number, name: string, firstNode?: string }[] = [
-			{ x:  8, y: 18, z:  5, name: 'Anna',   firstNode: 'npc_node_1' },
-			{ x: -8, y: 18, z: -5, name: 'Ben',    firstNode: 'npc_node_3' },
-			{ x:  3, y: 18, z:  1, faceX: 0,  faceZ: -1, name: 'Carla'  },
-			{ x: -3, y: 18, z:  1, faceX: 0,  faceZ: -1, name: 'Dieter' },
-		];
-
-		// Hand-written dialogs from defaultDialogs.ts; absent NPCs
-		// just stand silent (no prompt appears). getDefaultDialogs()
-		// resolves text via i18n at lookup time, so a scenario
-		// restart picks up a new locale.
-		const dialogs = getDefaultDialogs();
-
-		for (const s of npcSpawns)
-		{
-			const marker = new THREE.Object3D();
-			marker.position.set(s.x, s.y, s.z);
-			if (s.faceX !== undefined && s.faceZ !== undefined)
-			{
-				marker.lookAt(s.x + s.faceX, s.y, s.z + s.faceZ);
-			}
-			marker.userData.name = s.name;
-			if (s.firstNode !== undefined) marker.userData.first_node = s.firstNode;
-			defaultScenario.rootNode.add(marker);
-
-			const dialogEntry = dialogs[s.name];
-			defaultScenario.spawnPoints.push(
-				new NPCSpawnPoint(marker, dialogEntry !== undefined
-					? { dialog: dialogEntry.dialog, role: dialogEntry.role }
-					: undefined),
-			);
-		}
-	}
-
-	private injectWanderingAnimals(): void
-	{
-		// Same map gate as injectDefaultSceneNPCs — sandboxes are testing
-		// zones with their own minimal layouts, animals would just walk
-		// off the edge or into shapes.
-		const stored = localStorage.getItem('sketchbook.map');
-		if (stored !== null && stored !== 'inthenew') return;
-
-		const animals = new WanderingAnimals();
-		this.add(animals);
 	}
 
 	public launchScenario(scenarioID: string, loadingManager?: LoadingManager): void
@@ -1003,83 +886,6 @@ export class World
 		});
 
 		document.getElementById('controls').innerHTML = html;
-	}
-
-	private generateHTML(): void
-	{
-		// Fonts
-		const fontHrefs = [
-			'https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap',
-			'https://fonts.googleapis.com/css2?family=Solway:wght@300;400;500;700;800&display=swap',
-			'https://fonts.googleapis.com/css2?family=Catamaran:wght@400;500;700;800&display=swap',
-			'https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap',
-		];
-		for (const href of fontHrefs)
-		{
-			const link = document.createElement('link');
-			link.rel = 'stylesheet';
-			link.href = href;
-			document.head.appendChild(link);
-		}
-
-		// Loader
-		document.body.insertAdjacentHTML('beforeend', `
-			<div id="loading-screen">
-				<div id="loading-screen-background"></div>
-				<h1 id="main-title" class="sb-font">Sketchbook 0.8.0</h1>
-				<div class="cubeWrap">
-					<div class="cube">
-						<div class="faces1"></div>
-						<div class="faces2"></div>
-					</div>
-				</div>
-				<div id="loading-percent">0%</div>
-				<div id="loading-bar-track"><div id="loading-bar-fill"></div></div>
-				<div id="loading-text">${t('world.loading')}</div>
-			</div>
-		`);
-
-		// UI
-		document.body.insertAdjacentHTML('beforeend', `
-			<div id="ui-container" style="display: none;">
-				<div class="github-corner">
-					<a href="https://github.com/swift502/Sketchbook" target="_blank" title="Fork me on GitHub">
-						<svg viewbox="0 0 100 100" fill="currentColor">
-							<title>Fork me on GitHub</title>
-							<path d="M0 0v100h100V0H0zm60 70.2h.2c1 2.7.3 4.7 0 5.2 1.4 1.4 2 3 2 5.2 0 7.4-4.4 9-8.7 9.5.7.7 1.3 2
-							1.3 3.7V99c0 .5 1.4 1 1.4 1H44s1.2-.5 1.2-1v-3.8c-3.5 1.4-5.2-.8-5.2-.8-1.5-2-3-2-3-2-2-.5-.2-1-.2-1
-							2-.7 3.5.8 3.5.8 2 1.7 4 1 5 .3.2-1.2.7-2 1.2-2.4-4.3-.4-8.8-2-8.8-9.4 0-2 .7-4 2-5.2-.2-.5-1-2.5.2-5
-							0 0 1.5-.6 5.2 1.8 1.5-.4 3.2-.6 4.8-.6 1.6 0 3.3.2 4.8.7 2.8-2 4.4-2 5-2z"></path>
-						</svg>
-					</a>
-				</div>
-				<div class="left-panel">
-					<div id="controls" class="panel-segment flex-bottom"></div>
-				</div>
-			</div>
-		`);
-
-		// Planet selection modal (Inthenew/Sketchbook). RocketShip flips
-		// 'planet-menu-hidden' off once the liftoff sequence reaches
-		// apogee, then handles clicks via addEventListener (Inthenew used
-		// jQuery here, we do it in vanilla DOM during construction).
-		document.body.insertAdjacentHTML('beforeend', `
-			<div id="planet-menu" class="planet-menu-hidden">
-				<h1 class="planet-heading">${t('world.planet.heading')}</h1>
-				<div class="planet-item" id="earth">
-					<img src="src/img/hemisphere-earth.png" alt="${t('world.planet.earth')}">
-					<p>${t('world.planet.earth')}</p>
-				</div>
-				<div class="planet-item" id="moon">
-					<img src="src/img/full-moon.png" alt="${t('world.planet.moon')}">
-					<p>${t('world.planet.moon')}</p>
-				</div>
-			</div>
-		`);
-
-		// Canvas
-		document.body.appendChild(this.renderer.domElement);
-		this.renderer.domElement.id = 'canvas';
 	}
 
 	private createParamsGUI(scope: World): void
