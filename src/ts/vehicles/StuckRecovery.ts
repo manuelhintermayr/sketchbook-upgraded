@@ -6,7 +6,12 @@ import { CameraShake } from '../core/CameraShake';
 const STUCK_WINDOW = 6;
 const STUCK_DIST = 0.5;
 const FLIP_TIME = 3;
-const UPSIDE_DOWN_THRESHOLD = Math.cos(100 * Math.PI / 180);
+// cos(80°) ≈ 0.17 — chassis-up dot world-up below this means the
+// vehicle is at or past sideways. Original Inthenew value cos(100°)
+// only counted fully-upside-down chassis, so a heli or car that
+// landed cleanly on its side just sat there. 80° still leaves a
+// healthy margin (a vehicle parked on a 45° hill reads upY ≈ 0.7).
+const UPSIDE_DOWN_THRESHOLD = Math.cos(80 * Math.PI / 180);
 const RECOVERY_COOLDOWN = 2;
 
 // Module-scoped scratch — see Helicopter / Airplane for the same
