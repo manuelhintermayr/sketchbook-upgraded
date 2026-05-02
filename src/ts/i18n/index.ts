@@ -107,6 +107,7 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'controls.jump':             { en: 'Jump',                    de: 'Springen',                  es: 'Saltar' },
 	'controls.enterVehicle':     { en: 'Enter vehicle',           de: 'Fahrzeug betreten',         es: 'Entrar al vehículo' },
 	'controls.exitVehicle':      { en: 'Exit vehicle',            de: 'Fahrzeug verlassen',        es: 'Salir del vehículo' },
+	'controls.switchSeats':      { en: 'Switch seats',            de: 'Sitzwechsel',               es: 'Cambiar de asiento' },
 	'controls.respawn':          { en: 'Respawn',                 de: 'Respawn',                   es: 'Reaparecer' },
 	'controls.freeCamera':       { en: 'Free camera',             de: 'Freie Kamera',              es: 'Cámara libre' },
 	'controls.freeCameraExit':   { en: 'Exit free camera mode',   de: 'Freie Kamera verlassen',    es: 'Salir de la cámara libre' },

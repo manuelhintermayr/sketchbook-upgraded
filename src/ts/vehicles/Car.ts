@@ -341,7 +341,7 @@ export class Car extends Vehicle implements IControllable
 			{ keys: ['W', 'S'],   desc: t('controls.accelBrake') },
 			{ keys: ['A', 'D'],   desc: t('controls.steering') },
 			{ keys: ['Space'],    desc: t('controls.handbrake') },
-			...commonVehicleControls(),
+			...commonVehicleControls(this.seatSwitchAvailable()),
 		]);
 	}
 

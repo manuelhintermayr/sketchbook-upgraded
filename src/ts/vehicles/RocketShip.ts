@@ -472,7 +472,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		super.inputReceiverInit();
 		this.world.updateControls([
 			{ keys: ['Space'], desc: t('controls.blastOff') },
-			...commonVehicleControls(),
+			...commonVehicleControls(this.seatSwitchAvailable()),
 		]);
 	}
 

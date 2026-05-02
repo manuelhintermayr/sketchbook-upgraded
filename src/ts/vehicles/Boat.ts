@@ -277,7 +277,7 @@ export class Boat extends Vehicle implements IControllable
 		this.world.updateControls([
 			{ keys: ['W', 'S'], desc: t('controls.accelReverse') },
 			{ keys: ['A', 'D'], desc: t('controls.steering') },
-			...commonVehicleControls(),
+			...commonVehicleControls(this.seatSwitchAvailable()),
 		]);
 	}
 

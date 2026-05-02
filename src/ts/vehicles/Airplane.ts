@@ -408,7 +408,7 @@ export class Airplane extends Vehicle implements IControllable, IWorldEntity
 			{ keys: ['A', 'D'],  desc: t('controls.ailerons') },
 			{ keys: ['Q', 'E'],  desc: t('controls.rudderSteering') },
 			{ keys: ['B'],       desc: t('controls.brake') },
-			...commonVehicleControls(),
+			...commonVehicleControls(this.seatSwitchAvailable()),
 		]);
 	}
 }

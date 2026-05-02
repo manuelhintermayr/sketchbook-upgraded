@@ -16,13 +16,20 @@ export function commonGlobalControls()
 	];
 }
 
-// Vehicle-only common rows: view toggle + exit, then the global ones.
-// Spread into each Vehicle's inputReceiverInit after its own bindings.
-export function commonVehicleControls()
+// Vehicle-only common rows: view toggle + exit (+ optional seat switch),
+// then the global ones. Spread into each Vehicle's inputReceiverInit
+// after its own bindings. Pass hasSeatSwitch=true on vehicles that
+// authored connectedSeats in the GLB (Car / Helicopter) so X gets a
+// HUD row alongside its already-functional onInputChange handler.
+export function commonVehicleControls(hasSeatSwitch: boolean = false)
 {
-	return [
+	const rows = [
 		{ keys: ['V'], desc: t('controls.viewSelect') },
 		{ keys: ['F'], desc: t('controls.exitVehicle') },
-		...commonGlobalControls(),
 	];
+	if (hasSeatSwitch)
+	{
+		rows.push({ keys: ['X'], desc: t('controls.switchSeats') });
+	}
+	return [...rows, ...commonGlobalControls()];
 }

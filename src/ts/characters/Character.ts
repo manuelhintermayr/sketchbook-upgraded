@@ -710,11 +710,22 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		{
 			this.transferControls(vehicle);
 			this.resetControls();
-	
+
 			this.controlledObject = vehicle;
 			this.controlledObject.allowSleep(false);
-			vehicle.inputReceiverInit();
-	
+
+			// Only refresh the HUD controls list if this character is the
+			// active input receiver. Otherwise — e.g. an AI driver being
+			// teleported into a vehicle by VehicleSpawnPoint — running
+			// vehicle.inputReceiverInit() would overwrite the player's
+			// WASD list with the AI's vehicle list at scenario start, so
+			// the player would see car/heli controls before having
+			// touched anything.
+			if (this.world.inputManager.inputReceiver === this)
+			{
+				vehicle.inputReceiverInit();
+			}
+
 			vehicle.controllingCharacter = this;
 		}
 	}

@@ -139,6 +139,15 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 		return true;
 	}
 
+	// Whether this vehicle has any seat that's wired to a connected seat
+	// in the GLB. Drives whether the on-screen controls overlay shows X
+	// (Switch seats) — onInputChange already routes the X press; this
+	// just makes the HUD honest about the option.
+	public seatSwitchAvailable(): boolean
+	{
+		return this.seats.some(seat => seat.connectedSeats.length > 0);
+	}
+
 	public update(timeStep: number): void
 	{
 		this.position.set(

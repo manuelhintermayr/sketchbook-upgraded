@@ -240,7 +240,7 @@ export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 			{ keys: ['W', 'S'],  desc: t('controls.pitch') },
 			{ keys: ['Q', 'E'],  desc: t('controls.yaw') },
 			{ keys: ['A', 'D'],  desc: t('controls.roll') },
-			...commonVehicleControls(),
+			...commonVehicleControls(this.seatSwitchAvailable()),
 		]);
 	}
 }
