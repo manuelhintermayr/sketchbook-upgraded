@@ -3,12 +3,8 @@ import * as CANNON from 'cannon-es';
 import Swal from 'sweetalert2';
 
 import { CameraOperator } from '../core/CameraOperator';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
-import { FXAAShader  } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
@@ -25,7 +21,6 @@ import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { Character } from '../characters/Character';
 import { Path } from './scenarios/Path';
-import { RenderLayer } from '../enums/RenderLayers';
 import { Vehicle } from '../vehicles/Vehicle';
 import { Helicopter } from '../vehicles/Helicopter';
 import { Airplane } from '../vehicles/Airplane';
@@ -42,6 +37,7 @@ import { IrisTransition } from './ui/IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './audio/AmbientSound';
 import { bootstrapHTML } from './setup/HTMLBootstrap';
+import { setupRendererPipeline } from './setup/RendererPipeline';
 import { createParamsGUI } from './setup/ParamsGUI';
 import { loadScene } from './loading/SceneLoader';
 import { WorldLabels } from './ui/WorldLabels';
@@ -115,22 +111,7 @@ export class World
 			});
 		}
 
-		// Renderer. Cap pixelRatio at 2 — phones/tablets often report
-		// DPR 3-4, which forces the GPU to render 9-16× the pixels for
-		// barely visible sharpness gain past 2×. Desktops (DPR 1-2) are
-		// unaffected.
-		this.renderer = new THREE.WebGLRenderer();
-		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-		this.renderer.toneMappingExposure = 1.0;
-		// Black space behind the Sky shell; Sky.update() hides the shell
-		// once the camera leaves Earth's atmosphere, revealing this color.
-		this.renderer.setClearColor(0x000000, 1);
-		this.renderer.shadowMap.enabled = true;
-		this.renderer.shadowMap.type = THREE.PCFShadowMap;
-		//this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-		// Note: Soft shadows leads to animation errors with car tires
+		setupRendererPipeline(this);
 
 		bootstrapHTML(this);
 
@@ -152,81 +133,6 @@ export class World
 		{
 			if (e.code === 'KeyZ' && !e.repeat) this.toggleControlsOverlay();
 		});
-
-		// Auto window resize
-		function onWindowResize(): void
-		{
-			scope.camera.aspect = window.innerWidth / window.innerHeight;
-			scope.camera.updateProjectionMatrix();
-			scope.renderer.setSize(window.innerWidth, window.innerHeight);
-			fxaaPass.uniforms['resolution'].value.set(1 / (window.innerWidth * pixelRatio), 1 / (window.innerHeight * pixelRatio));
-			scope.composer.setSize(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
-			scope.labelRenderer.setSize(window.innerWidth, window.innerHeight);
-		}
-		window.addEventListener('resize', onWindowResize, false);
-
-		// CSS2D label overlay — drives the name tags above each character.
-		// Pattern is the one socketControl uses (a parallel renderer that
-		// projects HTML divs to screen-space at the object's world
-		// position). pointerEvents=none so labels never eat clicks.
-		this.labelRenderer = new CSS2DRenderer();
-		this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
-		this.labelRenderer.domElement.id = 'labelRenderer';
-		this.labelRenderer.domElement.style.position = 'absolute';
-		this.labelRenderer.domElement.style.top = '0';
-		this.labelRenderer.domElement.style.pointerEvents = 'none';
-		document.body.appendChild(this.labelRenderer.domElement);
-
-		// Three.js scene
-		this.graphicsWorld = new THREE.Scene();
-		// far=1010 (swift502 default) clips the moon at distance ~12320 and
-		// the rocketship's max-Y plane at 5200. Inthenew sets far=2e10;
-		// 50000 is plenty for the authored geometry while still keeping
-		// the depth buffer well-conditioned.
-		this.camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 50000);
-		// Main camera sees both the default layer and the outline-skip
-		// layer so background meshes (sky, stars, grass, ocean) still
-		// render normally. OutlineEffect.renderPass strips this bit
-		// briefly to skip them during the depth pre-pass.
-		this.camera.layers.enable(RenderLayer.OutlineSkip);
-
-		// Passes
-		let renderPass = new RenderPass( this.graphicsWorld, this.camera );
-		let fxaaPass = new ShaderPass( FXAAShader );
-
-		// FXAA
-		let pixelRatio = this.renderer.getPixelRatio();
-		fxaaPass.material['uniforms'].resolution.value.x = 1 / ( window.innerWidth * pixelRatio );
-		fxaaPass.material['uniforms'].resolution.value.y = 1 / ( window.innerHeight * pixelRatio );
-
-		// Composer
-		this.composer = new EffectComposer( this.renderer );
-		this.composer.addPass( renderPass );
-		this.composer.addPass( fxaaPass );
-
-		// Bloom + Depth-of-Field. Both are added to the pipeline up-front
-		// with .enabled=false so the FXAA toggle path doesn't have to
-		// rebuild the composer when the player flips them on. Order:
-		//   render → fxaa → bloom → bokeh
-		// Bloom intensity adapts to time-of-day (stronger at night) and
-		// DoF focus is tighter while driving — both updated per frame in
-		// render().
-		this.bloomPass = new UnrealBloomPass(
-			new THREE.Vector2(window.innerWidth, window.innerHeight),
-			0.5,    // strength
-			0.4,    // radius
-			0.85,   // luminanceThreshold
-		);
-		this.bloomPass.enabled = false;
-		this.composer.addPass(this.bloomPass);
-
-		this.bokehPass = new BokehPass(this.graphicsWorld, this.camera, {
-			focus: 30,
-			aperture: 0.0001,
-			maxblur: 0.01,
-		});
-		this.bokehPass.enabled = false;
-		this.composer.addPass(this.bokehPass);
 
 		// Physics
 		this.physicsWorld = new CANNON.World();
