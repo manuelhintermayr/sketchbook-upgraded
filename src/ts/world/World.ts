@@ -122,9 +122,12 @@ export class World
 			});
 		}
 
-		// Renderer
+		// Renderer. Cap pixelRatio at 2 — phones/tablets often report
+		// DPR 3-4, which forces the GPU to render 9-16× the pixels for
+		// barely visible sharpness gain past 2×. Desktops (DPR 1-2) are
+		// unaffected.
 		this.renderer = new THREE.WebGLRenderer();
-		this.renderer.setPixelRatio(window.devicePixelRatio);
+		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
 		this.renderer.toneMappingExposure = 1.0;
