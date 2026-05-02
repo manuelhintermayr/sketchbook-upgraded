@@ -1,12 +1,12 @@
-import { ISpawnPoint } from '../interfaces/ISpawnPoint';
-import { VehicleSpawnPoint } from './spawn/VehicleSpawnPoint';
-import { CharacterSpawnPoint } from './spawn/CharacterSpawnPoint';
-import { NPCSpawnPoint } from './spawn/NPCSpawnPoint';
-import { ShapeSpawnPoint } from './spawn/ShapeSpawnPoint';
-import { World } from '../world/World';
-import { LoadingManager } from '../core/LoadingManager';
-import { RaceContent } from './RaceContent';
-import { t } from '../i18n';
+import { ISpawnPoint } from '../../interfaces/ISpawnPoint';
+import { VehicleSpawnPoint } from '../spawn/VehicleSpawnPoint';
+import { CharacterSpawnPoint } from '../spawn/CharacterSpawnPoint';
+import { NPCSpawnPoint } from '../spawn/NPCSpawnPoint';
+import { ShapeSpawnPoint } from '../spawn/ShapeSpawnPoint';
+import { World } from '../World';
+import { LoadingManager } from '../../core/LoadingManager';
+import { RaceContent } from '../RaceContent';
+import { t } from '../../i18n';
 import * as THREE from 'three';
 
 // Scenarios whose lap counter runs off the curve-based RaceContent

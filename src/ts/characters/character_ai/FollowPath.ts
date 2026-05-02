@@ -4,7 +4,7 @@ import * as Utils from '../../core/FunctionLibrary';
 
 import { FollowTarget } from './FollowTarget';
 import { ICharacterAI } from '../../interfaces/ICharacterAI';
-import { PathNode } from '../../world/PathNode';
+import { PathNode } from '../../world/scenarios/PathNode';
 import { Vehicle } from '../../vehicles/Vehicle';
 import { EntityType } from '../../enums/EntityType';
 

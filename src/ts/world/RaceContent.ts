@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { World } from './World';
-import { Scenario } from './Scenario';
-import { PathNode } from './PathNode';
+import { Scenario } from './scenarios/Scenario';
+import { PathNode } from './scenarios/PathNode';
 import { RaceCheckpoint } from './RaceCheckpoint';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { UpdateOrder } from '../enums/UpdateOrder';

@@ -1,5 +1,5 @@
-import { Dialog } from './ui/DialogBox';
-import { t, getLocale, Locale } from '../i18n';
+import { Dialog } from '../ui/DialogBox';
+import { t, getLocale, Locale } from '../../i18n';
 
 // Hand-written conversation trees for the four programmatically-injected
 // NPCs at the Inthenew default spawn (Anna, Ben, Carla, Dieter). Loaded
