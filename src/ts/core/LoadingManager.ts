@@ -57,7 +57,7 @@ export class LoadingManager
 		return entry;
 	}
 
-	public doneLoading(trackerEntry: LoadingTrackerEntry): void
+	public async doneLoading(trackerEntry: LoadingTrackerEntry): Promise<void>
 	{
 		trackerEntry.finished = true;
 		trackerEntry.progress = 1;
@@ -65,7 +65,18 @@ export class LoadingManager
 
 		if (this.isLoadingDone())
 		{
-			if (this.onFinishedCallback !== undefined) 
+			// Walk the freshly-loaded scene and pre-compile every material
+			// permutation on the GPU so the first time the player turns
+			// toward a distant vehicle, NPC, or piece of terrain the frame
+			// doesn't stall while WebGL builds shaders. compileAsync yields
+			// to the event loop between programs so the loading screen
+			// stays responsive while it runs.
+			await this.world.renderer.compileAsync(
+				this.world.graphicsWorld,
+				this.world.camera,
+			);
+
+			if (this.onFinishedCallback !== undefined)
 			{
 				this.onFinishedCallback();
 			}
