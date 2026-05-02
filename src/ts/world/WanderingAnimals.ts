@@ -64,7 +64,20 @@ interface Animal
 	// each frame to match the instanced animal so its CSS2D label
 	// follows along. The label itself lives as a child of this anchor.
 	labelAnchor: THREE.Object3D;
+	// Cached ground Y from the most recent raycast hit. Cannon trimesh
+	// raycasts are expensive (~60µs each on Inthenew's terrain) and
+	// 18 animals × 60 fps would be 1080 raycasts/sec just for ground
+	// tracking. We refresh once every GROUND_QUERY_INTERVAL_S seconds
+	// and lerp the visible Y toward the cached value between samples
+	// — animals barely move horizontally in 100ms so the cached
+	// terrain height stays accurate to within a few centimetres.
+	targetGroundY: number;
+	groundQueryTimer: number;
 }
+
+// Re-sample the trimesh terrain every 100ms per animal. Combined with
+// the lerp toward targetGroundY this stays visually smooth on slopes.
+const GROUND_QUERY_INTERVAL_S = 0.1;
 
 // Mulberry32 — small deterministic PRNG so spawn placement is the same
 // on every page load (otherwise reload would scramble the world).
@@ -256,20 +269,30 @@ export class WanderingAnimals implements IWorldEntity
 				animal.position.z,
 			);
 
-			// Stick to terrain. Ocean would pull the y to a low number;
-			// if the raycast misses (animal wandered off the map edge),
-			// nudge them back home.
-			const groundY = this.queryGroundHeight(animal.position.x, animal.position.z);
-			if (groundY === null || groundY < 0.5)
+			// Stick to terrain. Throttled raycast — refresh the cached
+			// targetGroundY every 100ms, lerp toward it each frame.
+			// Off-map detection (raycast miss or below sea level) still
+			// fires inside the throttle window so a wandering animal
+			// gets redirected within ~100ms of leaving the map.
+			animal.groundQueryTimer -= dt;
+			if (animal.groundQueryTimer <= 0)
 			{
-				animal.target.copy(animal.homePosition);
-				animal.state = 'wander';
-				animal.stateTimer = 3;
+				animal.groundQueryTimer = GROUND_QUERY_INTERVAL_S;
+				const queryY = this.queryGroundHeight(animal.position.x, animal.position.z);
+				if (queryY === null || queryY < 0.5)
+				{
+					animal.target.copy(animal.homePosition);
+					animal.state = 'wander';
+					animal.stateTimer = 3;
+				}
+				else
+				{
+					animal.targetGroundY = queryY;
+				}
 			}
-			else
-			{
-				animal.position.y = groundY;
-			}
+			animal.position.y = THREE.MathUtils.lerp(
+				animal.position.y, animal.targetGroundY, Math.min(1, dt * 12),
+			);
 
 			animal.animPhase += dt * (animal.velocity.length() * 2 + 0.5);
 		}
@@ -319,6 +342,10 @@ export class WanderingAnimals implements IWorldEntity
 					interactionCount: 0,
 					homePosition: pos.clone(),
 					labelAnchor,
+					targetGroundY: y,
+					// Stagger first raycast across the interval so all 18
+					// animals don't sample on the same frame and tank it.
+					groundQueryTimer: rng() * GROUND_QUERY_INTERVAL_S,
 				});
 				placed++;
 			}
