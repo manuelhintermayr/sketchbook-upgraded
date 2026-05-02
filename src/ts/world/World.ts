@@ -862,6 +862,12 @@ export class World
 			{ x: -3, y: 18, z:  1, faceX: 0,  faceZ: -1, name: 'Dieter' },
 		];
 
+		// Hand-written dialogs from defaultDialogs.ts; absent NPCs
+		// just stand silent (no prompt appears). getDefaultDialogs()
+		// resolves text via i18n at lookup time, so a scenario
+		// restart picks up a new locale.
+		const dialogs = getDefaultDialogs();
+
 		for (const s of npcSpawns)
 		{
 			const marker = new THREE.Object3D();
@@ -874,11 +880,6 @@ export class World
 			if (s.firstNode !== undefined) marker.userData.first_node = s.firstNode;
 			defaultScenario.rootNode.add(marker);
 
-			// Hand-written dialogs from defaultDialogs.ts; absent NPCs
-			// just stand silent (no prompt appears). getDefaultDialogs()
-			// resolves text via i18n at lookup time, so a scenario
-			// restart picks up a new locale.
-			const dialogs = getDefaultDialogs();
 			const dialogEntry = dialogs[s.name];
 			defaultScenario.spawnPoints.push(
 				new NPCSpawnPoint(marker, dialogEntry !== undefined
