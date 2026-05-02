@@ -5,6 +5,7 @@ import { Vehicle } from './Vehicle';
 import { IControllable } from '../interfaces/IControllable';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { KeyBinding } from '../core/KeyBinding';
+import { World } from '../world/World';
 import { EntityType } from '../enums/EntityType';
 import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { commonVehicleControls } from '../core/CommonControls';
@@ -449,6 +450,21 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 			clearInterval(this.dropCheckTimer);
 			this.dropCheckTimer = undefined;
 		}
+	}
+
+	// Cancel every flight timer on world removal. Without this a
+	// scenario switch mid-liftoff or mid-flight leaves the setInterval
+	// callbacks ticking against a detached cannon body — they keep
+	// writing into body.velocity / body.position long after the rocket
+	// is gone. Hide the planet menu too so a stale "click moon" event
+	// from a stranded listener can't fire on a freshly-spawned rocket.
+	public removeFromWorld(world: World): void
+	{
+		super.removeFromWorld(world);
+		this.stopLiftoff();
+		this.cancelTravelTimers();
+		this.cancelDropTimers();
+		this.hidePlanetMenu();
 	}
 
 	// --- Input / housekeeping ---------------------------------------
