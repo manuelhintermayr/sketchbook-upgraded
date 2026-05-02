@@ -2,10 +2,11 @@ import { World } from '../world/World';
 import { IInputReceiver } from '../interfaces/IInputReceiver';
 import { EntityType } from '../enums/EntityType';
 import { IUpdatable } from '../interfaces/IUpdatable';
+import { UpdateOrder } from '../enums/UpdateOrder';
 
 export class InputManager implements IUpdatable
 {
-	public updateOrder: number = 3;
+	public updateOrder: number = UpdateOrder.Input;
 
 	public world: World;
 	public domElement: any;

@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { World } from '../World';
 import { IWorldEntity } from '../../interfaces/IWorldEntity';
 import { EntityType } from '../../enums/EntityType';
+import { UpdateOrder } from '../../enums/UpdateOrder';
 import { CollisionGroups } from '../../enums/CollisionGroups';
 import { attachNameLabel } from '../NameLabel';
 import { t } from '../../i18n';
@@ -100,7 +101,7 @@ const _rayResult = new CANNON.RaycastResult();
 
 export class WanderingAnimals implements IWorldEntity
 {
-	public updateOrder: number = 10;
+	public updateOrder: number = UpdateOrder.World;
 	public entityType: EntityType = EntityType.Decoration;
 
 	private world: World | null = null;

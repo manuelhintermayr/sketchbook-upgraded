@@ -4,6 +4,7 @@ import { Scenario } from './Scenario';
 import { PathNode } from './PathNode';
 import { RaceCheckpoint } from './RaceCheckpoint';
 import { IUpdatable } from '../interfaces/IUpdatable';
+import { UpdateOrder } from '../enums/UpdateOrder';
 
 // Curve-based lap tracking for race scenarios. Walks the scenario's AI
 // first_node through its path graph, fits a CatmullRom curve, places a
@@ -15,7 +16,7 @@ import { IUpdatable } from '../interfaces/IUpdatable';
 // tracker since this engine is single-player.
 export class RaceContent implements IUpdatable
 {
-	public updateOrder = 6;
+	public updateOrder = UpdateOrder.Scenarios;
 
 	public scenario: Scenario;
 	public checkpointGroup: THREE.Group = new THREE.Group();

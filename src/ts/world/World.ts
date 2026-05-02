@@ -278,10 +278,10 @@ export class World
 		this.cameraOperator = new CameraOperator(this, this.camera, this.params.Mouse_Sensitivity);
 		this.sky = new Sky(this);
 
-		// Camera shake runs after CameraOperator (updateOrder=15) and adds
-		// transient position offsets when vehicles slam down or collide.
-		// Singleton API: anywhere can call CameraShake.trigger() without a
-		// world reference.
+		// Camera shake runs in the PostCamera slot (after CameraOperator)
+		// and adds transient position offsets when vehicles slam down or
+		// collide. Singleton API: anywhere can call CameraShake.trigger()
+		// without a world reference.
 		this.cameraShake = new CameraShake(this);
 		this.registerUpdatable(this.cameraShake);
 

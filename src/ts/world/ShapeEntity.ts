@@ -4,6 +4,7 @@ import * as CANNON from 'cannon-es';
 import { World } from './World';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { EntityType } from '../enums/EntityType';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { CollisionGroups } from '../enums/CollisionGroups';
 import { BoxCollider } from '../physics/colliders/BoxCollider';
 import { SphereCollider } from '../physics/colliders/SphereCollider';
@@ -20,7 +21,7 @@ import { SphereCollider } from '../physics/colliders/SphereCollider';
 export class ShapeEntity implements IWorldEntity
 {
 	public entityType: EntityType = EntityType.Shape;
-	public updateOrder: number = 5;
+	public updateOrder: number = UpdateOrder.Environment;
 
 	public obj: THREE.Object3D;
 	public phys: BoxCollider | SphereCollider;

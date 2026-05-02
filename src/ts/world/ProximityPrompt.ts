@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { World } from './World';
 import { IUpdatable } from '../interfaces/IUpdatable';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { Character } from '../characters/Character';
 import { TriggerCube, TriggerCenter } from './TriggerCube';
 import { DialogBox, Dialog } from './DialogBox';
@@ -27,7 +28,7 @@ export interface ProximityPromptParams
 // trigger cube; interactionCooldown is enforced locally via Date.now().
 export class ProximityPrompt implements IUpdatable
 {
-	public updateOrder = 13;
+	public updateOrder = UpdateOrder.Prompts;
 
 	private world: World | null = null;
 	private trigger: TriggerCube;

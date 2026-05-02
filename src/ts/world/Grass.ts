@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { World } from './World';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { EntityType } from '../enums/EntityType';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { Noise } from './Perlin';
 import { GrassShader } from './GrassShader';
 
@@ -15,7 +16,7 @@ import { GrassShader } from './GrassShader';
 // mesh's transform; the original mesh is hidden behind the blade field.
 export class Grass implements IWorldEntity
 {
-	public updateOrder: number = 10;
+	public updateOrder: number = UpdateOrder.World;
 	public entityType: EntityType = EntityType.Grass;
 
 	public groundMaterial: THREE.Material;

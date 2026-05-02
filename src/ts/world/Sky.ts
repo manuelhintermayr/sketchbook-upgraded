@@ -2,12 +2,13 @@ import { Sky as ThreeSky } from 'three/examples/jsm/objects/Sky.js';
 import * as THREE from 'three';
 import { World } from './World';
 import { EntityType } from '../enums/EntityType';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { CSM } from 'three/examples/jsm/csm/CSM.js';
 
 export class Sky extends THREE.Object3D implements IUpdatable
 {
-	public updateOrder: number = 5;
+	public updateOrder: number = UpdateOrder.Environment;
 
 	public sunPosition: THREE.Vector3 = new THREE.Vector3();
 	public csm: CSM;

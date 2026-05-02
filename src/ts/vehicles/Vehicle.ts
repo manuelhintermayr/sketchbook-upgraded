@@ -11,13 +11,14 @@ import * as Utils from '../core/FunctionLibrary';
 import { CollisionGroups } from '../enums/CollisionGroups';
 import { SwitchingSeats } from '../characters/character_states/vehicles/SwitchingSeats';
 import { EntityType } from '../enums/EntityType';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { CameraShake } from '../core/CameraShake';
 import { EngineSound, EngineProfile } from '../world/audio/EngineSound';
 
 export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 {
-	public updateOrder: number = 2;
+	public updateOrder: number = UpdateOrder.VehiclePhysics;
 	public abstract entityType: EntityType;
 	
 	public controllingCharacter: Character;

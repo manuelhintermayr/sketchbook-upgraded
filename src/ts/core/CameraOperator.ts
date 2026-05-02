@@ -8,11 +8,12 @@ import { Character } from '../characters/Character';
 import * as _ from 'lodash';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { EntityType } from '../enums/EntityType';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { t } from '../i18n';
 
 export class CameraOperator implements IInputReceiver, IUpdatable
 {
-	public updateOrder: number = 4;
+	public updateOrder: number = UpdateOrder.Camera;
 
 	public world: World;
 	public camera: THREE.Camera;

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 import { World } from './World';
 import { IUpdatable } from '../interfaces/IUpdatable';
+import { UpdateOrder } from '../enums/UpdateOrder';
 
 // Wave-based ocean ported from Inthenew/Sketchbook (MIT). The shader is
 // applied via MeshStandardMaterial.onBeforeCompile so three's lighting
@@ -14,7 +15,7 @@ import { IUpdatable } from '../interfaces/IUpdatable';
 // sync. If you change one, change the other.
 export class Ocean implements IUpdatable
 {
-	public updateOrder = 10;
+	public updateOrder = UpdateOrder.World;
 	public material: THREE.MeshBasicMaterial;
 	public clock: THREE.Clock;
 

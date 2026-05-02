@@ -1,4 +1,5 @@
 import { IUpdatable } from '../interfaces/IUpdatable';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { World } from '../world/World';
 import { sineNoise } from './NoiseLibrary';
 
@@ -9,7 +10,7 @@ import { sineNoise } from './NoiseLibrary';
 // exposes a static fire-and-forget API so any vehicle / scene code can
 // trigger it without touching the world reference.
 //
-// Runs after CameraOperator (updateOrder=4) so the shake offset is
+// Runs in the PostCamera slot (after Camera) so the shake offset is
 // applied on top of whatever the camera operator just computed for this
 // frame. The offset is written back into camera.position directly; the
 // next CameraOperator.update() resets the position from theta/phi/radius
@@ -40,7 +41,7 @@ interface ActiveShake
 
 export class CameraShake implements IUpdatable
 {
-	public updateOrder: number = 15;
+	public updateOrder: number = UpdateOrder.PostCamera;
 
 	private static instance: CameraShake | undefined;
 	private active: ActiveShake[] = [];

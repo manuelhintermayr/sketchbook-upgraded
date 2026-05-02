@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { World } from './World';
 import { IUpdatable } from '../interfaces/IUpdatable';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { Character } from '../characters/Character';
 
 // Volume that fires onEnter / onExit when the player walks into it.
@@ -14,7 +15,7 @@ export type TriggerCenter = THREE.Vector3 | (() => THREE.Vector3);
 
 export class TriggerCube implements IUpdatable
 {
-	public updateOrder = 12;
+	public updateOrder = UpdateOrder.Triggers;
 
 	private centerSource: TriggerCenter;
 	private size: THREE.Vector3;

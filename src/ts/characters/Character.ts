@@ -27,6 +27,7 @@ import { GroundImpactData } from './GroundImpactData';
 import { ClosestObjectFinder } from '../core/ClosestObjectFinder';
 import { Object3D } from 'three';
 import { EntityType } from '../enums/EntityType';
+import { UpdateOrder } from '../enums/UpdateOrder';
 import { t } from '../i18n';
 
 // Module-scoped scratch — physicsPostStep + springRotation run every
@@ -45,7 +46,7 @@ const _Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 export class Character extends THREE.Object3D implements IWorldEntity
 {
-	public updateOrder: number = 1;
+	public updateOrder: number = UpdateOrder.CharacterPhysics;
 	public entityType: EntityType = EntityType.Character;
 
 	public height: number = 0;
