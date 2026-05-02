@@ -13,7 +13,6 @@ import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
 import Stats from 'stats.js';
-import GUI from 'lil-gui';
 import CannonDebugger from 'cannon-es-debugger';
 import * as _ from 'lodash';
 
@@ -53,6 +52,7 @@ import { bootstrapHTML } from './setup/HTMLBootstrap';
 import { addMapSwitcher } from './setup/MapSwitcher';
 import { injectDefaultSceneNPCs } from './setup/DefaultNPCInjector';
 import { injectWanderingAnimals } from './setup/AnimalInjector';
+import { createParamsGUI } from './setup/ParamsGUI';
 import { WorldLabels } from './ui/WorldLabels';
 
 export class World
@@ -81,7 +81,7 @@ export class World
 	public timeScaleTarget: number = 1;
 	public console: InfoStack;
 	public cannonDebugRenderer: ReturnType<typeof CannonDebugger> | undefined;
-	private cannonDebugMeshes: THREE.Mesh[] = [];
+	public cannonDebugMeshes: THREE.Mesh[] = [];
 	public scenarios: Scenario[] = [];
 	public characters: Character[] = [];
 	public vehicles: Vehicle[] = [];
@@ -269,7 +269,7 @@ export class World
 			panel.style.display = 'inline-block';
 		}
 		// Create right panel GUI
-		this.createParamsGUI(scope);
+		createParamsGUI(this);
 
 		// Pause menu (Esc) — disabled until the loader's
 		// onFinishedCallback fires so it can't open over the welcome
@@ -888,226 +888,4 @@ export class World
 		document.getElementById('controls').innerHTML = html;
 	}
 
-	private createParamsGUI(scope: World): void
-	{
-		this.params = {
-			Pointer_Lock: true,
-			Mouse_Sensitivity: 0.3,
-			Time_Scale: 1,
-			Shadows: true,
-			FXAA: true,
-			Debug_Physics: false,
-			Debug_FPS: false,
-			Sun_Elevation: 50,
-			Sun_Rotation: 145,
-			Has_Day_Night_Cycle: false,
-			Has_Night_Time: false,
-			Gravity_Scale: 1,
-			Free_Cam_Speed: 25,
-			// Per-car raycast-vehicle tunables (defaults from Inthenew).
-			Friction_Slip: 0.8,
-			Suspension_Stiffness: 20,
-			Max_Suspension: 1,
-			Damping_Compression: 2,
-			Damping_Relaxation: 2,
-			Engine_Force: 10,
-			// Audio mix — Master applies to all positional sources via the
-			// shared THREE.AudioListener attached to the camera; the others
-			// are reserved for future per-bus routing (currently no SFX/
-			// music separation in the engine).
-			Master_Volume: 80,
-			Music_Volume: 60,
-			SFX_Volume: 75,
-			Camera_Shake: true,
-			Engine_Sound: true,
-			Ambient_Sound: true,
-			Outlines: false,
-			Bloom: false,
-			Depth_Of_Field: false,
-			Animal_Labels: false,
-		};
-
-		const gui = new GUI();
-		this.gui = gui;
-
-		// Scenario
-		this.scenarioGUIFolder = gui.addFolder('Scenarios');
-		this.scenarioGUIFolder.open();
-
-		// World
-		let worldFolder = gui.addFolder('World');
-		worldFolder.add(this.params, 'Time_Scale', 0, 1).listen()
-			.onChange((value) =>
-			{
-				scope.timeScaleTarget = value;
-			});
-		worldFolder.add(this.params, 'Sun_Elevation', 0, 180).listen()
-			.onChange((value) =>
-			{
-				scope.sky.phi = value;
-			});
-		worldFolder.add(this.params, 'Sun_Rotation', 0, 360).listen()
-			.onChange((value) =>
-			{
-				scope.sky.theta = value;
-			});
-		worldFolder.add(this.params, 'Has_Day_Night_Cycle').listen()
-			.onChange((value) =>
-			{
-				scope.params.Has_Day_Night_Cycle = value;
-			});
-		worldFolder.add(this.params, 'Has_Night_Time').listen()
-			.onChange((value) =>
-			{
-				scope.params.Has_Night_Time = value;
-			});
-		// Gravity_Scale 0..2 lets the player toggle between zero-g and
-		// double-g without rebuilding. updatePhysics reads params.Gravity_Scale
-		// every step so this takes effect immediately.
-		worldFolder.add(this.params, 'Gravity_Scale', 0, 2);
-		// Free_Cam_Speed is read by CameraOperator when in free-cam mode.
-		worldFolder.add(this.params, 'Free_Cam_Speed', 1, 100);
-
-		// Per-car raycast-vehicle tuning (ported from Inthenew). Each
-		// slider's onChange iterates the spawned cars and pushes the new
-		// value into their cannon wheelInfos / engine factor. Defaults
-		// match the constants the cars are constructed with.
-		const vehiclesFolder = gui.addFolder('Vehicles');
-		const applyToAllCars = (property: string, value: number, asEngineForce = false) =>
-		{
-			for (const v of scope.vehicles)
-			{
-				if (v instanceof Car)
-				{
-					if (asEngineForce) v.updateCarSpeed(value);
-					else v.updateWheelProps(property, value);
-				}
-			}
-		};
-		vehiclesFolder.add(this.params, 'Friction_Slip', 0, 5)
-			.onChange((v) => applyToAllCars('frictionSlip', v));
-		vehiclesFolder.add(this.params, 'Suspension_Stiffness', 0, 100)
-			.onChange((v) => applyToAllCars('suspensionStiffness', v));
-		vehiclesFolder.add(this.params, 'Max_Suspension', 0, 5)
-			.onChange((v) => applyToAllCars('maxSuspensionTravel', v));
-		vehiclesFolder.add(this.params, 'Damping_Compression', 0, 10)
-			.onChange((v) => applyToAllCars('dampingCompression', v));
-		vehiclesFolder.add(this.params, 'Damping_Relaxation', 0, 10)
-			.onChange((v) => applyToAllCars('dampingRelaxation', v));
-		vehiclesFolder.add(this.params, 'Engine_Force', 1, 50)
-			.onChange((v) => applyToAllCars('', v, true));
-
-		// Input
-		let settingsFolder = gui.addFolder('Settings');
-		settingsFolder.add(this.params, 'FXAA');
-		settingsFolder.add(this.params, 'Shadows')
-			.onChange((enabled) =>
-			{
-				if (enabled)
-				{
-					this.sky.csm.lights.forEach((light) => {
-						light.castShadow = true;
-					});
-				}
-				else
-				{
-					this.sky.csm.lights.forEach((light) => {
-						light.castShadow = false;
-					});
-				}
-			});
-		settingsFolder.add(this.params, 'Pointer_Lock')
-			.onChange((enabled) =>
-			{
-				scope.inputManager.setPointerLock(enabled);
-			});
-		settingsFolder.add(this.params, 'Mouse_Sensitivity', 0, 1)
-			.onChange((value) =>
-			{
-				scope.cameraOperator.setSensitivity(value, value * 0.8);
-			});
-		settingsFolder.add(this.params, 'Debug_Physics')
-			.onChange((enabled) =>
-			{
-				if (enabled)
-				{
-					// cannon-es-debugger adds meshes to the scene as the physics
-					// world changes but does not expose a cleanup method. Track
-					// them via onInit so we can remove them again when the user
-					// turns debug rendering back off.
-					this.cannonDebugMeshes = [];
-					this.cannonDebugRenderer = CannonDebugger(
-						this.graphicsWorld,
-						this.physicsWorld,
-						{
-							onInit: (_body, mesh) => this.cannonDebugMeshes.push(mesh),
-						},
-					);
-				}
-				else
-				{
-					for (const mesh of this.cannonDebugMeshes)
-					{
-						this.graphicsWorld.remove(mesh);
-					}
-					this.cannonDebugMeshes = [];
-					this.cannonDebugRenderer = undefined;
-				}
-
-				scope.characters.forEach((char) =>
-				{
-					char.raycastBox.visible = enabled;
-				});
-			});
-		settingsFolder.add(this.params, 'Debug_FPS')
-			.onChange((enabled) =>
-			{
-				UIManager.setFPSVisible(enabled);
-			});
-		settingsFolder.add(this.params, 'Camera_Shake');
-		settingsFolder.add(this.params, 'Engine_Sound');
-		settingsFolder.add(this.params, 'Ambient_Sound');
-		settingsFolder.add(this.params, 'Outlines');
-		settingsFolder.add(this.params, 'Bloom');
-		settingsFolder.add(this.params, 'Depth_Of_Field');
-		settingsFolder.add(this.params, 'Animal_Labels');
-
-		// Settings persistence (ported from Inthenew/Sketchbook).
-		// Snapshot defaults before restoring so Reset_World_Settings can
-		// fall back to them. lil-gui's controller.load() triggers onChange
-		// internally, so all side effects (sky.phi, shadows, sensitivity,
-		// ...) reapply automatically when the saved state is loaded.
-		const SETTINGS_KEY = 'sketchbook-settings';
-		const defaultWorldState = worldFolder.save();
-		const persist = () =>
-		{
-			localStorage.setItem(SETTINGS_KEY, JSON.stringify(gui.save()));
-		};
-
-		const savedSettings = localStorage.getItem(SETTINGS_KEY);
-		if (savedSettings)
-		{
-			try
-			{
-				gui.load(JSON.parse(savedSettings));
-			}
-			catch (e)
-			{
-				console.warn('[Sketchbook] Failed to load saved settings:', e);
-				localStorage.removeItem(SETTINGS_KEY);
-			}
-		}
-
-		gui.onFinishChange(persist);
-
-		worldFolder.add({
-			Reset_World_Settings: () =>
-			{
-				worldFolder.load(defaultWorldState);
-				persist();
-			},
-		}, 'Reset_World_Settings');
-
-		gui.open();
-	}
 }
