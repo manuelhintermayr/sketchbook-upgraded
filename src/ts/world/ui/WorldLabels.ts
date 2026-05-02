@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
-import { World } from './World';
-import { IUpdatable } from '../interfaces/IUpdatable';
-import { UpdateOrder } from '../enums/UpdateOrder';
+import { World } from '../World';
+import { IUpdatable } from '../../interfaces/IUpdatable';
+import { UpdateOrder } from '../../enums/UpdateOrder';
 
 // Centralized registry for CSS2D world-space labels with distance
 // culling. Sketchbook already uses three's CSS2DRenderer to project

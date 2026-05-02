@@ -7,7 +7,7 @@ import { IWorldEntity } from '../../interfaces/IWorldEntity';
 import { EntityType } from '../../enums/EntityType';
 import { UpdateOrder } from '../../enums/UpdateOrder';
 import { CollisionGroups } from '../../enums/CollisionGroups';
-import { attachNameLabel } from '../NameLabel';
+import { attachNameLabel } from '../ui/NameLabel';
 import { t } from '../../i18n';
 
 import { Animal, AnimalKind, targetSpeedFor } from './AnimalBehavior';

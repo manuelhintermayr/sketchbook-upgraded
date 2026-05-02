@@ -44,15 +44,15 @@ import { Ocean } from './Ocean';
 import { Grass } from './Grass';
 import { Speaker } from './audio/Speaker';
 import { NPCSpawnPoint } from './spawn/NPCSpawnPoint';
-import { PauseMenu } from './PauseMenu';
+import { PauseMenu } from './ui/PauseMenu';
 import { getDefaultDialogs } from './defaultDialogs';
-import { SettingsModal } from './SettingsModal';
+import { SettingsModal } from './ui/SettingsModal';
 import { t } from '../i18n';
-import { IrisTransition } from './IrisTransition';
+import { IrisTransition } from './ui/IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './audio/AmbientSound';
 import { WanderingAnimals } from './animals/WanderingAnimals';
-import { WorldLabels } from './WorldLabels';
+import { WorldLabels } from './ui/WorldLabels';
 
 export class World
 {

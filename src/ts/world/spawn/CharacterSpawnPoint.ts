@@ -4,7 +4,7 @@ import { World } from '../World';
 import { Character } from '../../characters/Character';
 import { LoadingManager } from '../../core/LoadingManager';
 import * as Utils from '../../core/FunctionLibrary';
-import { attachNameLabel } from '../NameLabel';
+import { attachNameLabel } from '../ui/NameLabel';
 
 export class CharacterSpawnPoint implements ISpawnPoint
 {

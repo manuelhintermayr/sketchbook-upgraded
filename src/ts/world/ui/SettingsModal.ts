@@ -1,5 +1,5 @@
-import { World } from './World';
-import { t } from '../i18n';
+import { World } from '../World';
+import { t } from '../../i18n';
 
 // Settings modal opened from the pause menu. Each control writes its
 // value into world.params and forwards through the matching lil-gui

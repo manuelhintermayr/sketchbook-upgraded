@@ -12,8 +12,8 @@ export { Example } from './world/sandboxes/ExampleScene';
 
 // Pre-game UI helpers usable directly from index.html before the World
 // is built.
-export { showTitleScreen } from './world/TitleScreen';
-export { installErrorOverlay } from './world/ErrorOverlay';
+export { showTitleScreen } from './world/ui/TitleScreen';
+export { installErrorOverlay } from './world/ui/ErrorOverlay';
 
 // Touch controls — auto-installs on touch devices. No-op on desktop,
 // so it's safe to import unconditionally.

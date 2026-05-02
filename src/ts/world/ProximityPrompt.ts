@@ -4,7 +4,7 @@ import { IUpdatable } from '../interfaces/IUpdatable';
 import { UpdateOrder } from '../enums/UpdateOrder';
 import { Character } from '../characters/Character';
 import { TriggerCube, TriggerCenter } from './TriggerCube';
-import { DialogBox, Dialog } from './DialogBox';
+import { DialogBox, Dialog } from './ui/DialogBox';
 import { t } from '../i18n';
 
 export interface ProximityPromptParams

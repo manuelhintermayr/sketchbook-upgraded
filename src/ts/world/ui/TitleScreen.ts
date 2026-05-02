@@ -5,7 +5,7 @@
 // The first user gesture also unblocks browser audio autoplay, which
 // is what Speaker relies on for in-world positional audio.
 
-import { LOCALE_LABELS, getLocale, setLocale, t, Locale } from '../i18n';
+import { LOCALE_LABELS, getLocale, setLocale, t, Locale } from '../../i18n';
 
 const FONT_HREFS = [
 	'https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap',

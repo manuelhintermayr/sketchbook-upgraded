@@ -4,7 +4,7 @@
 // one DOM bar and renders the current node; it's opened by NPCs from
 // their ProximityPrompt onInteract callback.
 
-import { t } from '../i18n';
+import { t } from '../../i18n';
 
 export interface DialogChoice
 {

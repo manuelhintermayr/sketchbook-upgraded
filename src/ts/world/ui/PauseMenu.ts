@@ -1,6 +1,6 @@
-import { World } from './World';
+import { World } from '../World';
 import { IrisTransition } from './IrisTransition';
-import { t } from '../i18n';
+import { t } from '../../i18n';
 
 // Pause overlay driven by Esc. Pauses gameplay (timeScale → 0),
 // exits pointer lock so the cursor is usable, and offers Resume,

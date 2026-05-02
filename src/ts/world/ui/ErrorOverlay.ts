@@ -3,7 +3,7 @@
 // Once the overlay is up the page is effectively frozen — that's the
 // intended behaviour because anything could be in a half-broken state.
 
-import { t } from '../i18n';
+import { t } from '../../i18n';
 
 let installed = false;
 let overlay: HTMLDivElement | null = null;
