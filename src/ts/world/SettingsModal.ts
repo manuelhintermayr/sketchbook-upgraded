@@ -13,6 +13,13 @@ export class SettingsModal
 	private overlay: HTMLDivElement;
 	private isOpen = false;
 
+	// Lazy index of lil-gui controllers by property name. Built on the
+	// first findController call so the cache picks up the gui after
+	// World finishes wiring it. lil-gui's controllersRecursive walks the
+	// folder tree on every call and we'd otherwise do that 30-50× during
+	// a single slider drag.
+	private controllerCache: Map<string, any> | null = null;
+
 	constructor(world: World)
 	{
 		this.world = world;
@@ -217,10 +224,17 @@ export class SettingsModal
 
 	private findController(property: string): any
 	{
-		const gui = this.world.gui;
-		if (!gui || typeof gui.controllersRecursive !== 'function') return null;
-		const found = gui.controllersRecursive().find((c: any) => c.property === property);
-		return found ?? null;
+		if (this.controllerCache === null)
+		{
+			const gui = this.world.gui;
+			if (!gui || typeof gui.controllersRecursive !== 'function') return null;
+			this.controllerCache = new Map();
+			for (const c of gui.controllersRecursive() as any[])
+			{
+				this.controllerCache.set(c.property, c);
+			}
+		}
+		return this.controllerCache.get(property) ?? null;
 	}
 }
 
