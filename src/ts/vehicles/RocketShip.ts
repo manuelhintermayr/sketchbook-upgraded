@@ -102,8 +102,8 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 
 		// Rocket has its own auto-flight + KINEMATIC-pin landing — base
 		// stuck/flip recovery would fight with it.
-		this.stuckRecoveryEnabled = false;
-		this.flipRecoveryEnabled = false;
+		this.recovery.stuckRecoveryEnabled = false;
+		this.recovery.flipRecoveryEnabled = false;
 
 		this.engineSoundProfile = ENGINE_PROFILES.rocket;
 	}

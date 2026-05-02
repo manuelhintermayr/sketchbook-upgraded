@@ -67,8 +67,8 @@ export class Boat extends Vehicle implements IControllable
 
 		// Boats sit still on water and tilt with waves — both auto-recovery
 		// gates would teleport them constantly. Disable both.
-		this.stuckRecoveryEnabled = false;
-		this.flipRecoveryEnabled = false;
+		this.recovery.stuckRecoveryEnabled = false;
+		this.recovery.flipRecoveryEnabled = false;
 
 		this.engineSoundProfile = ENGINE_PROFILES.boat;
 	}

@@ -84,7 +84,7 @@ export class Airplane extends Vehicle implements IControllable, IWorldEntity
 
 		// Slow flight is intentional, so don't flag it as stuck. Flip
 		// recovery still helps after a crash-landing on the wing.
-		this.stuckRecoveryEnabled = false;
+		this.recovery.stuckRecoveryEnabled = false;
 
 		this.engineSoundProfile = ENGINE_PROFILES.airplane;
 	}
