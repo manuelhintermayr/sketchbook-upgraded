@@ -2,9 +2,8 @@
  * Sketchbook design tokens
  *
  * Centralised CSS custom properties for colour, typography, spacing,
- * borders, shadows, motion and z-index ordering. Originally drafted in
- * ui-guide/sketchbook.css and adopted here so every other module can
- * reference var(--…) instead of repeating magic numbers.
+ * borders, shadows, motion and z-index ordering. Every other module
+ * can reference var(--…) instead of repeating magic numbers.
  *
  * Switch the whole UI to dark mode by setting `data-theme="sketchbook"`
  * + `class="dark"` on <html> (the .dark override at the bottom of this

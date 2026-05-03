@@ -1,6 +1,6 @@
 # UI system
 
-The May 2026 UI pass adopted seven pieces of the in-house [ui-guide](../ui-guide/) design system as functional features. This doc is the catalogue.
+The May 2026 UI pass adopted seven pieces of an in-house design system as functional features. This doc is the catalogue.
 
 ## Design tokens (`src/css/modules/tokens.css`)
 

@@ -53,7 +53,6 @@ src/
 build/assets/                       ← world.glb, world_sc_v03.glb, world_sc_v04.glb, vehicles
 vendor/joycon/                      ← Joycon.min.js + Client.js + joycon-sketchbook.js (loaded
                                        directly via <script> from index.html, no bundling)
-ui-guide/                           ← static HTML mockups for the design system (reference only)
 ThreejsEditor/project.json          ← upstream THREE.js editor compat — leave as-is
 ```
 
@@ -110,7 +109,6 @@ ThreejsEditor/project.json          ← upstream THREE.js editor compat — leav
 - `docs/architecture.md` — deeper engine internals.
 - `docs/map-authoring.md` — full userData marker reference.
 - `docs/ui-system.md` — design tokens + UI overlay catalogue.
-- `ui-guide/` — original HTML mockups that shaped the May-2026 UI pass; reference only.
 
 ## When unsure
 

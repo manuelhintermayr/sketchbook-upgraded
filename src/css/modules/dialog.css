@@ -1,6 +1,5 @@
 /* NPC dialog bar — bottom-anchored card with portrait left, speaker
- * name + body text + numbered choices on the right. Adapted from
- * ui-guide/screens/04-dialog.html. */
+ * name + body text + numbered choices on the right. */
 
 #dialog-bar
 {

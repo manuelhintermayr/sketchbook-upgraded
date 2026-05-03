@@ -118,7 +118,6 @@ Beyond this README, the repo carries a handful of complementary docs — pick th
 - [`docs/ui-system.md`](./docs/ui-system.md) — design tokens (`tokens.css`) catalogue and the overlay walkthrough (TitleScreen, PauseMenu, SettingsModal, DialogBox, ErrorOverlay, NameLabel, etc.) — what each one is, where it lives, and how to add a new one.
 - [`CLAUDE.md`](./CLAUDE.md) — Claude Code session memory. Repository layout, code conventions, frame mental model, mistakes to avoid. Mostly the same content as `context.md`, slightly different framing.
 - [`context.md`](./context.md) — the same orientation primer for any other AI coding assistant (Cursor, Continue, Aider, Copilot Workspace, …). Read either this or `CLAUDE.md`, not both.
-- [`ui-guide/`](./ui-guide/) — the original static HTML mockups that shaped the May 2026 UI pass. Reference material; not loaded at runtime.
 
 ---
 
