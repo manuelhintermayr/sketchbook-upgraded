@@ -1,0 +1,133 @@
+/* Mobile + tablet overrides. Imported last from main.css so these
+ * rules win against the per-component defaults. Two breakpoints:
+ *
+ *   --bp-tablet:  768px  ← phones in landscape, narrow tablets
+ *   --bp-mobile:  480px  ← phones in portrait
+ *
+ * Without these the lil-gui debug panel hogs the right edge of every
+ * screen and the controls overlay text is unreadable on a 5-inch
+ * phone (the 3D canvas itself is fine — it just fills whatever
+ * pixels it gets).
+ */
+
+/* ───────── Tablet and below (≤ 768px) ───────── */
+@media (max-width: 768px)
+{
+	/* lil-gui: hide on touch-first devices. It's a desktop debug
+	 * panel — long property names and tiny number sliders that don't
+	 * survive being squeezed into a phone width. The SettingsModal
+	 * (Pause → Settings) covers everything a player actually needs. */
+	.lil-gui.root
+	{
+		display: none !important;
+	}
+
+	/* Stats box: scale down. stats.js's three-panel mode is laid out
+	 * for desktop; on phones the box covers the top-left corner of
+	 * gameplay. */
+	#statsBox
+	{
+		transform: scale(0.65);
+		transform-origin: top left;
+	}
+
+	/* Controls overlay (Z-key toggle list): tighten and shrink.
+	 * The overlay is helpful but not essential — it should hint, not
+	 * block the canvas. */
+	.left-panel .panel-segment
+	{
+		padding: var(--space-3);
+		font-size: var(--text-body-sm);
+	}
+
+	.ctrl-key
+	{
+		padding: 1px 4px;
+		font-size: var(--text-caption);
+	}
+
+	/* Settings modal: card padding gets smaller, audio sliders narrower. */
+	#settings-modal .settings-container
+	{
+		padding: var(--space-4);
+	}
+
+	#settings-modal .settings-card
+	{
+		padding: var(--space-4);
+	}
+
+	#settings-modal input[type="range"]
+	{
+		width: 110px;
+	}
+
+	/* Pause menu buttons stack vertically by default; only ensure the
+	 * card itself doesn't overflow the small viewport. */
+	#pause-menu .pause-card
+	{
+		max-width: 92vw;
+	}
+
+	/* Dialog box: take more of the viewport on phones, smaller portrait. */
+	#dialog-bar
+	{
+		left: var(--space-3);
+		right: var(--space-3);
+	}
+
+	/* Title screen scales itself down. */
+	#title-screen .title-headline
+	{
+		font-size: var(--text-h1);
+	}
+
+	#title-screen .title-prompt
+	{
+		font-size: var(--text-body-sm);
+	}
+}
+
+/* ───────── Phone portrait (≤ 480px) ───────── */
+@media (max-width: 480px)
+{
+	/* Hide the desktop controls overlay completely on small phones —
+	 * the touch-controls overlay (joystick + jump/F/run buttons) is
+	 * the actually-used input layer there. */
+	.left-panel
+	{
+		display: none;
+	}
+
+	/* Touch joystick: smaller so there's more visible canvas. */
+	#touch-joystick-base
+	{
+		width: 110px;
+		height: 110px;
+		bottom: var(--space-6);
+		left: var(--space-6);
+	}
+
+	#touch-joystick-thumb
+	{
+		width: 50px;
+		height: 50px;
+	}
+
+	#title-screen .title-headline
+	{
+		font-size: var(--text-h2);
+	}
+}
+
+/* ───────── Touch-pointer hints (any viewport, touch-first device) ─────────
+ * Fine-pointer inputs (mouse, trackpad) keep the lil-gui visible even on
+ * smaller windows. Coarse-pointer (touch) hides it regardless of width.
+ */
+@media (pointer: coarse)
+{
+	.lil-gui.root
+	{
+		display: none !important;
+	}
+}
