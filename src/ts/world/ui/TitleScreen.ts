@@ -44,6 +44,13 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 		document.head.appendChild(link);
 	}
 
+	// Apply the persisted dark-mode preference before the title screen
+	// even renders so the page never flashes the wrong theme. ParamsGUI
+	// reads the same key when World boots, so the Settings modal stays
+	// in sync.
+	const darkOnInit = localStorage.getItem('sketchbook.darkMode') === 'true';
+	document.documentElement.classList.toggle('dark', darkOnInit);
+
 	const langButtons = (['en', 'de', 'es'] as Locale[]).map((l) => `
 		<button class="title-lang-btn" data-lang="${l}" type="button">${escapeHtml(LOCALE_LABELS[l])}</button>
 	`).join('');
@@ -65,12 +72,41 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 		<div class="title-lang">
 			<span class="title-lang-label">${escapeHtml(t('title.languagePrompt'))}:</span>
 			${langButtons}
+			<button class="title-theme-btn" type="button" aria-label="Toggle dark mode">
+				<span class="title-theme-icon" aria-hidden="true"></span>
+			</button>
 		</div>
 	`;
 	document.body.appendChild(wrap);
 
 	const promptEl = wrap.querySelector<HTMLParagraphElement>('.title-prompt');
 	const labelEl = wrap.querySelector<HTMLSpanElement>('.title-lang-label');
+	const themeBtn = wrap.querySelector<HTMLButtonElement>('.title-theme-btn');
+
+	const refreshThemeBtn = (): void =>
+	{
+		if (themeBtn === null) return;
+		const dark = document.documentElement.classList.contains('dark');
+		themeBtn.classList.toggle('active', dark);
+		themeBtn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+	};
+	refreshThemeBtn();
+
+	if (themeBtn !== null)
+	{
+		const onThemeClick = (e: Event): void =>
+		{
+			// Same dismiss-suppression as the language buttons — the
+			// player is toggling theme, not asking to start.
+			e.stopPropagation();
+			const next = !document.documentElement.classList.contains('dark');
+			document.documentElement.classList.toggle('dark', next);
+			localStorage.setItem('sketchbook.darkMode', next ? 'true' : 'false');
+			refreshThemeBtn();
+		};
+		themeBtn.addEventListener('click', onThemeClick);
+		themeBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+	}
 
 	const refreshActiveLang = (): void =>
 	{

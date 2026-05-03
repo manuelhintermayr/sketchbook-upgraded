@@ -60,7 +60,21 @@ export function createParamsGUI(world: World): void
 		Bloom: false,
 		Depth_Of_Field: false,
 		Animal_Labels: false,
+		// Default off — light mode is the canonical look. The Title
+		// screen toggle and the Settings modal both flip this; lil-gui
+		// persists the value through `gui.save()` so the choice
+		// survives reloads. The Title-screen toggle reads the existing
+		// `html.dark` class on its first render so it doesn't have to
+		// know about the params object.
+		// Default off — light mode is canonical. Source of truth is
+		// localStorage('sketchbook.darkMode'); the Title-screen toggle
+		// writes there before World even exists. The Settings modal
+		// toggle writes there too via the lil-gui onChange below, so
+		// both UIs stay in sync.
+		Dark_Mode: localStorage.getItem('sketchbook.darkMode') === 'true',
 	};
+
+	document.documentElement.classList.toggle('dark', !!world.params.Dark_Mode);
 
 	const gui = new GUI();
 	world.gui = gui;
@@ -198,6 +212,12 @@ export function createParamsGUI(world: World): void
 	settingsFolder.add(world.params, 'Bloom');
 	settingsFolder.add(world.params, 'Depth_Of_Field');
 	settingsFolder.add(world.params, 'Animal_Labels');
+	settingsFolder.add(world.params, 'Dark_Mode')
+		.onChange((enabled) =>
+		{
+			document.documentElement.classList.toggle('dark', !!enabled);
+			localStorage.setItem('sketchbook.darkMode', enabled ? 'true' : 'false');
+		});
 
 	// Settings persistence (ported from Inthenew/Sketchbook).
 	// Snapshot defaults before restoring so Reset_World_Settings can

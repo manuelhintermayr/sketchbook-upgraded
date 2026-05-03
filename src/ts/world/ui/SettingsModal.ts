@@ -66,6 +66,7 @@ export class SettingsModal
 		this.setToggle('Bloom', p.Bloom);
 		this.setToggle('Depth_Of_Field', p.Depth_Of_Field);
 		this.setToggle('Animal_Labels', p.Animal_Labels);
+		this.setToggle('Dark_Mode', p.Dark_Mode);
 	}
 
 	private build(): HTMLDivElement
@@ -103,6 +104,7 @@ export class SettingsModal
 					${this.toggleRow('Bloom', 'Bloom', 'Glow on bright pixels (stronger at night)')}
 					${this.toggleRow('Depth_Of_Field', 'Depth of field', 'Bokeh blur — tighter focus while driving')}
 					${this.toggleRow('Animal_Labels', 'Animal labels', 'Show floating Hund / Katze tags above animals')}
+					${this.toggleRow('Dark_Mode', 'Dark mode', 'Dark surfaces for the modal stack — defaults to your system preference')}
 					${this.toggleRow('Debug_FPS', 'FPS counter', 'Show stats.js box')}
 				</div>
 
