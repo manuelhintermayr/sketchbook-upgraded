@@ -5,7 +5,7 @@ import { sineNoise } from './NoiseLibrary';
 
 // Per-frame camera-position perturbation triggered on impact events
 // (vehicle hard landings, collisions). Pattern adapted from
-// manuelhintermayr-portfolio/three-js useCameraShake — reshaped from a
+// manuelhintermayr-portfolio/three-js useCameraShake - reshaped from a
 // React hook into an IUpdatable that owns its own active-shake list and
 // exposes a static fire-and-forget API so any vehicle / scene code can
 // trigger it without touching the world reference.
@@ -73,7 +73,7 @@ export class CameraShake implements IUpdatable
 		if (this.active.length === 0) return;
 		if (!this.world.params?.Camera_Shake)
 		{
-			// Toggle was flipped off mid-shake — drop the queue.
+			// Toggle was flipped off mid-shake - drop the queue.
 			this.active.length = 0;
 			return;
 		}
@@ -97,7 +97,7 @@ export class CameraShake implements IUpdatable
 				continue;
 			}
 
-			// Quadratic decay envelope — most of the kick is in the first
+			// Quadratic decay envelope - most of the kick is in the first
 			// half of the duration, then it tapers out smoothly.
 			const progress = s.elapsed / s.preset.duration;
 			const envelope = (1 - progress) * (1 - progress);

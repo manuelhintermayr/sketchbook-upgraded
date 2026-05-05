@@ -44,7 +44,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 	private skyMesh: THREE.Mesh;
 	private skyMaterial: THREE.ShaderMaterial;
 
-	// Star field — only visible when the sun has dropped below the
+	// Star field - only visible when the sun has dropped below the
 	// horizon or the player is in space. The shader uses a nightFactor
 	// uniform that we drive from the sun position each frame.
 	private starsPoints: THREE.Points;
@@ -76,7 +76,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		});
 
 		// Mesh. Sky shell, Earth/Moon spheres, and the star points all
-		// move to OutlineSkip — they're "background" geometry whose
+		// move to OutlineSkip - they're "background" geometry whose
 		// silhouette would just create flickering Sobel noise on the
 		// outline pass without adding anything readable.
 		this.skyMesh = new THREE.Mesh(
@@ -118,7 +118,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		moonMesh.layers.set(RenderLayer.OutlineSkip);
 		world.graphicsWorld.add(moonMesh);
 
-		// Stars — 2000 points on the upper hemisphere of a 800-unit
+		// Stars - 2000 points on the upper hemisphere of a 800-unit
 		// shell. Camera-anchored each frame (this object's position
 		// follows world.camera), so the star field always surrounds the
 		// player. The shader fades them in as nightFactor goes up and
@@ -178,7 +178,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 
 		// Hide the atmosphere shell once the camera leaves Earth so the
 		// player sees plain black space instead of the blue Sky shader.
-		// Threshold roughly matches Inthenew's launch apex — anything
+		// Threshold roughly matches Inthenew's launch apex - anything
 		// above there is in transit or on the moon.
 		const inSpace = this.world.onMoon || this.world.camera.position.y > 1500;
 		this.skyMesh.visible = !inSpace;
@@ -227,7 +227,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 
 		for (let i = 0; i < STAR_COUNT; i++)
 		{
-			// Distribute on the upper hemisphere — stars below the horizon
+			// Distribute on the upper hemisphere - stars below the horizon
 			// would clip through the terrain anyway.
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.acos(Math.random());

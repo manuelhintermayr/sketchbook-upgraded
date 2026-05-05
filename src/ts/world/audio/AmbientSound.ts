@@ -1,10 +1,10 @@
 import { World } from '../World';
 import { ProceduralAudio } from './ProceduralAudio';
 
-// Procedural ambient atmosphere — wind (filtered white noise), bird
+// Procedural ambient atmosphere - wind (filtered white noise), bird
 // chirps (FM-synthesised sine bursts on a Poisson-ish schedule), and
 // water (bandpass-filtered noise modulated by an LFO, gated by
-// camera proximity to the ocean). All procedural — no sample files.
+// camera proximity to the ocean). All procedural - no sample files.
 //
 // Lifecycle (start / stop / master volume sync / autoplay-resume) is
 // inherited from ProceduralAudio; this file only builds the synth
@@ -58,7 +58,7 @@ export class AmbientSound extends ProceduralAudio
 			noiseData[i] = Math.random() * 2 - 1;
 		}
 
-		// Wind — looped white noise through a low + highpass to land in
+		// Wind - looped white noise through a low + highpass to land in
 		// the rumbly mid-low range a real outdoor breeze sits in.
 		const windSource = ctx.createBufferSource();
 		windSource.buffer = noiseBuffer;
@@ -83,7 +83,7 @@ export class AmbientSound extends ProceduralAudio
 		windGain.connect(master);
 		windSource.start();
 
-		// Birds — FM synthesis on a sine carrier; modulator frequency
+		// Birds - FM synthesis on a sine carrier; modulator frequency
 		// shifts each chirp burst for variety. Gain is normally 0 and
 		// briefly pulsed by scheduleChirp.
 		const birdCarrier = ctx.createOscillator();
@@ -113,7 +113,7 @@ export class AmbientSound extends ProceduralAudio
 		birdCarrier.start();
 		birdModulator.start();
 
-		// Water — bandpass-filtered noise with a slow LFO sweeping the
+		// Water - bandpass-filtered noise with a slow LFO sweeping the
 		// filter centre. Gated by proximity to the ocean each frame.
 		const waterSource = ctx.createBufferSource();
 		waterSource.buffer = noiseBuffer;
@@ -182,7 +182,7 @@ export class AmbientSound extends ProceduralAudio
 		const n = this.nodes;
 		if (n === null || this.ctx === null) return;
 
-		// Water proximity — Sketchbook's Inthenew ocean sits at y=12, the
+		// Water proximity - Sketchbook's Inthenew ocean sits at y=12, the
 		// wave grid covers a large area around the origin. Near-water is
 		// any time the camera is below ~25 and Ocean exists. Cheap
 		// approximation; getWaveHeightAt would be more accurate but

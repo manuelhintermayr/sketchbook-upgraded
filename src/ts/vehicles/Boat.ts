@@ -65,7 +65,7 @@ export class Boat extends Vehicle implements IControllable
 
 		this.steeringSimulator = new SpringSimulator(60, 10, 0.6);
 
-		// Boats sit still on water and tilt with waves — both auto-recovery
+		// Boats sit still on water and tilt with waves - both auto-recovery
 		// gates would teleport them constantly. Disable both.
 		this.recovery.stuckRecoveryEnabled = false;
 		this.recovery.flipRecoveryEnabled = false;
@@ -86,11 +86,11 @@ export class Boat extends Vehicle implements IControllable
 		super.update(timeStep);
 
 		// The cannon raycast vehicle wants wheels for collision, but a boat
-		// has none visually — hide the wheel objects every frame.
+		// has none visually - hide the wheel objects every frame.
 		this.wheels.forEach(wheel => { wheel.wheelObject.visible = false; });
 
 		// Gear logic is retained to drive transmission shifts; engine force
-		// itself is left at zero — Boat.physicsPreStep writes body.velocity
+		// itself is left at zero - Boat.physicsPreStep writes body.velocity
 		// directly via goForward() instead.
 		const maxGears = 5;
 		const gearsMaxSpeeds: Record<string, number> = {

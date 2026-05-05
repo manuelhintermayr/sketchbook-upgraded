@@ -1,7 +1,7 @@
 import '../css/main.css';
 export { World } from './world/World';
 
-// Procedural sandbox scenes ported from tkkaushik369/socketControl —
+// Procedural sandbox scenes ported from tkkaushik369/socketControl -
 // surfaced here so index.html can `new Sketchbook.TestScene()` etc.
 // and pass the instance into the World constructor as an alternative
 // to a .glb path.
@@ -15,7 +15,7 @@ export { Example } from './world/sandboxes/ExampleScene';
 export { showTitleScreen } from './world/ui/TitleScreen';
 export { installErrorOverlay } from './world/ui/ErrorOverlay';
 
-// Touch controls — auto-installs on touch devices. No-op on desktop,
+// Touch controls - auto-installs on touch devices. No-op on desktop,
 // so it's safe to import unconditionally.
 import { TouchControls } from './core/TouchControls';
 TouchControls.install();

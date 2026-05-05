@@ -8,7 +8,7 @@ import { Character } from '../characters/Character';
 // Concept ported from iErcann/Notblox (back/src/ecs/entity/TriggerCube),
 // reshaped into a single Sketchbook IUpdatable.
 //
-// Center can be either a static THREE.Vector3 or a function — the
+// Center can be either a static THREE.Vector3 or a function - the
 // function form lets the trigger follow a moving target (e.g. an NPC
 // that walks a path) without manually re-anchoring it each frame.
 export type TriggerCenter = THREE.Vector3 | (() => THREE.Vector3);

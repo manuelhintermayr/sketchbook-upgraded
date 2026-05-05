@@ -1,6 +1,6 @@
-# context.md — AI agent onboarding
+# context.md - AI agent onboarding
 
-This file is a generic context primer for any AI coding assistant working on this repository (Cursor, Continue, Aider, Copilot Workspace, agent-mode Claude, etc.). [Claude Code](https://claude.com/claude-code) reads `CLAUDE.md` instead — same content, slightly different framing.
+This file is a generic context primer for any AI coding assistant working on this repository (Cursor, Continue, Aider, Copilot Workspace, agent-mode Claude, etc.). [Claude Code](https://claude.com/claude-code) reads `CLAUDE.md` instead - same content, slightly different framing.
 
 ## TL;DR for fast bootstrapping
 
@@ -53,7 +53,7 @@ src/
 build/assets/                       ← world.glb, world_sc_v03.glb, world_sc_v04.glb, vehicles
 vendor/joycon/                      ← Joycon.min.js + Client.js + joycon-sketchbook.js (loaded
                                        directly via <script> from index.html, no bundling)
-ThreejsEditor/project.json          ← upstream THREE.js editor compat — leave as-is
+ThreejsEditor/project.json          ← upstream THREE.js editor compat - leave as-is
 ```
 
 ## Project conventions (do not violate without asking)
@@ -69,12 +69,12 @@ ThreejsEditor/project.json          ← upstream THREE.js editor compat — leav
 | Commits | preserve upstream authorship via `--author=` when porting |
 | Branches | work on `claude/external-features`; never push to `master` |
 | Emojis | none in code/commits unless user requests |
-| ECS / Multiplayer | **not adopted** — explicitly out of scope |
+| ECS / Multiplayer | **not adopted** - explicitly out of scope |
 
 ## Engine mental model
 
 - **Frame loop:** `World.render()` (RAF) → `World.update(timeStep)` → every registered `IUpdatable.update()` sorted by `updateOrder` → `composer.render()` (FXAA + Bloom + DoF) → `outlineEffect.renderPass()` (if Outlines on) → `labelRenderer.render()` (CSS2D name tags).
-- **Update order slots:** named in `enums/UpdateOrder.ts` — `CharacterPhysics → VehiclePhysics → Input → Camera → Environment → Scenarios → World → Audio → Triggers → Prompts → Labels → PostCamera`. Spaced by 10 so new slots can squeeze between two existing ones without renumbering.
+- **Update order slots:** named in `enums/UpdateOrder.ts` - `CharacterPhysics → VehiclePhysics → Input → Camera → Environment → Scenarios → World → Audio → Triggers → Prompts → Labels → PostCamera`. Spaced by 10 so new slots can squeeze between two existing ones without renumbering.
 - **Pause:** `world.setTimeScale(0)` freezes everything. `PauseMenu` uses this; `SettingsModal` adjusts `params.Master_Volume` etc. through lil-gui controllers so existing onChange handlers fire.
 - **Updatables:** anything visible (Ocean, Grass, Speaker, RaceContent, TriggerCube, ProximityPrompt, Sky, Character, Vehicle, WanderingAnimals, etc.) implements `IUpdatable` and is registered via `world.registerUpdatable()` (or `world.add()` which also registers).
 - **Map authoring:** scenarios + spawns + physics + paths + grass + speakers all come from `userData` on nodes inside `world.glb`. The dispatcher is `loadScene(world, lm, gltf)` in `world/loading/SceneLoader.ts`. Markers are documented in `docs/map-authoring.md`.
@@ -98,18 +98,18 @@ ThreejsEditor/project.json          ← upstream THREE.js editor compat — leav
 1. **Do not** introduce networking, ECS frameworks, or Socket.io.
 2. **Do not** push to `master` or force-push any shared branch without explicit permission.
 3. **Do not** rename or move existing public API (`Sketchbook.World`, scene class exports, `createWelcomeScreenCallback`) without checking call sites in `index.html` and dependent forks.
-4. **Do not** vendor copyrighted assets without checking license. The Inthenew port replaced six hotlinked images with DALL-E equivalents specifically because of this — see the `README.md` v0.6.0 section.
+4. **Do not** vendor copyrighted assets without checking license. The Inthenew port replaced six hotlinked images with DALL-E equivalents specifically because of this - see the `README.md` v0.6.0 section.
 5. **Do not** add `*.md` documentation files spontaneously. The user will ask.
 
 ## Reference docs
 
-- `README.md` — user-facing feature list + project timeline + credits.
-- `CHANGELOG.md` — per-version Keep-a-Changelog detail (the 0.8.0 entry has every commit grouped by category).
-- `CLAUDE.md` — Claude Code memory (~ same content as this file, slightly different audience).
-- `docs/architecture.md` — deeper engine internals.
-- `docs/map-authoring.md` — full userData marker reference.
-- `docs/ui-system.md` — design tokens + UI overlay catalogue.
+- `README.md` - user-facing feature list + project timeline + credits.
+- `CHANGELOG.md` - per-version Keep-a-Changelog detail (the 0.8.0 entry has every commit grouped by category).
+- `CLAUDE.md` - Claude Code memory (~ same content as this file, slightly different audience).
+- `docs/architecture.md` - deeper engine internals.
+- `docs/map-authoring.md` - full userData marker reference.
+- `docs/ui-system.md` - design tokens + UI overlay catalogue.
 
 ## When unsure
 
-Read `README.md`'s timeline first — it explains why each piece is the way it is. Then `git log --oneline` on the relevant file. Most architectural choices are documented in commit messages with the upstream author preserved.
+Read `README.md`'s timeline first - it explains why each piece is the way it is. Then `git log --oneline` on the relevant file. Most architectural choices are documented in commit messages with the upstream author preserved.

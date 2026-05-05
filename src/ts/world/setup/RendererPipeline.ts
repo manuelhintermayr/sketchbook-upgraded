@@ -10,7 +10,7 @@ import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { World } from '../World';
 import { RenderLayer } from '../../enums/RenderLayers';
 
-// Build the rendering pipeline — WebGL renderer, CSS2D label overlay,
+// Build the rendering pipeline - WebGL renderer, CSS2D label overlay,
 // scene + camera, composer with FXAA / Bloom / DoF stacked in their
 // canonical order, plus the window-resize handler that keeps every
 // surface in sync. Bloom and DoF are added with `.enabled = false`
@@ -21,12 +21,12 @@ import { RenderLayer } from '../../enums/RenderLayers';
 //   - world.graphicsWorld, world.camera
 //   - world.composer, world.bloomPass, world.bokehPass
 //
-// Run before bootstrapHTML — that function appends
+// Run before bootstrapHTML - that function appends
 // world.renderer.domElement to <body> as the canvas, so the renderer
 // has to exist first.
 export function setupRendererPipeline(world: World): void
 {
-	// Renderer. Cap pixelRatio at 2 — phones/tablets often report
+	// Renderer. Cap pixelRatio at 2 - phones/tablets often report
 	// DPR 3-4, which forces the GPU to render 9-16× the pixels for
 	// barely visible sharpness gain past 2×. Desktops (DPR 1-2) are
 	// unaffected.
@@ -43,7 +43,7 @@ export function setupRendererPipeline(world: World): void
 	//world.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	// Note: Soft shadows leads to animation errors with car tires
 
-	// CSS2D label overlay — drives the name tags above each character.
+	// CSS2D label overlay - drives the name tags above each character.
 	// Pattern is the one socketControl uses (a parallel renderer that
 	// projects HTML divs to screen-space at the object's world
 	// position). pointerEvents=none so labels never eat clicks.
@@ -87,7 +87,7 @@ export function setupRendererPipeline(world: World): void
 	// rebuild the composer when the player flips them on. Order:
 	//   render → fxaa → bloom → bokeh
 	// Bloom intensity adapts to time-of-day (stronger at night) and
-	// DoF focus is tighter while driving — both updated per frame in
+	// DoF focus is tighter while driving - both updated per frame in
 	// render().
 	world.bloomPass = new UnrealBloomPass(
 		new THREE.Vector2(window.innerWidth, window.innerHeight),

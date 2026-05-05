@@ -115,7 +115,7 @@ export class RaceContent implements IUpdatable
 	{
 		if (this.checkpoints.length === 0 || this.nextCheckpointIndex < 0) return;
 
-		// Track the camera position — single-player follows the human
+		// Track the camera position - single-player follows the human
 		// driver / character / vehicle through the camera operator.
 		const currPos = this.scenario.world.camera.position;
 		for (const cp of this.checkpoints)
@@ -143,7 +143,7 @@ export class RaceContent implements IUpdatable
 	private findFirstNodeName(): string | null
 	{
 		// Look in the scenario's spawn points for the first AI driver's
-		// firstAINode — same convention socketControl uses, and matches
+		// firstAINode - same convention socketControl uses, and matches
 		// how our Boat Race lap tracker found its starting node.
 		for (const sp of this.scenario.spawnPoints)
 		{

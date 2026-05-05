@@ -146,7 +146,7 @@ export class EngineSound extends ProceduralAudio
 		}
 		catch (_e)
 		{
-			// Already stopped — Web Audio throws InvalidStateError if
+			// Already stopped - Web Audio throws InvalidStateError if
 			// stop() is called twice; safe to swallow.
 		}
 		this.nodes = null;

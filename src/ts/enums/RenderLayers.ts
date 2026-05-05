@@ -3,11 +3,11 @@
 // (mesh.layers & camera.layers) != 0.
 export enum RenderLayer
 {
-	// Layer 0 — the default. Every mesh is on it unless moved off.
+	// Layer 0 - the default. Every mesh is on it unless moved off.
 	// Listed here for documentation; not normally written explicitly.
 	Default = 0,
 
-	// Layer 1 — meshes opt INTO this layer to be skipped by the outline
+	// Layer 1 - meshes opt INTO this layer to be skipped by the outline
 	// depth pre-pass. Background geometry that would either look ugly
 	// outlined (grass blades, water tiles) or has no real depth edges
 	// the player benefits from (sky shell, stars, distant celestials)

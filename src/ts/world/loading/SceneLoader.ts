@@ -96,7 +96,7 @@ export function loadScene(world: World, loadingManager: LoadingManager, gltf: an
 			{
 				// socketControl-style cylinder shape. Authored
 				// scale.x is read as radius, scale.y as height
-				// (Sketchbook convention — empties are
+				// (Sketchbook convention - empties are
 				// uniformly scaled and rotated).
 				const phys = new CylinderCollider({
 					radius: child.scale.x,
@@ -140,19 +140,19 @@ export function loadScene(world: World, loadingManager: LoadingManager, gltf: an
 
 	world.graphicsWorld.add(gltf.scene);
 
-	// Map switcher in the Scenarios panel — sits below the scenario
+	// Map switcher in the Scenarios panel - sits below the scenario
 	// list and reloads the page with the alternate world.glb. Default
 	// (no localStorage entry) is the Inthenew map; the SocketControl
 	// map is opt-in and persists across reloads.
 	addMapSwitcher(world);
 
-	// Hand-placed NPCs around the Inthenew default spawn — gives the
+	// Hand-placed NPCs around the Inthenew default spawn - gives the
 	// world some visible occupants without authoring markers in
 	// Blender. Tied to the default scenario so they re-spawn alongside
 	// it and get cleared on switch like other entities.
 	injectDefaultSceneNPCs(world);
 
-	// Wandering dogs / cats around the spawn area — only on the
+	// Wandering dogs / cats around the spawn area - only on the
 	// Inthenew map (the sandboxes are testing zones with their own
 	// flat layouts, animals would just walk off the edge).
 	injectWanderingAnimals(world);

@@ -1,5 +1,5 @@
 // Pre-game title screen. Lives in index.html before any World instance
-// exists — bootstraps the fonts and styles itself, then resolves a
+// exists - bootstraps the fonts and styles itself, then resolves a
 // promise on first user gesture so the caller can build the World.
 //
 // The first user gesture also unblocks browser audio autoplay, which
@@ -96,7 +96,7 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 	{
 		const onThemeClick = (e: Event): void =>
 		{
-			// Same dismiss-suppression as the language buttons — the
+			// Same dismiss-suppression as the language buttons - the
 			// player is toggling theme, not asking to start.
 			e.stopPropagation();
 			const next = !document.documentElement.classList.contains('dark');
@@ -122,7 +122,7 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 	{
 		btn.addEventListener('click', (e) =>
 		{
-			// Stop the click from bubbling to the dismiss listener — the
+			// Stop the click from bubbling to the dismiss listener - the
 			// player is selecting language, not asking to start.
 			e.stopPropagation();
 			const lang = btn.dataset.lang as Locale | undefined;
@@ -133,7 +133,7 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 			refreshActiveLang();
 		});
 		// Pointerdown also bubbles to the document-level dismiss listener
-		// — same stop here.
+		// - same stop here.
 		btn.addEventListener('pointerdown', (e) => e.stopPropagation());
 	});
 

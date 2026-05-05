@@ -12,10 +12,10 @@ export enum UpdateOrder
 	Camera           = 40,    // CameraOperator follows player/vehicle
 	Environment      = 50,    // Sky (sun position), ShapeEntity primitives
 	Scenarios        = 60,    // RaceContent and other scripted progression
-	World            = 100,   // Grass, Ocean, WanderingAnimals — need camera
+	World            = 100,   // Grass, Ocean, WanderingAnimals - need camera
 	Audio            = 110,   // ProceduralAudio (engine/ambient), Speaker
 	Triggers         = 120,   // TriggerCube zones
 	Prompts          = 130,   // ProximityPrompt (after the trigger that owns it)
 	Labels           = 140,   // CSS2D WorldLabels
-	PostCamera       = 150,   // CameraShake — runs after the camera is final
+	PostCamera       = 150,   // CameraShake - runs after the camera is final
 }

@@ -6,7 +6,7 @@ import {
 	CAT_FLEE_DIST,
 } from './AnimalBehavior';
 
-// Module-scoped scratch vector — reused across every cat update each
+// Module-scoped scratch vector - reused across every cat update each
 // frame to dodge per-call Vector3 allocations.
 const _toPlayer = new THREE.Vector3();
 
@@ -51,7 +51,7 @@ class CatBehavior extends AnimalBehavior
 	}
 }
 
-// Singleton — CatBehavior is stateless; one instance is shared across
+// Singleton - CatBehavior is stateless; one instance is shared across
 // every cat. Exporting only the singleton (not the class) keeps the
 // surface tight: there's no reason to ever construct another one.
 export const CAT_BEHAVIOR: AnimalBehavior = new CatBehavior();

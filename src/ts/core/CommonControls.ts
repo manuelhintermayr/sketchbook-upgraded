@@ -3,7 +3,7 @@ import { t } from '../i18n';
 // Shared rows for the on-screen controls HUD (the help overlay
 // World.updateControls() drives). Returned as functions, not module
 // constants, so t() resolves at call time and the strings reflect the
-// current language — building them once at module load would freeze
+// current language - building them once at module load would freeze
 // them in whatever locale was active first.
 
 // Always-available shortcuts the world hands to every input receiver

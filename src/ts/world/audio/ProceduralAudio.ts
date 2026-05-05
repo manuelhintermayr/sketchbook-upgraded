@@ -8,7 +8,7 @@ import { UpdateOrder } from '../../enums/UpdateOrder';
 // graph instead of playing a sample). Centralises the lifecycle that
 // EngineSound and AmbientSound used to duplicate:
 //
-//  - AudioContext acquisition via THREE.AudioContext.getContext() —
+//  - AudioContext acquisition via THREE.AudioContext.getContext() -
 //    a static shared instance reused by THREE.AudioListener +
 //    PositionalAudio. Browsers cap concurrent contexts at ~6, so
 //    sharing one across all procedural layers + every Speaker keeps
@@ -17,20 +17,20 @@ import { UpdateOrder } from '../../enums/UpdateOrder';
 //    flips false (gain ramp + delayed teardown so the cut isn't
 //    audible).
 //  - Per-frame Master_Volume sync from world.params (same slider
-//    that drives THREE.AudioListener for positional audio — single
+//    that drives THREE.AudioListener for positional audio - single
 //    source of truth across every audio source).
 //  - Browser autoplay-policy resume each frame (cheap; the browser
 //    ignores resume() when the context is already running).
 //
 // Subclass contract:
-//  - masterMix       — fraction of Master_Volume this layer uses
+//  - masterMix       - fraction of Master_Volume this layer uses
 //                      (engine = 1.0 full, ambient = 0.7 dampened)
-//  - shouldPlay()    — when the synth should be running
-//  - buildSynth()    — construct oscillators / filters, connect to
+//  - shouldPlay()    - when the synth should be running
+//  - buildSynth()    - construct oscillators / filters, connect to
 //                      master, start oscillators
-//  - teardownSynth() — stop oscillators, called after the gain ramp
+//  - teardownSynth() - stop oscillators, called after the gain ramp
 //                      so the cut isn't audible
-//  - updateSynth()   — per-frame parameter modulation
+//  - updateSynth()   - per-frame parameter modulation
 
 export abstract class ProceduralAudio implements IUpdatable
 {
@@ -116,7 +116,7 @@ export abstract class ProceduralAudio implements IUpdatable
 		// Defer teardown so the gain ramp is audible. Subclass stops
 		// its own oscillators here; we then disconnect the master gain
 		// so it can be GC'd. The shared AudioContext is never closed
-		// — other audio systems (other vehicles, Speakers) keep using
+		// - other audio systems (other vehicles, Speakers) keep using
 		// it.
 		setTimeout(() =>
 		{

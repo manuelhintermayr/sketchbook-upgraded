@@ -43,7 +43,7 @@ export class Ocean implements IUpdatable
 	{
 		this.world = world;
 
-		// Hide the original ocean plane carried in world.glb — we render
+		// Hide the original ocean plane carried in world.glb - we render
 		// the tiled wave grid on top of it.
 		this.material = new THREE.MeshBasicMaterial({
 			color: 'skyblue',
@@ -192,7 +192,7 @@ export class Ocean implements IUpdatable
 			{
 				const tile = new THREE.Mesh(this.waveGeometry, this.waveMaterial);
 				tile.position.set(this.tileXOffsets[x], 12, -this.tileZOffsets[z]);
-				// Outline pass skips ocean tiles — wave displacement
+				// Outline pass skips ocean tiles - wave displacement
 				// would otherwise generate constant Sobel noise across
 				// the whole water surface every frame.
 				tile.layers.set(RenderLayer.OutlineSkip);

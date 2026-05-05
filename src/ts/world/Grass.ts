@@ -157,7 +157,7 @@ export class Grass implements IWorldEntity
 
 		grassLod.position.copy(transform.position);
 
-		// Move every node in the LOD onto OutlineSkip — outlining 300k
+		// Move every node in the LOD onto OutlineSkip - outlining 300k
 		// grass blades looks like static, and the depth pre-pass would
 		// pay the full instanced draw call for nothing.
 		grassLod.traverse(child => child.layers.set(RenderLayer.OutlineSkip));

@@ -6,7 +6,7 @@ import { NPCSpawnPoint } from '../spawn/NPCSpawnPoint';
 import { getDefaultDialogs } from '../scenarios/defaultDialogs';
 
 // Hand-placed Anna / Ben / Carla / Dieter NPCs around the Inthenew
-// default spawn — gives the world some visible occupants without
+// default spawn - gives the world some visible occupants without
 // authoring markers in Blender. Tied to the default scenario so they
 // re-spawn alongside it and clear on switch like other entities.
 //

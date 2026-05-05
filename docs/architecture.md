@@ -24,13 +24,13 @@ In-depth notes on how the engine is wired together. Pair with `CLAUDE.md` / `con
 │    audioListener • gui (lil-gui)                                │
 │                                                                 │
 │  Heavy setup is in helpers (called from constructor):           │
-│    setup/RendererPipeline   — renderer + composer + post-FX     │
-│    setup/HTMLBootstrap      — DOM scaffolding                   │
-│    setup/ParamsGUI          — lil-gui panel + persistence       │
-│    setup/MapSwitcher        — Scenarios-folder map dropdown     │
-│    setup/DefaultNPCInjector — Anna/Ben/Carla/Dieter             │
-│    setup/AnimalInjector     — wandering dogs/cats               │
-│    loading/SceneLoader      — GLTF userData dispatcher          │
+│    setup/RendererPipeline   - renderer + composer + post-FX     │
+│    setup/HTMLBootstrap      - DOM scaffolding                   │
+│    setup/ParamsGUI          - lil-gui panel + persistence       │
+│    setup/MapSwitcher        - Scenarios-folder map dropdown     │
+│    setup/DefaultNPCInjector - Anna/Ben/Carla/Dieter             │
+│    setup/AnimalInjector     - wandering dogs/cats               │
+│    loading/SceneLoader      - GLTF userData dispatcher          │
 └─────────────────────────────────────────────────────────────────┘
               │
               ▼
@@ -50,18 +50,18 @@ Slot constants are defined in `src/ts/enums/UpdateOrder.ts`. Each slot is spaced
 
 | Slot (value) | Class(es) |
 |---|---|
-| `CharacterPhysics` (10) | `Character` — physics step, state-machine update, control input |
-| `VehiclePhysics` (20) | `Vehicle` — physics step, control input, hard-landing detection, stuck-recovery |
-| `Input` (30) | `InputManager` — drains mouse/keyboard buffers, dispatches to receiver. `InfoStack` shares the slot |
-| `Camera` (40) | `CameraOperator` — orbit/free-cam input, position lerp |
-| `Environment` (50) | `Sky` — sun position, day/night cycle, CSM frustum sync. `ShapeEntity` shares the slot |
-| `Scenarios` (60) | `RaceContent` — per-frame plane crossings against checkpoints |
+| `CharacterPhysics` (10) | `Character` - physics step, state-machine update, control input |
+| `VehiclePhysics` (20) | `Vehicle` - physics step, control input, hard-landing detection, stuck-recovery |
+| `Input` (30) | `InputManager` - drains mouse/keyboard buffers, dispatches to receiver. `InfoStack` shares the slot |
+| `Camera` (40) | `CameraOperator` - orbit/free-cam input, position lerp |
+| `Environment` (50) | `Sky` - sun position, day/night cycle, CSM frustum sync. `ShapeEntity` shares the slot |
+| `Scenarios` (60) | `RaceContent` - per-frame plane crossings against checkpoints |
 | `World` (100) | `Grass` (shader time / player-position uniforms), `Ocean` (wave / normal-map), `WanderingAnimals` (state machine + position lerp) |
-| `Audio` (110) | `ProceduralAudio` (engine + ambient) — master-volume sync, oscillator parameter modulation; `Speaker` shares the slot |
-| `Triggers` (120) | `TriggerCube` — AABB containment check vs. player |
-| `Prompts` (130) | `ProximityPrompt` — no-op per frame (relies on TriggerCube + keydown) |
-| `Labels` (140) | `WorldLabels` — distance-cull CSS2D name tags |
-| `PostCamera` (150) | `CameraShake` — adds transient camera-position offset after CameraOperator finalises the frame's camera |
+| `Audio` (110) | `ProceduralAudio` (engine + ambient) - master-volume sync, oscillator parameter modulation; `Speaker` shares the slot |
+| `Triggers` (120) | `TriggerCube` - AABB containment check vs. player |
+| `Prompts` (130) | `ProximityPrompt` - no-op per frame (relies on TriggerCube + keydown) |
+| `Labels` (140) | `WorldLabels` - distance-cull CSS2D name tags |
+| `PostCamera` (150) | `CameraShake` - adds transient camera-position offset after CameraOperator finalises the frame's camera |
 
 `updateOrder` is the IUpdatable contract; lil-gui's onChange handlers and Scenario.launch don't run inside this loop.
 
@@ -110,9 +110,9 @@ ICollider            options: any
 
 ## State machines
 
-- **Character** — `src/ts/characters/character_states/`. ~25 states (Idle, Walk, Sprint, JumpIdle, JumpRunning, Falling, DropIdle, DropRunning, DropRolling, EndWalk, IdleRotateLeft/Right, StartWalk*, EnteringVehicle, Driving, ExitingVehicle, etc.). State changes via `character.setState(new Walk(this))`. Each state has `onInputChange()` and `update()`.
-- **Vehicle entry** — `VehicleEntryInstance` orchestrates the multi-frame walk-up + door-open + sit sequence.
-- **AI behaviours** — `RandomBehaviour`, `FollowTarget`, `FollowPath`. Set via `character.setBehaviour(new FollowPath(node, speed))`. Behaviours mutate `character.viewVector` etc; the same state machine renders them.
+- **Character** - `src/ts/characters/character_states/`. ~25 states (Idle, Walk, Sprint, JumpIdle, JumpRunning, Falling, DropIdle, DropRunning, DropRolling, EndWalk, IdleRotateLeft/Right, StartWalk*, EnteringVehicle, Driving, ExitingVehicle, etc.). State changes via `character.setState(new Walk(this))`. Each state has `onInputChange()` and `update()`.
+- **Vehicle entry** - `VehicleEntryInstance` orchestrates the multi-frame walk-up + door-open + sit sequence.
+- **AI behaviours** - `RandomBehaviour`, `FollowTarget`, `FollowPath`. Set via `character.setBehaviour(new FollowPath(node, speed))`. Behaviours mutate `character.viewVector` etc; the same state machine renders them.
 
 ## Physics
 
@@ -127,7 +127,7 @@ Setup lives in `src/ts/world/setup/RendererPipeline.ts` and is called once from 
 
 - `THREE.WebGLRenderer` with PCF shadows, ACES tone mapping, `pixelRatio` capped at 2 (`Math.min(window.devicePixelRatio, 2)`).
 - `EffectComposer` chain in order: `RenderPass` → `FXAAShader` → `UnrealBloomPass` → `BokehPass`. Bloom and DoF default to `enabled = false` so toggling them at runtime never has to rebuild the composer.
-- `OutlineEffect` (in `src/ts/world/OutlineEffect.ts`) runs *after* the composer. Two-pass: depth pre-pass into a `HalfFloatType` render target via `MeshDepthMaterial` override (skips `RenderLayer.OutlineSkip` — sky / stars / earth / moon / grass / ocean), then a Sobel-edge fullscreen quad with a scale-invariant ratio threshold.
+- `OutlineEffect` (in `src/ts/world/OutlineEffect.ts`) runs *after* the composer. Two-pass: depth pre-pass into a `HalfFloatType` render target via `MeshDepthMaterial` override (skips `RenderLayer.OutlineSkip` - sky / stars / earth / moon / grass / ocean), then a Sobel-edge fullscreen quad with a scale-invariant ratio threshold.
 - `CSM` (cascaded shadow maps from three.js examples) attached to `Sky` with `shadowMapSize: 1024` × 3 cascades. `csm.setupMaterial(child.material)` is called for every loaded mesh during `loadScene`.
 - `CSS2DRenderer` runs after the outline pass to project name-tag divs above their world-space anchor. Lives at `world.labelRenderer`, has its own absolutely-positioned overlay div with `pointer-events: none`. Distance culling is centralised through `WorldLabels` in `src/ts/world/ui/WorldLabels.ts`.
 - GPU shader pre-compile: `LoadingManager.doneLoading` awaits `renderer.compileAsync(scene, camera)` before lifting the loading screen, so the first time the player turns toward an as-yet-unrendered asset doesn't stall the frame for shader compilation.
@@ -139,7 +139,7 @@ All audio modules live in `src/ts/world/audio/` and share a single `THREE.AudioC
 - `ProceduralAudio` is the abstract base. Subclasses provide `shouldPlay()`, `buildSynth()`, `teardownSynth()`, `updateSynth()`. The base handles the master-gain ramp, lazy AudioContext acquisition, and the lifecycle so each subclass focuses on the oscillator graph.
 - `EngineSound` (per-Vehicle) has 5 timbre profiles (car / heli / airplane / boat / rocket) selected via `vehicle.engineSoundProfile`. RPM is modulated by chassis speed.
 - `AmbientSound` is the world-level wind / bird-chirp / water synth, with proximity-gated water gain (only audible near the ocean).
-- `Speaker` is the map-driven 3D positional audio source — built from a `userData.data='speaker'` marker. It builds an HTML `<audio>` element, wraps it in `THREE.PositionalAudio.setMediaElementSource(el)`, attaches to its own Object3D in the scene.
+- `Speaker` is the map-driven 3D positional audio source - built from a `userData.data='speaker'` marker. It builds an HTML `<audio>` element, wraps it in `THREE.PositionalAudio.setMediaElementSource(el)`, attaches to its own Object3D in the scene.
 - `THREE.AudioListener` is attached lazily to `world.camera` the first time a `Speaker` is constructed. Stored at `world.audioListener` so `SettingsModal` can call `setMasterVolume(v / 100)`.
 - Browser autoplay-policy gating: every Speaker that fails to autoplay registers itself on a static queue; a single `pointerdown`/`keydown` listener on `window` plays everything queued. The queue cleans up on `removeFromWorld` so scenario switches before the first gesture don't leak references.
 
@@ -154,7 +154,7 @@ All overlay files live under `src/ts/world/ui/` (moved there in the 0.8.0 reorga
 | PauseMenu | `src/ts/world/ui/PauseMenu.ts` | Esc (after `enable()`); buttons: Resume, Settings, Restart, Reload |
 | SettingsModal | `src/ts/world/ui/SettingsModal.ts` | PauseMenu → Settings; writes through lil-gui controllers (cached as a Map for O(1) lookup) |
 | DialogBox | `src/ts/world/ui/DialogBox.ts` | Singleton; opened by `ProximityPrompt` when `dialog` param is set |
-| IrisTransition | `src/ts/world/ui/IrisTransition.ts` | Singleton CSS clip-path wipe — used for map switches and scenario restarts |
+| IrisTransition | `src/ts/world/ui/IrisTransition.ts` | Singleton CSS clip-path wipe - used for map switches and scenario restarts |
 | ErrorOverlay | `src/ts/world/ui/ErrorOverlay.ts` | `window.onerror` + `unhandledrejection` (installed by index.html) |
 | NameLabel | `src/ts/world/ui/NameLabel.ts` | `attachNameLabel(character, name, isPlayer)` from spawn points |
 | WorldLabels | `src/ts/world/ui/WorldLabels.ts` | Distance-culling registry on top of CSS2DRenderer; `attachNameLabel` goes through it |
@@ -163,13 +163,13 @@ All overlays are `position: fixed; z-index: var(--z-modal)` (or higher for `--z-
 
 ## Persistence
 
-- `localStorage['sketchbook-settings']` — full lil-gui state via `gui.save()` / `gui.load()`. Restored on World construction (in `setup/ParamsGUI.ts`); persisted on every change via `gui.onFinishChange`.
-- `localStorage['sketchbook.map']` — selected map id. Read by `index.html` before constructing World; written by the Scenarios-panel map dropdown (`setup/MapSwitcher.ts`).
-- `localStorage['sketchbook.locale']` — selected language (en / de / es). Set by the title-screen language picker; read by `i18n` on module load.
+- `localStorage['sketchbook-settings']` - full lil-gui state via `gui.save()` / `gui.load()`. Restored on World construction (in `setup/ParamsGUI.ts`); persisted on every change via `gui.onFinishChange`.
+- `localStorage['sketchbook.map']` - selected map id. Read by `index.html` before constructing World; written by the Scenarios-panel map dropdown (`setup/MapSwitcher.ts`).
+- `localStorage['sketchbook.locale']` - selected language (en / de / es). Set by the title-screen language picker; read by `i18n` on module load.
 
 ## Sandbox scenes (BaseScene subclasses)
 
-`src/ts/world/sandboxes/BaseScene.ts` is an abstract class with a `THREE.Scene` and three vehicle-mesh slots (kept for upstream compat — Sketchbook always loads vehicles from `.glb`, so the slots are unused). Subclasses (`TestScene`, `Test2Scene`, `Test3Scene`, `Example`) populate `this.scene` with meshes carrying the same userData markers as a `.glb`. `World` accepts either a string `.glb` path or a `BaseScene` instance — the latter is wrapped in a `{scene: …}` fake-GLTF and runs through the same `loadScene` path.
+`src/ts/world/sandboxes/BaseScene.ts` is an abstract class with a `THREE.Scene` and three vehicle-mesh slots (kept for upstream compat - Sketchbook always loads vehicles from `.glb`, so the slots are unused). Subclasses (`TestScene`, `Test2Scene`, `Test3Scene`, `Example`) populate `this.scene` with meshes carrying the same userData markers as a `.glb`. `World` accepts either a string `.glb` path or a `BaseScene` instance - the latter is wrapped in a `{scene: …}` fake-GLTF and runs through the same `loadScene` path.
 
 ## Map switcher
 

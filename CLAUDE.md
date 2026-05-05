@@ -1,28 +1,28 @@
-# CLAUDE.md — Claude Code memory for sketchbook-upgraded
+# CLAUDE.md - Claude Code memory for sketchbook-upgraded
 
-This file is loaded automatically by [Claude Code](https://claude.com/claude-code) at the start of every session in this repository. Keep it concise and current — re-read it before assuming anything.
+This file is loaded automatically by [Claude Code](https://claude.com/claude-code) at the start of every session in this repository. Keep it concise and current - re-read it before assuming anything.
 
 ## What this repo is
 
-A maintained extension of [swift502/Sketchbook](https://github.com/swift502/Sketchbook) — a small web-based 3D game engine on three.js + cannon-es with third-person controls, vehicles, scripted scenarios. Curated features from later community forks (Inthenew, socketControl, Notblox, benhatsor) are merged in. See `README.md` for the full timeline.
+A maintained extension of [swift502/Sketchbook](https://github.com/swift502/Sketchbook) - a small web-based 3D game engine on three.js + cannon-es with third-person controls, vehicles, scripted scenarios. Curated features from later community forks (Inthenew, socketControl, Notblox, benhatsor) are merged in. See `README.md` for the full timeline.
 
-Status: actively developed on branch `claude/external-features` (May 2026). Latest baseline: post-0.8.0 — UI overhaul + new features + a long internals pass (World.ts split, Vehicle StuckRecovery extracted, etc.).
+Status: actively developed on branch `claude/external-features` (May 2026). Latest baseline: post-0.8.0 - UI overhaul + new features + a long internals pass (World.ts split, Vehicle StuckRecovery extracted, etc.).
 
 ## Build / run / lint
 
 ```bash
 npm install               # once
-npm run build             # bundles build/sketchbook.min.js — required before first dev
+npm run build             # bundles build/sketchbook.min.js - required before first dev
 npm run dev               # webpack-dev-server at http://localhost:8080
 npm run lint              # ESLint over src/ts
 npx tsc --noEmit          # type-check without emitting (faster than full build for sanity checks)
 ```
 
-The bundle is **not** committed; do not assume `build/sketchbook.min.js` exists fresh — run `npm run build` first.
+The bundle is **not** committed; do not assume `build/sketchbook.min.js` exists fresh - run `npm run build` first.
 
 `build/assets/*.glb` and `build/assets/*.jpg` are committed (they're vendored level/vehicle models, not webpack output).
 
-## Code conventions (match these — don't reformat)
+## Code conventions (match these - don't reformat)
 
 - **Indentation:** tabs. ESLint will complain on spaces.
 - **Quotes:** single (`'…'`).
@@ -38,30 +38,30 @@ The bundle is **not** committed; do not assume `build/sketchbook.min.js` exists 
   }
   ```
 - **Imports:** group per area (three first, then cannon, then internal). No barrel files.
-- **Comments:** sparse and *why*-focused. Don't narrate code that names itself. Don't reference issue numbers / commits / "added by X" — that's `git log` territory.
+- **Comments:** sparse and *why*-focused. Don't narrate code that names itself. Don't reference issue numbers / commits / "added by X" - that's `git log` territory.
 - **No emojis** in code or commits unless the user asks.
-- **No new files** without need — prefer extending an existing one. Especially no `*.md` files unless explicitly requested.
+- **No new files** without need - prefer extending an existing one. Especially no `*.md` files unless explicitly requested.
 
 ## Architecture map
 
-- `src/ts/sketchbook.ts` — bundle entry point, exports `Sketchbook.World`, the four sandbox classes, `showTitleScreen`, `installErrorOverlay`.
-- `src/ts/world/World.ts` — central orchestrator (~636 LOC after the 0.8.0 split). Holds renderer / physics / scenarios / updatables registry / lil-gui / audio listener / pause menu, plus the per-frame `update` + `render` loops. Heavy setup lives in dedicated helpers (see below).
-- `src/ts/world/setup/` — single-function helpers called from World's constructor: `bootstrapHTML` (DOM scaffolding), `setupRendererPipeline` (renderer + composer + post-FX + resize), `createParamsGUI` (lil-gui panel + persistence), `addMapSwitcher` (Scenarios-folder dropdown), `injectDefaultSceneNPCs` (Anna/Ben/Carla/Dieter), `injectWanderingAnimals` (dogs/cats).
-- `src/ts/world/loading/SceneLoader.ts` — `loadScene(world, loadingManager, gltf)`: walks the GLTF and dispatches by `userData.data` to physics / spawn / scenario / path / ocean / grass / speaker constructors.
-- `src/ts/world/scenarios/` — `Scenario`, `Path`, `PathNode`, `defaultDialogs`. The scenario subsystem.
-- `src/ts/world/spawn/` — `Character/NPC/Vehicle/Shape SpawnPoint` + `ShapeEntity`. Marker-driven entity factories.
-- `src/ts/world/ui/` — DOM/CSS2D overlays: `TitleScreen`, `PauseMenu`, `SettingsModal`, `DialogBox`, `ErrorOverlay`, `IrisTransition`, `NameLabel`, `WorldLabels`.
-- `src/ts/world/audio/` — `ProceduralAudio` base + `EngineSound` / `AmbientSound` / `Speaker`. Shared `AudioContext` lifecycle.
-- `src/ts/world/animals/` — `WanderingAnimals` manager + `AnimalBehavior` / `DogBehavior` / `CatBehavior` (Strategy pattern, singleton instances).
-- `src/ts/world/sandboxes/` — procedural test scenes ported from socketControl (`BaseScene` + `TestScene` / `Test2Scene` / `Test3Scene` / `ExampleScene`). They build their world in the constructor by populating `this.scene` with userData markers.
-- `src/ts/world/` (root) — visual environment entities + small subsystems: `Sky`, `Ocean`, `Grass`/`GrassShader`/`Perlin`, `OutlineEffect`, `RaceCheckpoint`/`RaceContent`, `TriggerCube`, `ProximityPrompt`.
-- `src/ts/core/` — shared infra: `LoadingManager`, `InputManager`, `CameraOperator`, `CameraShake`, `CommonControls`, `UIManager`, `FunctionLibrary`, `TouchControls`.
-- `src/ts/characters/` — Character class + state machine (Idle, Walk, Sprint, Falling, Drop*, JumpRunning, vehicle states, etc.) + character_ai/ behaviours (FollowPath, FollowTarget, RandomBehaviour).
-- `src/ts/vehicles/` — `Vehicle` base, `Car` / `Helicopter` / `Airplane` / `Boat` / `RocketShip`, plus `StuckRecovery` helper extracted from Vehicle.
-- `src/ts/physics/colliders/` — `BoxCollider`, `SphereCollider`, `CylinderCollider`, `CapsuleCollider`, `TrimeshCollider` — thin wrappers around CANNON shapes.
-- `src/ts/enums/` — `EntityType`, `CollisionGroups`, `SeatType`, `Side`, `Space`, `UpdateOrder` (semantic slot order), `RenderLayers`.
-- `src/ts/i18n/` — `t(key, vars)` lookup, flat translation table (en/de/es), persisted to localStorage.
-- `src/css/main.css` — imports all module CSS. `tokens.css` defines every shared CSS custom property; everything else uses `var(--…)`.
+- `src/ts/sketchbook.ts` - bundle entry point, exports `Sketchbook.World`, the four sandbox classes, `showTitleScreen`, `installErrorOverlay`.
+- `src/ts/world/World.ts` - central orchestrator (~636 LOC after the 0.8.0 split). Holds renderer / physics / scenarios / updatables registry / lil-gui / audio listener / pause menu, plus the per-frame `update` + `render` loops. Heavy setup lives in dedicated helpers (see below).
+- `src/ts/world/setup/` - single-function helpers called from World's constructor: `bootstrapHTML` (DOM scaffolding), `setupRendererPipeline` (renderer + composer + post-FX + resize), `createParamsGUI` (lil-gui panel + persistence), `addMapSwitcher` (Scenarios-folder dropdown), `injectDefaultSceneNPCs` (Anna/Ben/Carla/Dieter), `injectWanderingAnimals` (dogs/cats).
+- `src/ts/world/loading/SceneLoader.ts` - `loadScene(world, loadingManager, gltf)`: walks the GLTF and dispatches by `userData.data` to physics / spawn / scenario / path / ocean / grass / speaker constructors.
+- `src/ts/world/scenarios/` - `Scenario`, `Path`, `PathNode`, `defaultDialogs`. The scenario subsystem.
+- `src/ts/world/spawn/` - `Character/NPC/Vehicle/Shape SpawnPoint` + `ShapeEntity`. Marker-driven entity factories.
+- `src/ts/world/ui/` - DOM/CSS2D overlays: `TitleScreen`, `PauseMenu`, `SettingsModal`, `DialogBox`, `ErrorOverlay`, `IrisTransition`, `NameLabel`, `WorldLabels`.
+- `src/ts/world/audio/` - `ProceduralAudio` base + `EngineSound` / `AmbientSound` / `Speaker`. Shared `AudioContext` lifecycle.
+- `src/ts/world/animals/` - `WanderingAnimals` manager + `AnimalBehavior` / `DogBehavior` / `CatBehavior` (Strategy pattern, singleton instances).
+- `src/ts/world/sandboxes/` - procedural test scenes ported from socketControl (`BaseScene` + `TestScene` / `Test2Scene` / `Test3Scene` / `ExampleScene`). They build their world in the constructor by populating `this.scene` with userData markers.
+- `src/ts/world/` (root) - visual environment entities + small subsystems: `Sky`, `Ocean`, `Grass`/`GrassShader`/`Perlin`, `OutlineEffect`, `RaceCheckpoint`/`RaceContent`, `TriggerCube`, `ProximityPrompt`.
+- `src/ts/core/` - shared infra: `LoadingManager`, `InputManager`, `CameraOperator`, `CameraShake`, `CommonControls`, `UIManager`, `FunctionLibrary`, `TouchControls`.
+- `src/ts/characters/` - Character class + state machine (Idle, Walk, Sprint, Falling, Drop*, JumpRunning, vehicle states, etc.) + character_ai/ behaviours (FollowPath, FollowTarget, RandomBehaviour).
+- `src/ts/vehicles/` - `Vehicle` base, `Car` / `Helicopter` / `Airplane` / `Boat` / `RocketShip`, plus `StuckRecovery` helper extracted from Vehicle.
+- `src/ts/physics/colliders/` - `BoxCollider`, `SphereCollider`, `CylinderCollider`, `CapsuleCollider`, `TrimeshCollider` - thin wrappers around CANNON shapes.
+- `src/ts/enums/` - `EntityType`, `CollisionGroups`, `SeatType`, `Side`, `Space`, `UpdateOrder` (semantic slot order), `RenderLayers`.
+- `src/ts/i18n/` - `t(key, vars)` lookup, flat translation table (en/de/es), persisted to localStorage.
+- `src/css/main.css` - imports all module CSS. `tokens.css` defines every shared CSS custom property; everything else uses `var(--…)`.
 
 For deeper pointers see `docs/architecture.md` and `docs/map-authoring.md`.
 
@@ -92,12 +92,12 @@ For full list and example markers see `docs/map-authoring.md`.
 
 ## Things to NOT do
 
-- Don't add multiplayer / Socket.io / ECS plumbing — explicit non-goal of this fork.
-- Don't replace lil-gui with a custom panel — settings flow through it via `gui.controllersRecursive().find().setValue()` from the SettingsModal.
+- Don't add multiplayer / Socket.io / ECS plumbing - explicit non-goal of this fork.
+- Don't replace lil-gui with a custom panel - settings flow through it via `gui.controllersRecursive().find().setValue()` from the SettingsModal.
 - Don't break commit attribution. When porting from a fork, use `--author="Original Author <email>"` and the original date so `git log` reflects who did the original work.
 - Don't push to `main`/`master`. Active branch is `claude/external-features`. Other branches like `claude/inthenew-*` are historical.
 - Don't downgrade dependencies. The April 2026 toolchain pass updated everything to current LTS.
-- Don't use `Array.prototype.includes` blindly — `tsconfig.json` targets ES2015 in some paths. Use `indexOf(x) !== -1` if `tsc` complains.
+- Don't use `Array.prototype.includes` blindly - `tsconfig.json` targets ES2015 in some paths. Use `indexOf(x) !== -1` if `tsc` complains.
 
 ## Ongoing TODO
 

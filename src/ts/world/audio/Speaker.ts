@@ -113,7 +113,7 @@ export class Speaker extends THREE.Object3D implements IWorldEntity
 		world.graphicsWorld.remove(this);
 		if (this.audio.dom)
 		{
-			// Drop the dom element from the gesture-pending queue too —
+			// Drop the dom element from the gesture-pending queue too -
 			// the static array would otherwise keep a reference to a
 			// paused, detached audio node across scenario switches that
 			// happen before the user has clicked anywhere yet, and the

@@ -2,7 +2,7 @@ import { World } from '../World';
 import { IrisTransition } from '../ui/IrisTransition';
 
 // Adds a Map dropdown to the Scenarios lil-gui folder. Default is the
-// Inthenew (v0.6) map; alternates are five socketControl maps — two
+// Inthenew (v0.6) map; alternates are five socketControl maps - two
 // GLB-backed Sketchbook variants and four code-built test sandboxes
 // that BaseScene subclasses build procedurally at runtime.
 //

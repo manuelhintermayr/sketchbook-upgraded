@@ -12,7 +12,7 @@ import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { commonVehicleControls } from '../core/CommonControls';
 import { t } from '../i18n';
 
-// Module-scoped scratch — physicsPreStep runs at 60Hz per heli, so
+// Module-scoped scratch - physicsPreStep runs at 60Hz per heli, so
 // every `new Vector3` here would cost 9 allocations × frame × instance.
 // Reuse these instead. Constants ending in _AXIS are immutable seeds
 // that we copy() into a working scratch before applying transforms.

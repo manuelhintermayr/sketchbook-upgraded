@@ -1,6 +1,6 @@
 /* Planet selection modal shown after the rocketship reaches apogee.
  * Two clickable cards: Earth and Moon. The .planet-menu-hidden class
- * is the inactive state — World.ts toggles it on / off as the rocket
+ * is the inactive state - World.ts toggles it on / off as the rocket
  * lifts off and lands. */
 
 #planet-menu

@@ -48,13 +48,13 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	// Hard-landing tracker. Watches the chassis's Y velocity each step;
 	// a sharp transition from fast-falling (< -6) to grounded (> -1)
 	// fires a 'land' camera shake scaled by impact strength. Same
-	// heuristic as portfolio's Vehicle.tsx — it's the simplest signal
+	// heuristic as portfolio's Vehicle.tsx - it's the simplest signal
 	// that catches both a roof-jump landing and a long fall.
 	private prevLinvelY: number = 0;
 
 	// Stuck / flip auto-recovery. Subclasses opt out of either gate by
 	// flipping `this.recovery.stuckRecoveryEnabled` /
-	// `flipRecoveryEnabled` to false in their constructor — boats sit
+	// `flipRecoveryEnabled` to false in their constructor - boats sit
 	// still on water (stuck check would teleport them), rockets have
 	// their own auto-flight state machine, and air vehicles deliberately
 	// hover (no stuck-sampling) but still benefit from flip-recovery if
@@ -139,7 +139,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 
 	// Whether this vehicle has any seat that's wired to a connected seat
 	// in the GLB. Drives whether the on-screen controls overlay shows X
-	// (Switch seats) — onInputChange already routes the X press; this
+	// (Switch seats) - onInputChange already routes the X press; this
 	// just makes the HUD honest about the option.
 	public seatSwitchAvailable(): boolean
 	{
@@ -161,7 +161,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			this.collision.interpolatedQuaternion.w
 		);
 
-		// Hard-landing detection — only when the player is actually in
+		// Hard-landing detection - only when the player is actually in
 		// the seat, otherwise an empty parked car wobbling on respawn
 		// would shake the camera too.
 		if (this.controllingCharacter !== undefined)

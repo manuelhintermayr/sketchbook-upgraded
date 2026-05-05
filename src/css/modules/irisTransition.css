@@ -1,4 +1,4 @@
-/* Circular iris-wipe overlay used by IrisTransition. CSS-only — the
+/* Circular iris-wipe overlay used by IrisTransition. CSS-only - the
  * TypeScript class just toggles the .visible class and listens for
  * transitionend. Pattern from manuelhintermayr-portfolio/three-js
  * IrisTransition.tsx, ported to vanilla CSS so it has no React dep.

@@ -1,4 +1,4 @@
-/* Title screen — first thing the player sees before any world is
+/* Title screen - first thing the player sees before any world is
  * loaded. Same blue gradient as the loading screen so the transition
  * is seamless. Click or any keypress dismisses it and triggers the
  * actual world build. */
@@ -143,7 +143,7 @@
 	background: rgba(255, 255, 255, 0.3);
 }
 
-/* Sun (light) and moon (dark) glyphs as pure CSS — no font load
+/* Sun (light) and moon (dark) glyphs as pure CSS - no font load
  * required so this works before the title-screen fonts arrive. The
  * sun ring uses `box-shadow` for the ray spokes; the moon is a
  * single circle with a clipping shadow for the crescent. */

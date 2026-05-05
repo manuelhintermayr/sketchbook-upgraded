@@ -8,7 +8,7 @@ import * as THREE from 'three';
 // the player; the common helpers (idle/wander coin flip, tame
 // follow loop, tame predicate) are inherited.
 //
-// All mutable state lives on the Animal record — behaviors are
+// All mutable state lives on the Animal record - behaviors are
 // stateless singletons reused across every animal of their kind.
 
 export type AnimalKind = 'dog' | 'cat';
@@ -60,7 +60,7 @@ export interface Animal
 	// Y toward it between samples.
 	targetGroundY: number;
 	groundQueryTimer: number;
-	// Strategy reference — DOG_BEHAVIOR or CAT_BEHAVIOR singleton from
+	// Strategy reference - DOG_BEHAVIOR or CAT_BEHAVIOR singleton from
 	// the matching subclass file. Lets WanderingAnimals.update
 	// polymorphically dispatch to the right state machine without an
 	// `if (kind === ...)` branch per animal.
@@ -69,7 +69,7 @@ export interface Animal
 
 // State → speed table used by the manager when integrating velocity.
 // Lives here (not on the manager) because the values are part of the
-// behavior tuning surface — keeping them next to the constants they
+// behavior tuning surface - keeping them next to the constants they
 // derive from makes the relationship obvious.
 export function targetSpeedFor(state: AnimalState): number
 {
@@ -119,7 +119,7 @@ export abstract class AnimalBehavior
 
 	// Tame animals follow the player at a polite distance; idle when too
 	// close, transition out when the player has wandered off. Same
-	// shape for dogs and cats — only the "give up" radius differs (cat:
+	// shape for dogs and cats - only the "give up" radius differs (cat:
 	// original flee distance; dog: original notice distance).
 	protected updateTame(
 		animal: Animal,

@@ -11,7 +11,7 @@ import { SphereCollider } from '../../physics/colliders/SphereCollider';
 
 // Dynamic physics primitive driven by a CANNON shape. Combines
 // socketControl's ShapeEntityBase + BoxShapeEntity + SphereShapeEntity
-// into a single class — single-player Sketchbook doesn't need the
+// into a single class - single-player Sketchbook doesn't need the
 // per-entity Out()/Set() snapshots that justified the inheritance there.
 //
 // Spawned by ShapeSpawnPoint when a scenario marker is tagged

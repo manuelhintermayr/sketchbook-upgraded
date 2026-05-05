@@ -7,7 +7,7 @@ build/sketchbook.min.js
 build/sketchbook.min.js.LICENSE.txt
 build/types/
 
-# Static-site bundle produced by `npm run build:static` — regenerate, never commit.
+# Static-site bundle produced by `npm run build:static` - regenerate, never commit.
 dist/
 
 .claude/settings.local.json

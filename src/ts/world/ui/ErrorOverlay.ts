@@ -1,6 +1,6 @@
 // Friendly error fallback. Wires window.onerror + unhandledrejection
 // to show a card with the error message + stack and a Reload button.
-// Once the overlay is up the page is effectively frozen — that's the
+// Once the overlay is up the page is effectively frozen - that's the
 // intended behaviour because anything could be in a half-broken state.
 
 import { t } from '../../i18n';
@@ -64,7 +64,7 @@ let lastError: ErrorPayload | null = null;
 function showError(payload: ErrorPayload): void
 {
 	if (!overlay) return;
-	// Don't keep replacing the card with subsequent errors — the first
+	// Don't keep replacing the card with subsequent errors - the first
 	// one is usually the most informative; cascades drown it out.
 	if (overlay.classList.contains('visible')) return;
 	lastError = payload;

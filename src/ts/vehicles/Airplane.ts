@@ -12,7 +12,7 @@ import { ENGINE_PROFILES } from '../world/audio/EngineSound';
 import { commonVehicleControls } from '../core/CommonControls';
 import { t } from '../i18n';
 
-// Module-scoped scratch — see Helicopter.ts for the same pattern.
+// Module-scoped scratch - see Helicopter.ts for the same pattern.
 // physicsPreStep ran ~10 allocs per frame per plane; with these
 // reused all the way down it's zero.
 const _quat = new THREE.Quaternion();
@@ -210,7 +210,7 @@ export class Airplane extends Vehicle implements IControllable, IWorldEntity
 		_up.copy(_UP_AXIS).applyQuaternion(_quat);
 		_forward.copy(_FORWARD_AXIS).applyQuaternion(_quat);
 
-		// Forward speed via dot product — copy _forward into a CANNON
+		// Forward speed via dot product - copy _forward into a CANNON
 		// scratch so we can use the body.velocity.dot() native call
 		// without allocating a temp Vec3 each frame.
 		_forwardCannon.set(_forward.x, _forward.y, _forward.z);

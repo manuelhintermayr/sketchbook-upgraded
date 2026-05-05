@@ -6,7 +6,7 @@ import { t, getLocale, Locale } from '../../i18n';
 // from World.injectDefaultSceneNPCs.
 //
 // Translatable: text + choice labels resolve via i18n at lookup time.
-// Cached by locale — getDefaultDialogs() is called once per scenario
+// Cached by locale - getDefaultDialogs() is called once per scenario
 // launch, but a stable language across launches reuses the same tree
 // instead of rebuilding ~36 t() lookups + four nested object literals
 // each time. Cache invalidates the moment the player picks a new

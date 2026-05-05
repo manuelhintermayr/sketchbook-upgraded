@@ -6,7 +6,7 @@ import { CameraShake } from '../core/CameraShake';
 const STUCK_WINDOW = 6;
 const STUCK_DIST = 0.5;
 const FLIP_TIME = 3;
-// cos(80°) ≈ 0.17 — chassis-up dot world-up below this means the
+// cos(80°) ≈ 0.17 - chassis-up dot world-up below this means the
 // vehicle is at or past sideways. Original Inthenew value cos(100°)
 // only counted fully-upside-down chassis, so a heli or car that
 // landed cleanly on its side just sat there. 80° still leaves a
@@ -14,7 +14,7 @@ const FLIP_TIME = 3;
 const UPSIDE_DOWN_THRESHOLD = Math.cos(80 * Math.PI / 180);
 const RECOVERY_COOLDOWN = 2;
 
-// Module-scoped scratch — see Helicopter / Airplane for the same
+// Module-scoped scratch - see Helicopter / Airplane for the same
 // allocation-pooling pattern. The recovery path runs at most once a
 // few seconds, so the win is small, but staying consistent with the
 // rest of the vehicle physics helpers is worth a few lines.
@@ -27,7 +27,7 @@ const _yawOnly = new THREE.Quaternion();
 //
 //   - Stuck: while the player holds throttle/steering, sample distance
 //     traveled over a 6 s window. If total motion stays below 0.5 m,
-//     the vehicle is wedged on geometry — recover.
+//     the vehicle is wedged on geometry - recover.
 //   - Flip:  while the chassis is past horizontal (up.y < cos(100°)),
 //     accumulate a timer. If it sits upside-down for 3 s, recover.
 //
@@ -62,7 +62,7 @@ export class StuckRecovery
 		this.recoveryCooldown = Math.max(0, this.recoveryCooldown - dt);
 		if (this.recoveryCooldown > 0) return;
 
-		// Stuck sampling — track distance traveled while the player is
+		// Stuck sampling - track distance traveled while the player is
 		// actively trying to move. Sitting at idle is not "stuck".
 		if (this.stuckRecoveryEnabled && !this.noDirectionPressed())
 		{
@@ -83,7 +83,7 @@ export class StuckRecovery
 		}
 		else if (this.stuckInitialized)
 		{
-			// Player let go — drop the sample window so a long idle
+			// Player let go - drop the sample window so a long idle
 			// doesn't immediately count as stuck the moment they touch
 			// throttle again.
 			this.stuckSamples.length = 0;
@@ -105,13 +105,13 @@ export class StuckRecovery
 		}
 		const isStuck = totalTime >= STUCK_WINDOW && totalDist < STUCK_DIST;
 
-		// Flip detection — accumulate while upside-down, reset on upright
+		// Flip detection - accumulate while upside-down, reset on upright
 		// so a brief tilt over a bump doesn't trigger.
 		let flipTimerExpired = false;
 		if (this.flipRecoveryEnabled)
 		{
 			const q = this.body.quaternion;
-			// Apply quaternion to (0,1,0) — y component of the result is
+			// Apply quaternion to (0,1,0) - y component of the result is
 			// up.dot(worldUp). When < threshold the chassis is past
 			// horizontal.
 			const upY = 1 - 2 * (q.x * q.x + q.z * q.z);
@@ -153,7 +153,7 @@ export class StuckRecovery
 		this.flipTimer = 0;
 	}
 
-	// Called when the vehicle has no driver — tear down the sample
+	// Called when the vehicle has no driver - tear down the sample
 	// window so a fresh entry doesn't see ghost data from before. The
 	// cooldown keeps ticking; it's a global lockout.
 	public reset(): void

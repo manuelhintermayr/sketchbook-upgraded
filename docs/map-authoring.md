@@ -27,7 +27,7 @@ The bundled level (`build/assets/world.glb`) is authored in Blender and exported
 
 | Mesh `name` | Effect |
 |---|---|
-| `Layer0_001` | Moon-surface mesh — gets the `moon-with-flowers.png` texture applied (Inthenew quirk) |
+| `Layer0_001` | Moon-surface mesh - gets the `moon-with-flowers.png` texture applied (Inthenew quirk) |
 
 ## Examples
 
@@ -72,7 +72,7 @@ scenario.add(player);
 this.scene.add(scenario);
 ```
 
-`desc_title` matters — if it's one of the values in the `RACE_TITLES` set inside `Scenario.ts` (`Oval race`, `Tunnel race`, `Figure 8 race`, `Boat Race`), the curve-based race-checkpoint system kicks in.
+`desc_title` matters - if it's one of the values in the `RACE_TITLES` set inside `Scenario.ts` (`Oval race`, `Tunnel race`, `Figure 8 race`, `Boat Race`), the curve-based race-checkpoint system kicks in.
 
 ### An AI-driven car following a path
 
@@ -109,7 +109,7 @@ scenario.add(aiCar);
 
 ### A standing NPC with a dialog
 
-NPC dialog isn't authored in the GLB — `userData.first_node` is the only interesting property on the marker. The dialog tree is wired in code from `world/scenarios/defaultDialogs.ts`; pass it to `NPCSpawnPoint` via the constructor `options` parameter:
+NPC dialog isn't authored in the GLB - `userData.first_node` is the only interesting property on the marker. The dialog tree is wired in code from `world/scenarios/defaultDialogs.ts`; pass it to `NPCSpawnPoint` via the constructor `options` parameter:
 
 ```ts
 import { NPCSpawnPoint } from './spawn/NPCSpawnPoint';
@@ -118,7 +118,7 @@ import { getDefaultDialogs } from './scenarios/defaultDialogs';
 const marker = new THREE.Object3D();
 marker.position.set(5, 18, -5);
 marker.userData.name = 'Anna';
-marker.userData.first_node = 'npc_node_1';   // optional — wandering
+marker.userData.first_node = 'npc_node_1';   // optional - wandering
 defaultScenario.rootNode.add(marker);
 
 const { dialog, role } = getDefaultDialogs()['Anna'];
@@ -186,7 +186,7 @@ The audio path is fed to `<audio>` directly. Loops by default; `THREE.Positional
 
 - **Empties vs meshes:** spawn / scenario / path / pathNode markers are usually empties (THREE.Object3D); physics markers are meshes (the geometry doubles as the collision shape for trimesh; for box, the geometry is just a placeholder and `scale` is what counts). Speaker is an empty.
 - **Scale conventions:** for `physics: box` the *full* scale is the AABB extent (Sketchbook divides by 2 internally for half-extents). For `physics: cylinder`, `scale.x` = radius, `scale.y` = height.
-- **`spawn_always` + `invisible`:** scenarios with both flags load on every map open and don't appear in the Scenarios picker — useful for "ambient vehicles" (e.g. the air-vehicles scenario in the Inthenew map).
+- **`spawn_always` + `invisible`:** scenarios with both flags load on every map open and don't appear in the Scenarios picker - useful for "ambient vehicles" (e.g. the air-vehicles scenario in the Inthenew map).
 - **`first_node`:** any AI driver or path-following NPC reads this; it's the *name* of the first `pathNode` node in any path.
 - **Race detection:** the curve-based race system fires only if `desc_title` matches `RACE_TITLES` *and* the scenario contains an AI vehicle spawn with a `first_node`. Without the AI spawn there's no curve to fit.
-- **Layer0_001 quirk:** Inthenew's Adobe-Illustrator export named the moon-surface mesh this way. We hard-code recognition in `world/loading/SceneLoader.ts` to apply the moon texture. If you make a fresh map, name your moon mesh whatever — but if you keep Inthenew's, leave the name alone.
+- **Layer0_001 quirk:** Inthenew's Adobe-Illustrator export named the moon-surface mesh this way. We hard-code recognition in `world/loading/SceneLoader.ts` to apply the moon texture. If you make a fresh map, name your moon mesh whatever - but if you keep Inthenew's, leave the name alone.

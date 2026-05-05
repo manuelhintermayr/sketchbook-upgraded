@@ -40,7 +40,7 @@ export function round(value: number, decimals: number = 0): number
 
 export function roundVector(vector: THREE.Vector3, decimals: number = 0): THREE.Vector3
 {
-	// Direct calls — see getSignedAngleBetweenVectors below for why
+	// Direct calls - see getSignedAngleBetweenVectors below for why
 	// `this.` would break in the minified production bundle.
 	return new THREE.Vector3(
 		round(vector.x, decimals),
@@ -86,7 +86,7 @@ export function getAngleBetweenVectors(v1: THREE.Vector3, v2: THREE.Vector3, dot
  */
 export function getSignedAngleBetweenVectors(v1: THREE.Vector3, v2: THREE.Vector3, normal: THREE.Vector3 = new THREE.Vector3(0, 1, 0), dotTreshold: number = 0.0005): number
 {
-	// Direct call — using `this.getAngleBetweenVectors` here (legacy
+	// Direct call - using `this.getAngleBetweenVectors` here (legacy
 	// from swift502's original) only worked in dev mode because the
 	// import * as Utils namespace object satisfied the `this` binding.
 	// terser's prod-mode minifier inlines the namespace call into a

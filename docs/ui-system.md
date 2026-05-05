@@ -13,7 +13,7 @@ Highlights:
 - **Typography:** `--font-headline` / `--font-body` (Solway), `--font-label` (Catamaran), `--font-mono` (Cutive Mono), `--font-display-alt` (Alfa Slab One). Ten-step size scale (`--text-display` … `--text-overline`).
 - **Spacing:** `--space-1` (0.25rem) … `--space-20` (5rem).
 - **Shadows:** `--shadow-gold` (the 4px press shadow), `--shadow-keycap` (multi-layer inset for `.ctrl-key`), `--text-shadow-overlay` (1px+3px black drop for readable text over 3D scenes).
-- **z-index ordering:** `--z-dropdown` (10) … `--z-stats` (10000). Use these instead of arbitrary numbers — collisions are easy to introduce otherwise.
+- **z-index ordering:** `--z-dropdown` (10) … `--z-stats` (10000). Use these instead of arbitrary numbers - collisions are easy to introduce otherwise.
 
 If you add a new overlay, declare its z-index from this scale and pull all colour / size / motion constants through `var(--…)`.
 
@@ -43,7 +43,7 @@ Built into the `<div id="loading-screen">` injected by `bootstrapHTML(world)` (i
 
 ### PlanetMenu (`src/css/modules/planetMenu.css`)
 
-Earth/Moon picker that opens at the rocketship's apogee. Pre-existing; not new in this pass — listed here for completeness.
+Earth/Moon picker that opens at the rocketship's apogee. Pre-existing; not new in this pass - listed here for completeness.
 
 ### DialogBox (`src/ts/world/ui/DialogBox.ts`)
 
@@ -78,11 +78,11 @@ Default NPC dialogs live in `src/ts/world/scenarios/defaultDialogs.ts`. The dial
 
 ### PauseMenu (`src/ts/world/ui/PauseMenu.ts`)
 
-Esc-driven full-screen overlay. Disabled (`isEnabled = false`) until `world.pauseMenu.enable()` is called from the welcome-dialog success branch — that prevents Esc from opening pause over the loader.
+Esc-driven full-screen overlay. Disabled (`isEnabled = false`) until `world.pauseMenu.enable()` is called from the welcome-dialog success branch - that prevents Esc from opening pause over the loader.
 
 When `open()`:
 - Saves `world.timeScaleTarget` to `savedTimeScale`.
-- `world.setTimeScale(0)` — physics + state machines freeze.
+- `world.setTimeScale(0)` - physics + state machines freeze.
 - `document.exitPointerLock()`.
 - Adds `.visible` class.
 - Focuses the first button for keyboard nav.
@@ -101,11 +101,11 @@ The handler also peeks at `.swal2-container`, `#dialog-bar.visible`, `#settings-
 
 ### SettingsModal (`src/ts/world/ui/SettingsModal.ts`)
 
-Three cards — Graphics / Audio / Controls — plus a Low / High quality preset shortcut row at the top of the Graphics card. Every control writes to `world.params[X]` and forwards via a lazy-built `Map<string, controller>` cache (built once from `world.gui.controllersRecursive()` on the first lookup) so every existing lil-gui `onChange` handler (CSM enable, mouse-sensitivity push to CameraOperator, pointer-lock toggle on InputManager, etc.) fires automatically. No duplication of logic — the modal is a *view* over the same controllers.
+Three cards - Graphics / Audio / Controls - plus a Low / High quality preset shortcut row at the top of the Graphics card. Every control writes to `world.params[X]` and forwards via a lazy-built `Map<string, controller>` cache (built once from `world.gui.controllersRecursive()` on the first lookup) so every existing lil-gui `onChange` handler (CSM enable, mouse-sensitivity push to CameraOperator, pointer-lock toggle on InputManager, etc.) fires automatically. No duplication of logic - the modal is a *view* over the same controllers.
 
-Audio is a special case — `Master_Volume` doesn't have a lil-gui controller, so the modal calls `world.setMasterVolume(v)` directly. That writes to params and pushes `v / 100` into `world.audioListener.setMasterVolume()` (the listener is attached lazily by Speaker on the camera).
+Audio is a special case - `Master_Volume` doesn't have a lil-gui controller, so the modal calls `world.setMasterVolume(v)` directly. That writes to params and pushes `v / 100` into `world.audioListener.setMasterVolume()` (the listener is attached lazily by Speaker on the camera).
 
-`Music_Volume` and `SFX_Volume` are reserved — Sketchbook currently has no separate music or SFX bus, so they update params but have no audible effect. Wire them up if you add a bus.
+`Music_Volume` and `SFX_Volume` are reserved - Sketchbook currently has no separate music or SFX bus, so they update params but have no audible effect. Wire them up if you add a bus.
 
 `refresh()` is called on `open()` to pull the latest values back from params (in case lil-gui changed them while the modal was closed).
 
@@ -116,8 +116,8 @@ Audio is a special case — `Master_Volume` doesn't have a lil-gui controller, s
 - error code (e.g. `RUNTIME ERROR`, `UNHANDLED PROMISE`)
 - title (the message)
 - stack trace (in a `<pre>` block, scrollable)
-- **Reload** — `location.reload()`
-- **Copy details** — clipboard API with textarea fallback for older browsers
+- **Reload** - `location.reload()`
+- **Copy details** - clipboard API with textarea fallback for older browsers
 
 Installed from `index.html` *before* `Sketchbook.World()` is constructed so even bootstrap failures get the friendly card.
 
@@ -125,7 +125,7 @@ Installed from `index.html` *before* `Sketchbook.World()` is constructed so even
 
 `attachNameLabel(target: THREE.Object3D, name: string, isPlayer: boolean): CSS2DObject`. Creates a `<div class="name-label">` (or `.name-label.me` for the player), wraps it in a CSS2DObject anchored at `(0, 1.2, 0)` relative to the target, and adds it as a child. The label follows the target's world transform automatically.
 
-Rendered each frame by `world.labelRenderer.render(graphicsWorld, camera)` — a `CSS2DRenderer` with its own absolutely-positioned overlay div (`pointer-events: none`). Distance culling and feature-flag gating run through `WorldLabels` (`src/ts/world/ui/WorldLabels.ts`), the registry on top of the CSS2D pass.
+Rendered each frame by `world.labelRenderer.render(graphicsWorld, camera)` - a `CSS2DRenderer` with its own absolutely-positioned overlay div (`pointer-events: none`). Distance culling and feature-flag gating run through `WorldLabels` (`src/ts/world/ui/WorldLabels.ts`), the registry on top of the CSS2D pass.
 
 `CharacterSpawnPoint` calls this with `'Du'` + `isPlayer=true` after `takeControl()`. `NPCSpawnPoint` calls it with `userData.name` (or `NPC #N` fallback).
 
@@ -133,7 +133,7 @@ Rendered each frame by `world.labelRenderer.render(graphicsWorld, camera)` — a
 
 1. Create `src/css/modules/yourOverlay.css` using token vars only.
 2. `@import "modules/yourOverlay.css";` from `src/css/main.css`.
-3. Create `src/ts/world/ui/YourOverlay.ts` — class with `open()` / `close()`, builds the DOM in the constructor, appends to `document.body`.
+3. Create `src/ts/world/ui/YourOverlay.ts` - class with `open()` / `close()`, builds the DOM in the constructor, appends to `document.body`.
 4. Pick a z-index from the tokens scale; don't introduce new ones.
 5. If it's modal: peek at the document for higher-priority modals before responding to Esc, so you don't fight PauseMenu.
 6. Wire the trigger (PauseMenu button, World event, key handler).

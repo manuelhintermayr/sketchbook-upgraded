@@ -10,7 +10,7 @@ import * as THREE from 'three';
 // The car/heli/airplane mesh slots from the original are kept so the
 // existing scene classes compile unchanged. Sketchbook always loads
 // vehicles from build/assets/{type}.glb regardless, so any vehicles
-// the subclass populates here are unused by our spawn pipeline — but
+// the subclass populates here are unused by our spawn pipeline - but
 // keeping the slots in lets the upstream scene constructors run as-is.
 export abstract class BaseScene
 {
@@ -40,7 +40,7 @@ export abstract class BaseScene
 	}
 }
 
-// Subset of socketControl's Utility class — only the helper the
+// Subset of socketControl's Utility class - only the helper the
 // procedural scenes actually use (Test3 + Example call vertInx when
 // building trimesh ramp geometry from raw vertex/index arrays).
 export class Utility

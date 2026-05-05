@@ -8,7 +8,7 @@ import {
 	DOG_GIVEUP,
 } from './AnimalBehavior';
 
-// Module-scoped scratch vector — reused across every dog update each
+// Module-scoped scratch vector - reused across every dog update each
 // frame to dodge per-call Vector3 allocations.
 const _toPlayer = new THREE.Vector3();
 
@@ -55,7 +55,7 @@ class DogBehavior extends AnimalBehavior
 
 		if (dog.state === 'bark')
 		{
-			// Stay at bark distance — chase if the player drifts away,
+			// Stay at bark distance - chase if the player drifts away,
 			// brake if too close.
 			_toPlayer.subVectors(playerPos, dog.position);
 			_toPlayer.y = 0;
@@ -98,7 +98,7 @@ class DogBehavior extends AnimalBehavior
 	}
 }
 
-// Singleton — DogBehavior is stateless; one instance is shared across
+// Singleton - DogBehavior is stateless; one instance is shared across
 // every dog. Exporting only the singleton (not the class) keeps the
 // surface tight: there's no reason to ever construct another one.
 export const DOG_BEHAVIOR: AnimalBehavior = new DogBehavior();

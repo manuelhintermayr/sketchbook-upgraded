@@ -5,7 +5,7 @@
 // Pattern adapted from manuelhintermayr-portfolio/three-js
 // IrisTransition + useSceneTransition. Reshaped from a React store-
 // driven overlay into a singleton with promise-returning open/close
-// methods — Sketchbook calls them imperatively from World code.
+// methods - Sketchbook calls them imperatively from World code.
 //
 // The animation itself is pure CSS (clip-path circle) so this file
 // only manages DOM lifecycle + waits for transitionend.
@@ -53,7 +53,7 @@ export class IrisTransition
 	{
 		return new Promise<void>((resolve) =>
 		{
-			// Belt-and-braces — transitionend can be missed on some browsers
+			// Belt-and-braces - transitionend can be missed on some browsers
 			// when the layout was never dirtied (e.g. close() called twice
 			// in a row). Always resolve after the duration anyway.
 			let resolved = false;

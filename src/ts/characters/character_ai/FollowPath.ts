@@ -39,7 +39,7 @@ export class FollowPath extends FollowTarget implements ICharacterAI
 		// only make sense when the character is driving a vehicle. NPCs
 		// on foot (Anna / Ben walking the default-spawn loop) hit this
 		// path too and would crash on .collision; skip the whole block
-		// for them — FollowTarget already drives the on-foot motion.
+		// for them - FollowTarget already drives the on-foot motion.
 		if (this.character.controlledObject !== undefined)
 		{
 			let targetToNextNode = this.targetNode.nextNode.object.position.clone().sub(this.targetNode.object.position);
@@ -77,7 +77,7 @@ export class FollowPath extends FollowTarget implements ICharacterAI
 			}
 		}
 
-		// Path-progression — runs for both vehicle and on-foot cases.
+		// Path-progression - runs for both vehicle and on-foot cases.
 		if (viewVector.length() < this.nodeRadius)
 		{
 			if (this.reverse)
