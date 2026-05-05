@@ -1,5 +1,19 @@
-/* NPC dialog bar — bottom-anchored card with portrait left, speaker
- * name + body text + numbered choices on the right. */
+/* NPC dialog bar - bottom-anchored card with portrait left, speaker
+ * name + body text + numbered choices on the right.
+ *
+ * While a dialog is open (DialogBox toggles `html.dialog-active`),
+ * every other on-screen interaction surface is hidden: the keyboard
+ * controls overlay, the lil-gui debug stack + FPS box, and any other
+ * ProximityPrompt label. The dialog owns the screen until the player
+ * picks a choice.
+ */
+html.dialog-active .left-panel,
+html.dialog-active #debug-stack,
+html.dialog-active .lil-gui.lil-root,
+html.dialog-active .proximity-prompt
+{
+	display: none !important;
+}
 
 #dialog-bar
 {

@@ -18,7 +18,7 @@ let anonymousNpcCounter = 1;
 // background figures that look alive but aren't networked.
 //
 // If the marker carries userData.first_node, the NPC instead gets a
-// FollowPath behaviour rooted at that node — same convention as the AI
+// FollowPath behaviour rooted at that node - same convention as the AI
 // vehicle drivers already use, so an NPC can wander a path without any
 // extra plumbing.
 //
@@ -57,7 +57,7 @@ export class NPCSpawnPoint implements ISpawnPoint
 
 			world.add(npc);
 
-			// Name tag — userData.name from the marker if authored,
+			// Name tag - userData.name from the marker if authored,
 			// otherwise auto-numbered NPC#1/NPC#2/… so the player can
 			// still distinguish them.
 			const tag = (typeof this.object.userData.name === 'string' && this.object.userData.name.length > 0)
@@ -65,7 +65,7 @@ export class NPCSpawnPoint implements ISpawnPoint
 				: t('prompt.npcAnonymous', { n: String(anonymousNpcCounter++) });
 			attachNameLabel(npc, tag, false);
 
-			// ProximityPrompt anchored to the NPC — moves with them so a
+			// ProximityPrompt anchored to the NPC - moves with them so a
 			// walking NPC's interaction zone keeps up. Reads the role
 			// from constructor options (used as the portrait subtitle).
 			if (this.dialog !== undefined)
@@ -80,13 +80,19 @@ export class NPCSpawnPoint implements ISpawnPoint
 				}
 				const prompt = new ProximityPrompt(
 					() => npc.position.clone(),
-					{ text: t('prompt.talkTo', { name: tag }), maxInteractDistance: 3, dialog },
+					{
+						text: t('prompt.talkTo', { name: tag }),
+						touchText: t('prompt.talkTo.touch', { name: tag }),
+						maxInteractDistance: 1.5,
+						dialog,
+						targetCharacter: npc,
+					},
 				);
 				prompt.addToWorld(world);
 			}
 
 			// Path-following NPC. Speed parameter mirrors the AI vehicle
-			// drivers — see VehicleSpawnPoint where it picks 10 too.
+			// drivers - see VehicleSpawnPoint where it picks 10 too.
 			if (this.firstAINode !== undefined)
 			{
 				const node = this.findNode(world, this.firstAINode);

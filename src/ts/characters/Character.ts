@@ -31,7 +31,7 @@ import { UpdateOrder } from '../enums/UpdateOrder';
 import { commonGlobalControls } from '../core/CommonControls';
 import { t } from '../i18n';
 
-// Module-scoped scratch — physicsPostStep + springRotation run every
+// Module-scoped scratch - physicsPostStep + springRotation run every
 // physics tick per character, so per-call allocations multiply across
 // all characters in the scene. Reuse these instead of new'ing each
 // call. _Y_AXIS is an immutable seed.
@@ -91,7 +91,13 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	public world: World;
 	public charState: ICharacterState;
 	public behaviour: ICharacterAI;
-	
+
+	// True while a DialogBox is open with this character as a participant
+	// (player AND the NPC they're talking to). Movement / behaviour /
+	// input handlers all early-return - the world keeps simulating, but
+	// these characters stand still until DialogBox.close() flips it back.
+	public dialogFreeze: boolean = false;
+
 	// Vehicles
 	public controlledObject: IControllable;
 	public occupyingSeat: VehicleSeat = null;
@@ -259,6 +265,26 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		this.setOrientation(forward, true);
 	}
 
+	private applyNearbyPlayerLookAt(): void
+	{
+		if (this.dialogFreeze) return;
+		// Walking NPCs (FollowPath etc.) own their own orientation each
+		// tick - overriding here would yank them off-path the moment the
+		// player passed by. Only stationary NPCs (no behaviour) react.
+		if (this.behaviour !== undefined && this.behaviour !== null) return;
+		if (this.world === undefined) return;
+		const player = this.world.characters[0];
+		if (player === undefined || player === this) return;
+
+		const dx = player.position.x - this.position.x;
+		const dz = player.position.z - this.position.z;
+		const distSq = dx * dx + dz * dz;
+		if (distSq > 1) return;        // outside 1 m radius
+		if (distSq < 1e-4) return;     // overlapping → no meaningful direction
+
+		this.setOrientation(new THREE.Vector3(dx, 0, dz));
+	}
+
 	public setBehaviour(behaviour: ICharacterAI): void
 	{
 		behaviour.character = this;
@@ -297,6 +323,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public handleKeyboardEvent(event: KeyboardEvent, code: string, pressed: boolean): void
 	{
+		if (this.dialogFreeze) return;
 		if (this.controlledObject !== undefined)
 		{
 			this.controlledObject.handleKeyboardEvent(event, code, pressed);
@@ -332,6 +359,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public handleMouseButton(event: MouseEvent, code: string, pressed: boolean): void
 	{
+		if (this.dialogFreeze) return;
 		if (this.controlledObject !== undefined)
 		{
 			this.controlledObject.handleMouseButton(event, code, pressed);
@@ -353,6 +381,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public handleMouseMove(event: MouseEvent, deltaX: number, deltaY: number): void
 	{
+		if (this.dialogFreeze) return;
 		if (this.controlledObject !== undefined)
 		{
 			this.controlledObject.handleMouseMove(event, deltaX, deltaY);
@@ -362,9 +391,10 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			this.world.cameraOperator.move(deltaX, deltaY);
 		}
 	}
-	
+
 	public handleMouseWheel(event: WheelEvent, value: number): void
 	{
+		if (this.dialogFreeze) return;
 		if (this.controlledObject !== undefined)
 		{
 			this.controlledObject.handleMouseWheel(event, value);
@@ -425,10 +455,24 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public update(timeStep: number): void
 	{
-		this.behaviour?.update(timeStep);
+		// Skip behaviour ticks while frozen - DialogBox.open() already
+		// called resetControls() so actions are cleared and the state
+		// machine has flipped to Idle. We just stop AI from re-issuing
+		// triggerAction calls until close().
+		if (!this.dialogFreeze)
+		{
+			this.behaviour?.update(timeStep);
+		}
 		this.vehicleEntryInstance?.update(timeStep);
 		// console.log(this.occupyingSeat);
 		this.charState?.update(timeStep);
+
+		// Idle NPCs face the player when they get close. Skips walking
+		// NPCs (FollowPath sets behaviour and would fight us each tick),
+		// the player itself, and frozen-in-dialog characters (DialogBox
+		// already oriented them in open()). springRotation interpolates
+		// to the new target so the turn looks natural.
+		this.applyNearbyPlayerLookAt();
 
 		// this.visuals.position.copy(this.modelOffset);
 		if (this.physicsEnabled) this.springMovement(timeStep);
@@ -566,10 +610,17 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public setCameraRelativeOrientationTarget(): void
 	{
+		// Movement states (Walk / Sprint / StartWalk / etc.) call this
+		// every tick to keep the character facing where they move.
+		// While frozen in a dialog we keep the orientation set by
+		// DialogBox.open() - otherwise the few frames it takes to
+		// transition out of Walk would yank the NPC back toward their
+		// path direction.
+		if (this.dialogFreeze) return;
 		if (this.vehicleEntryInstance === null)
 		{
 			let moveVector = this.getCameraRelativeMovementVector();
-	
+
 			if (moveVector.x === 0 && moveVector.y === 0 && moveVector.z === 0)
 			{
 				this.setOrientation(this.orientation);
@@ -715,8 +766,8 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			this.controlledObject.allowSleep(false);
 
 			// Only refresh the HUD controls list if this character is the
-			// active input receiver. Otherwise — e.g. an AI driver being
-			// teleported into a vehicle by VehicleSpawnPoint — running
+			// active input receiver. Otherwise - e.g. an AI driver being
+			// teleported into a vehicle by VehicleSpawnPoint - running
 			// vehicle.inputReceiverInit() would overwrite the player's
 			// WASD list with the AI's vehicle list at scenario start, so
 			// the player would see car/heli controls before having
@@ -845,7 +896,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		_simulatedVelocity.set(body.velocity.x, body.velocity.y, body.velocity.z);
 
 		// Take local velocity, then turn local into global. The helper
-		// allocates internally — leave that as the helper's contract;
+		// allocates internally - leave that as the helper's contract;
 		// pulling it apart here would couple us to its math.
 		const arcadeLocal = _addThree.copy(character.velocity).multiplyScalar(character.moveSpeed);
 		const arcadeVelocity = Utils.appplyVectorMatrixXZ(character.orientation, arcadeLocal);

@@ -4,7 +4,18 @@
 // one DOM bar and renders the current node; it's opened by NPCs from
 // their ProximityPrompt onInteract callback.
 
+import * as THREE from 'three';
 import { t } from '../../i18n';
+import { Character } from '../../characters/Character';
+
+export interface DialogOpenOptions
+{
+	// Characters to freeze while the dialog is open - typically the player
+	// + the NPC they're talking to. Both stand still, drop their actions,
+	// and ignore input until the dialog closes.
+	participants?: Character[];
+	onClose?: () => void;
+}
 
 export interface DialogChoice
 {
@@ -42,13 +53,14 @@ export class DialogBox
 	private currentDialog: Dialog | null = null;
 	private currentNodeId: string | null = null;
 	private onClose: (() => void) | null = null;
+	private participants: Character[] = [];
 	private boundKeyDown: (e: KeyboardEvent) => void;
 
 	// Typewriter state. The full text of the current node is held here
 	// while a setInterval reveals it one char at a time. Choices stay
 	// hidden until isTyping flips false; clicking the bar (or pressing
 	// Enter / Space / E) before then skips to the end without picking
-	// any choice — the same skip-to-end pattern the portfolio uses.
+	// any choice - the same skip-to-end pattern the portfolio uses.
 	private typingTimer: ReturnType<typeof setInterval> | null = null;
 	private typingFullText: string = '';
 	private typingCharIndex: number = 0;
@@ -64,6 +76,10 @@ export class DialogBox
 	{
 		this.bar = document.createElement('div');
 		this.bar.id = 'dialog-bar';
+		// No leaveHint and no Esc handling - players exit by picking a
+		// choice (every dialog has one that routes to 'end'). Mirrors the
+		// Three.js portfolio's DialogOverlay where escape doesn't apply
+		// either.
 		this.bar.innerHTML = `
 			<div class="dialog-dim"></div>
 			<div class="dialog-box">
@@ -76,7 +92,6 @@ export class DialogBox
 					<div class="dialog-speaker" data-speaker></div>
 					<div class="dialog-text" data-text></div>
 					<div class="dialog-choices" data-choices role="menu"></div>
-					<div class="dialog-hint">${t('dialog.leaveHint', { key: '<span class="dialog-key">Esc</span>' })}</div>
 				</div>
 			</div>
 		`;
@@ -93,7 +108,7 @@ export class DialogBox
 		document.addEventListener('keydown', this.boundKeyDown);
 
 		// Click-to-skip on the dialog box itself. Choice buttons live
-		// inside the bar too — they stop event propagation in their own
+		// inside the bar too - they stop event propagation in their own
 		// click handler so this listener only fires for clicks on the
 		// surrounding card.
 		this.bar.addEventListener('click', () =>
@@ -107,12 +122,44 @@ export class DialogBox
 		return this.currentDialog !== null;
 	}
 
-	public open(dialog: Dialog, onClose?: () => void): void
+	public open(dialog: Dialog, options?: DialogOpenOptions): void
 	{
 		this.currentDialog = dialog;
-		this.onClose = onClose ?? null;
+		this.onClose = options?.onClose ?? null;
+		this.participants = options?.participants ?? [];
+		// Freeze each participant - both player and NPC stop moving and
+		// drop their actions for the duration. See Character.dialogFreeze.
+		// resetControls() routes through triggerAction() so charState
+		// gets onInputChange() and transitions back to Idle; without
+		// it a walking NPC would stay in the Walk state with velocity.
+		for (const p of this.participants)
+		{
+			p.dialogFreeze = true;
+			p.resetControls();
+		}
+		// Face the player. participants[0] is the player (set by
+		// ProximityPrompt); every NPC after them rotates so the
+		// conversation is two characters looking at each other rather
+		// than the NPC keeping their walking direction.
+		if (this.participants.length >= 2)
+		{
+			const player = this.participants[0];
+			for (let i = 1; i < this.participants.length; i++)
+			{
+				const npc = this.participants[i];
+				const dx = player.position.x - npc.position.x;
+				const dz = player.position.z - npc.position.z;
+				if (dx === 0 && dz === 0) continue;
+				npc.setOrientation(new THREE.Vector3(dx, 0, dz));
+			}
+		}
 		this.bar.classList.add('visible');
+		// Sticky CSS hook for "everything else off-screen during a
+		// dialog": controls overlay, lil-gui debug stack, FPS box,
+		// other proximity-prompt labels.
+		document.documentElement.classList.add('dialog-active');
 		this.goTo(dialog.start);
+		window.dispatchEvent(new CustomEvent('dialog-change', { detail: { open: true } }));
 	}
 
 	public close(): void
@@ -120,9 +167,13 @@ export class DialogBox
 		this.currentDialog = null;
 		this.currentNodeId = null;
 		this.bar.classList.remove('visible');
+		document.documentElement.classList.remove('dialog-active');
 		this.stopTyping();
+		for (const p of this.participants) p.dialogFreeze = false;
+		this.participants = [];
 		if (this.onClose) this.onClose();
 		this.onClose = null;
+		window.dispatchEvent(new CustomEvent('dialog-change', { detail: { open: false } }));
 	}
 
 	private goTo(nodeId: string): void
@@ -196,7 +247,7 @@ export class DialogBox
 		this.textEl.textContent = this.typingFullText;
 		this.choicesEl.style.visibility = '';
 		// Focus the first choice so keyboard players land on it
-		// immediately — same behaviour as before the typewriter pass.
+		// immediately - same behaviour as before the typewriter pass.
 		const first = this.choicesEl.querySelector<HTMLButtonElement>('.dialog-choice');
 		first?.focus();
 	}
@@ -230,16 +281,12 @@ export class DialogBox
 	private handleKeyDown(e: KeyboardEvent): void
 	{
 		if (!this.isOpen()) return;
-		if (e.code === 'Escape')
-		{
-			e.preventDefault();
-			this.close();
-			return;
-		}
+		// Esc deliberately does NOT close the dialog - players must pick a
+		// choice (every dialog tree has an 'end' branch).
 
 		// Skip-to-end while typing. E / Enter / Space all count, matching
 		// the portfolio's "any acknowledgement" behaviour. ProximityPrompt
-		// uses E to open — once the dialog is up the same key skips ahead.
+		// uses E to open - once the dialog is up the same key skips ahead.
 		if (this.isTyping && (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space'))
 		{
 			e.preventDefault();
