@@ -6,7 +6,7 @@ import { t } from '../../i18n';
 // exits pointer lock so the cursor is usable, and offers Resume,
 // Settings (deferred to a callback), Reset Scenario, and Reload.
 //
-// Disabled by default — World enables it once the loading screen has
+// Disabled by default - World enables it once the loading screen has
 // finished, so the overlay can't show up over the loader / welcome
 // dialog.
 export class PauseMenu
@@ -46,7 +46,6 @@ export class PauseMenu
 		this.isOpen = true;
 		this.savedTimeScale = this.world.timeScaleTarget;
 		this.world.setTimeScale(0);
-		if (document.exitPointerLock) document.exitPointerLock();
 		this.overlay.classList.add('visible');
 		const first = this.overlay.querySelector<HTMLButtonElement>('.pause-btn');
 		first?.focus();
@@ -69,7 +68,7 @@ export class PauseMenu
 	{
 		if (e.code !== 'Escape') return;
 		if (!this.isEnabled) return;
-		// Don't fight other modals — if any other dialog is on top,
+		// Don't fight other modals - if any other dialog is on top,
 		// let it handle Esc first.
 		const hasModalOpen = document.querySelector('.swal2-container')
 			|| document.querySelector('#dialog-bar.visible')

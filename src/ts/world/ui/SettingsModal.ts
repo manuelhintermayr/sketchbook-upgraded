@@ -4,9 +4,8 @@ import { t } from '../../i18n';
 // Settings modal opened from the pause menu. Each control writes its
 // value into world.params and forwards through the matching lil-gui
 // controller's setValue() so existing onChange wiring (shadow CSM,
-// pointer-lock toggle, mouse sensitivity, etc.) fires too. That keeps
-// the lil-gui debug panel and this modal as two views over one source
-// of truth.
+// mouse sensitivity, etc.) fires too. That keeps the lil-gui debug
+// panel and this modal as two views over one source of truth.
 export class SettingsModal
 {
 	private world: World;
@@ -42,7 +41,7 @@ export class SettingsModal
 		this.overlay.classList.remove('visible');
 	}
 
-	// Pull every control back to the current params value — called on
+	// Pull every control back to the current params value - called on
 	// open so the modal reflects whatever the lil-gui panel has done
 	// in the meantime.
 	private refresh(): void
@@ -56,7 +55,6 @@ export class SettingsModal
 		this.setRange('Gravity_Scale', p.Gravity_Scale);
 		this.setToggle('Shadows', p.Shadows);
 		this.setToggle('FXAA', p.FXAA);
-		this.setToggle('Pointer_Lock', p.Pointer_Lock);
 		this.setToggle('Has_Day_Night_Cycle', p.Has_Day_Night_Cycle);
 		this.setToggle('Debug_FPS', p.Debug_FPS);
 		this.setToggle('Camera_Shake', p.Camera_Shake);
@@ -102,9 +100,9 @@ export class SettingsModal
 					${this.toggleRow('Has_Day_Night_Cycle', 'Day / night cycle', 'Sun moves automatically')}
 					${this.toggleRow('Outlines', 'Outlines', 'Depth-edge Sobel overlay (toon look)')}
 					${this.toggleRow('Bloom', 'Bloom', 'Glow on bright pixels (stronger at night)')}
-					${this.toggleRow('Depth_Of_Field', 'Depth of field', 'Bokeh blur — tighter focus while driving')}
+					${this.toggleRow('Depth_Of_Field', 'Depth of field', 'Bokeh blur - tighter focus while driving')}
 					${this.toggleRow('Animal_Labels', 'Animal labels', 'Show floating Hund / Katze tags above animals')}
-					${this.toggleRow('Dark_Mode', 'Dark mode', 'Dark surfaces for the modal stack — defaults to your system preference')}
+					${this.toggleRow('Dark_Mode', 'Dark mode', 'Dark surfaces for the modal stack - defaults to your system preference')}
 					${this.toggleRow('Debug_FPS', 'FPS counter', 'Show stats.js box')}
 				</div>
 
@@ -113,8 +111,8 @@ export class SettingsModal
 					${this.rangeRow('Master_Volume', 'Master volume', 0, 100, 1, 'All in-world positional + procedural audio')}
 					${this.toggleRow('Engine_Sound', 'Engine sound', 'Procedural Web Audio engine while driving')}
 					${this.toggleRow('Ambient_Sound', 'Ambient sound', 'Wind, birds, water (procedural)')}
-					${this.rangeRow('Music_Volume', 'Music', 0, 100, 1, 'Reserved — no separate music bus yet')}
-					${this.rangeRow('SFX_Volume', 'Sound effects', 0, 100, 1, 'Reserved — no SFX bus yet')}
+					${this.rangeRow('Music_Volume', 'Music', 0, 100, 1, 'Reserved - no separate music bus yet')}
+					${this.rangeRow('SFX_Volume', 'Sound effects', 0, 100, 1, 'Reserved - no SFX bus yet')}
 				</div>
 
 				<div class="settings-card">
@@ -122,7 +120,6 @@ export class SettingsModal
 					${this.rangeRow('Mouse_Sensitivity', 'Mouse sensitivity', 0, 1, 0.01, 'Camera look speed')}
 					${this.rangeRow('Free_Cam_Speed', 'Free-camera speed', 1, 100, 1, 'Shift+C movement')}
 					${this.rangeRow('Gravity_Scale', 'Gravity scale', 0, 2, 0.05, '0 = zero-g, 1 = Earth, 2 = double')}
-					${this.toggleRow('Pointer_Lock', 'Pointer lock', 'Click captures the cursor')}
 					${this.toggleRow('Camera_Shake', 'Camera shake', 'Shake on vehicle hard landings + recovery')}
 				</div>
 

@@ -13,7 +13,7 @@ import { t } from '../i18n';
 
 // Ported from Inthenew/Sketchbook (MIT). The rocketship reuses the
 // vehicle scaffolding (chassis collision shapes, seat, rotors marked in
-// the GLB) but isn't pilotable in the conventional sense — there are no
+// the GLB) but isn't pilotable in the conventional sense - there are no
 // manual ascend/yaw controls. Pressing 'descend' (Space) triggers an
 // automated four-stage liftoff, after which a planet-selection modal
 // appears, and the chosen target is reached via a hand-keyed flight
@@ -52,7 +52,7 @@ const LIFTOFF_STAGES = [5, 10, 15, 20];
 const LIFTOFF_TICKS_PER_STAGE = 25;
 const LIFTOFF_TICK_MS = 200;
 
-// Flight timer cadence — the interval that pushes the chassis toward
+// Flight timer cadence - the interval that pushes the chassis toward
 // the chosen planet at constant velocity until the threshold is hit.
 const FLIGHT_TICK_MS = 200;
 
@@ -100,7 +100,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 			view: new KeyBinding('KeyV'),
 		};
 
-		// Rocket has its own auto-flight + KINEMATIC-pin landing — base
+		// Rocket has its own auto-flight + KINEMATIC-pin landing - base
 		// stuck/flip recovery would fight with it.
 		this.recovery.stuckRecoveryEnabled = false;
 		this.recovery.flipRecoveryEnabled = false;
@@ -203,7 +203,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 				}
 				else
 				{
-					// Auto-land if no driver — same fallback as upstream.
+					// Auto-land if no driver - same fallback as upstream.
 					this.landing = true;
 				}
 			}
@@ -247,7 +247,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 			: vertStab.y - (this.goingTo === 'earth' ? 5 : 0.1);
 		body.velocity.z += vertStab.z;
 
-		// Touchdown checks — once vertical position dips below the pad
+		// Touchdown checks - once vertical position dips below the pad
 		// height we consider the landing complete and reset state so
 		// another launch is possible.
 		//
@@ -277,7 +277,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		// contact every step, and any tiny penetration produces an
 		// upward push that re-introduces velocity, so the body never
 		// truly settles on the pad. Pin it kinematic for the 1-second
-		// settle window — it stops responding to forces, gravity and
+		// settle window - it stops responding to forces, gravity and
 		// collisions, then reverts to DYNAMIC so a fresh liftoff works.
 		const previousType = this.collision.type;
 		this.collision.type = CANNON.Body.KINEMATIC;
@@ -303,7 +303,6 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 	{
 		const menu = document.getElementById('planet-menu');
 		if (menu) menu.classList.remove('planet-menu-hidden');
-		document.exitPointerLock();
 	}
 
 	private hidePlanetMenu(): void
@@ -357,7 +356,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		}
 		else
 		{
-			// Already on or near the chosen planet — snap to the landing
+			// Already on or near the chosen planet - snap to the landing
 			// pad and let stabilization drop us down.
 			const pad = toEarth ? EARTH_LANDING : MOON_LANDING;
 			body.position.set(pad.x, pad.y, pad.z);
@@ -390,7 +389,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		// Constant velocity push toward the target.
 		this.travelTimer = setInterval(() => { body.velocity.copy(velocity); }, FLIGHT_TICK_MS);
 
-		// Threshold check — when we cross over the target's xz, snap up
+		// Threshold check - when we cross over the target's xz, snap up
 		// to a high altitude and start the descent.
 		this.travelCheckTimer = setInterval(() =>
 		{
@@ -454,7 +453,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 
 	// Cancel every flight timer on world removal. Without this a
 	// scenario switch mid-liftoff or mid-flight leaves the setInterval
-	// callbacks ticking against a detached cannon body — they keep
+	// callbacks ticking against a detached cannon body - they keep
 	// writing into body.velocity / body.position long after the rocket
 	// is gone. Hide the planet menu too so a stale "click moon" event
 	// from a stranded listener can't fire on a freshly-spawned rocket.
