@@ -3,7 +3,7 @@
 // substitution. Persisted via localStorage so a user's choice on the
 // title-screen language picker carries across sessions.
 //
-// Pattern adapted from manuelhintermayr-portfolio/three-js i18n —
+// Pattern adapted from manuelhintermayr-portfolio/three-js i18n -
 // reshaped from a Next-style module into a plain TS singleton with a
 // pure t() function so it can be called from anywhere without a
 // React context.
@@ -66,7 +66,7 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'error.fallbackUncaught':  { en: 'Uncaught exception',          de: 'Nicht abgefangene Ausnahme',  es: 'Excepción no capturada' },
 	'error.fallbackRejection': { en: 'Unhandled promise rejection', de: 'Nicht behandelte Promise-Ablehnung', es: 'Rechazo de promesa no manejado' },
 
-	// World — welcome dialog, lap counter, loading screen, WebGL warning, planet menu
+	// World - welcome dialog, lap counter, loading screen, WebGL warning, planet menu
 	'world.welcome.title': { en: 'Welcome to Sketchbook!', de: 'Willkommen bei Sketchbook!', es: '¡Bienvenido a Sketchbook!' },
 	'world.welcome.body':  { en: 'Feel free to explore the world and interact with available vehicles. There are also various scenarios ready to launch from the right panel.',
 	                         de: 'Erkunde die Welt und probiere die Fahrzeuge aus. Im rechten Panel kannst du verschiedene Szenarien starten.',
@@ -95,12 +95,21 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'dialog.leaveHint':    { en: 'Press {key} to leave',   de: '{key} drücken zum Verlassen', es: 'Pulsa {key} para salir' },
 	'prompt.talkTo':       { en: 'Press E to talk to {name}', de: 'E drücken zum Sprechen mit {name}', es: 'Pulsa E para hablar con {name}' },
 	'prompt.interact':     { en: 'Press E to interact',    de: 'E drücken zum Interagieren',  es: 'Pulsa E para interactuar' },
+	'prompt.talkTo.touch': { en: 'Tap E to talk to {name}',  de: 'E tippen zum Sprechen mit {name}', es: 'Toca E para hablar con {name}' },
+	'prompt.interact.touch': { en: 'Tap F to interact',    de: 'F tippen zum Interagieren',   es: 'Toca F para interactuar' },
 	'prompt.npcAnonymous': { en: 'NPC #{n}',               de: 'NPC #{n}',                    es: 'NPC #{n}' },
 
-	// Touch control button labels
-	'touch.jump':          { en: 'JUMP',                   de: 'SPRUNG',                      es: 'SALTO' },
+	// Touch control button labels. Joystick handles WASD + Sprint at rim;
+	// Tap-on-canvas = jump while on foot. Buttons are context-aware: F
+	// (vehicle/interact), E (talk), and vehicle-mode keys appear only
+	// when relevant.
 	'touch.action':        { en: 'F',                      de: 'F',                           es: 'F' },
-	'touch.run':           { en: 'RUN',                    de: 'LAUF',                        es: 'CORRE' },
+	'touch.talk':          { en: 'E',                      de: 'E',                           es: 'E' },
+	'touch.brake':         { en: 'BRK',                    de: 'BRK',                         es: 'BRK' },
+	'touch.up':            { en: '↑',                      de: '↑',                           es: '↑' },
+	'touch.down':          { en: '↓',                      de: '↓',                           es: '↓' },
+	'touch.view':          { en: 'V',                      de: 'V',                           es: 'V' },
+	'touch.seat':          { en: 'X',                      de: 'X',                           es: 'X' },
 
 	// Controls overlay header
 	'controls.header':     { en: 'Controls:',              de: 'Steuerung:',                  es: 'Controles:' },
@@ -138,9 +147,9 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 
 	// NPC roles + dialog content. Anna / Ben / Carla / Dieter
 	'npc.anna.role':       { en: 'Path Walker',                   de: 'Pfadläuferin',              es: 'Caminante' },
-	'npc.anna.greet.text': { en: 'Hi there! Ben and I take turns walking this loop — it\'s a good way to keep an eye on the spawn area.',
-	                         de: 'Hallo! Ben und ich laufen diese Runde abwechselnd — gute Art, den Spawn-Bereich im Auge zu behalten.',
-	                         es: '¡Hola! Ben y yo nos turnamos para hacer este recorrido — una buena forma de vigilar la zona de aparición.' },
+	'npc.anna.greet.text': { en: 'Hi there! Ben and I take turns walking this loop - it\'s a good way to keep an eye on the spawn area.',
+	                         de: 'Hallo! Ben und ich laufen diese Runde abwechselnd - gute Art, den Spawn-Bereich im Auge zu behalten.',
+	                         es: '¡Hola! Ben y yo nos turnamos para hacer este recorrido - una buena forma de vigilar la zona de aparición.' },
 	'npc.anna.greet.c0':   { en: "What's here to see?",            de: 'Was gibt\'s hier zu sehen?', es: '¿Qué hay para ver?' },
 	'npc.anna.greet.c1':   { en: 'Why are you walking in circles?', de: 'Warum läufst du im Kreis?', es: '¿Por qué caminas en círculos?' },
 	'npc.anna.greet.c2':   { en: 'See you around.',                de: 'Bis später.',                es: 'Hasta luego.' },
@@ -156,33 +165,33 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'npc.anna.why.c1':     { en: 'Got it.',                        de: 'Verstanden.',                es: 'Entendido.' },
 
 	'npc.ben.role':        { en: 'Path Walker',                   de: 'Pfadläufer',                 es: 'Caminante' },
-	'npc.ben.greet.text':  { en: "Hey. If you bumped into Anna she'll have told you about the loop — same deal here, just the other way around.",
-	                         de: 'Hi. Wenn du Anna getroffen hast, kennst du die Runde schon — bei mir das Gleiche, nur andersrum.',
-	                         es: 'Hola. Si te cruzaste con Anna ya te habrá hablado del recorrido — lo mismo aquí, pero al revés.' },
+	'npc.ben.greet.text':  { en: "Hey. If you bumped into Anna she'll have told you about the loop - same deal here, just the other way around.",
+	                         de: 'Hi. Wenn du Anna getroffen hast, kennst du die Runde schon - bei mir das Gleiche, nur andersrum.',
+	                         es: 'Hola. Si te cruzaste con Anna ya te habrá hablado del recorrido - lo mismo aquí, pero al revés.' },
 	'npc.ben.greet.c0':    { en: 'Any tips for the races?',        de: 'Tipps für die Rennen?',      es: '¿Algún consejo para las carreras?' },
 	'npc.ben.greet.c1':    { en: 'Tell me about the rocket.',      de: 'Erzähl mir von der Rakete.', es: 'Cuéntame sobre el cohete.' },
 	'npc.ben.greet.c2':    { en: 'See you around.',                de: 'Bis später.',                es: 'Hasta luego.' },
-	'npc.ben.races.text':  { en: 'Oval and Figure-8 are car races. The Tunnel is faster but the curves bite. Boat Race uses the marina — get in a boat and drive over the start.',
-	                         de: 'Oval und Figure-8 sind Auto-Rennen. Der Tunnel ist schneller, aber die Kurven sind heftig. Beim Boot-Rennen geht\'s in der Marina los — rein ins Boot und über die Startlinie.',
-	                         es: 'Óvalo y Figura-8 son carreras de autos. El Túnel es más rápido pero las curvas muerden. La Carrera de Botes usa la marina — sube a un bote y cruza la salida.' },
+	'npc.ben.races.text':  { en: 'Oval and Figure-8 are car races. The Tunnel is faster but the curves bite. Boat Race uses the marina - get in a boat and drive over the start.',
+	                         de: 'Oval und Figure-8 sind Auto-Rennen. Der Tunnel ist schneller, aber die Kurven sind heftig. Beim Boot-Rennen geht\'s in der Marina los - rein ins Boot und über die Startlinie.',
+	                         es: 'Óvalo y Figura-8 son carreras de autos. El Túnel es más rápido pero las curvas muerden. La Carrera de Botes usa la marina - sube a un bote y cruza la salida.' },
 	'npc.ben.races.c0':    { en: 'Tell me about the rocket.',      de: 'Erzähl mir von der Rakete.', es: 'Cuéntame sobre el cohete.' },
 	'npc.ben.races.c1':    { en: 'Cool, thanks.',                  de: 'Cool, danke.',               es: 'Genial, gracias.' },
-	'npc.ben.rocket.text': { en: 'It launches you to the moon. Get in, hold W to start the countdown, and a planet picker shows up at apogee. Lunar gravity is real — be careful with the controls up there.',
-	                         de: 'Sie bringt dich zum Mond. Einsteigen, W halten zum Start, und am Apogäum erscheint die Planeten-Auswahl. Mondschwerkraft ist real — sei dort oben vorsichtig mit der Steuerung.',
-	                         es: 'Te lleva a la luna. Sube, mantén W para iniciar la cuenta atrás, y aparecerá el selector de planeta en el apogeo. La gravedad lunar es real — cuidado con los controles allí arriba.' },
+	'npc.ben.rocket.text': { en: 'It launches you to the moon. Get in, hold W to start the countdown, and a planet picker shows up at apogee. Lunar gravity is real - be careful with the controls up there.',
+	                         de: 'Sie bringt dich zum Mond. Einsteigen, W halten zum Start, und am Apogäum erscheint die Planeten-Auswahl. Mondschwerkraft ist real - sei dort oben vorsichtig mit der Steuerung.',
+	                         es: 'Te lleva a la luna. Sube, mantén W para iniciar la cuenta atrás, y aparecerá el selector de planeta en el apogeo. La gravedad lunar es real - cuidado con los controles allí arriba.' },
 	'npc.ben.rocket.c0':   { en: 'Any tips for the races?',        de: 'Tipps für die Rennen?',      es: '¿Algún consejo para las carreras?' },
 	'npc.ben.rocket.c1':   { en: 'Got it.',                        de: 'Verstanden.',                es: 'Entendido.' },
 
 	'npc.carla.role':      { en: 'Greeter',                       de: 'Begrüßerin',                 es: 'Recepcionista' },
-	'npc.carla.greet.text': { en: 'Welcome to Sketchbook! Press Esc anytime if you need a pause menu — Resume, Settings, Restart, Reload.',
-	                          de: 'Willkommen bei Sketchbook! Drück jederzeit Esc für das Pause-Menü — Fortsetzen, Einstellungen, Neustart, Neu laden.',
-	                          es: '¡Bienvenido a Sketchbook! Pulsa Esc cuando quieras para el menú de pausa — Reanudar, Ajustes, Reiniciar, Recargar.' },
+	'npc.carla.greet.text': { en: 'Welcome to Sketchbook! Press Esc anytime if you need a pause menu - Resume, Settings, Restart, Reload.',
+	                          de: 'Willkommen bei Sketchbook! Drück jederzeit Esc für das Pause-Menü - Fortsetzen, Einstellungen, Neustart, Neu laden.',
+	                          es: '¡Bienvenido a Sketchbook! Pulsa Esc cuando quieras para el menú de pausa - Reanudar, Ajustes, Reiniciar, Recargar.' },
 	'npc.carla.greet.c0':  { en: 'How do I drive a car?',          de: 'Wie fahre ich ein Auto?',    es: '¿Cómo conduzco un auto?' },
 	'npc.carla.greet.c1':  { en: 'How do the controls work?',      de: 'Wie funktioniert die Steuerung?', es: '¿Cómo funcionan los controles?' },
 	'npc.carla.greet.c2':  { en: 'Bye!',                           de: 'Tschüss!',                   es: '¡Adiós!' },
-	'npc.carla.cars.text': { en: 'Walk up to a vehicle, press F to enter, then WASD to drive. Press F again to leave. Same goes for boats, helis and the rocket — Shift makes air vehicles boost.',
-	                         de: 'Geh zu einem Fahrzeug, drück F zum Einsteigen, dann WASD zum Fahren. F drückt dich wieder raus. Bei Booten, Helis und der Rakete genauso — Shift gibt Luftfahrzeugen Schub.',
-	                         es: 'Acércate a un vehículo, pulsa F para entrar, luego WASD para conducir. Pulsa F otra vez para salir. Igual con botes, helis y el cohete — Shift da empuje a los vehículos aéreos.' },
+	'npc.carla.cars.text': { en: 'Walk up to a vehicle, press F to enter, then WASD to drive. Press F again to leave. Same goes for boats, helis and the rocket - Shift makes air vehicles boost.',
+	                         de: 'Geh zu einem Fahrzeug, drück F zum Einsteigen, dann WASD zum Fahren. F drückt dich wieder raus. Bei Booten, Helis und der Rakete genauso - Shift gibt Luftfahrzeugen Schub.',
+	                         es: 'Acércate a un vehículo, pulsa F para entrar, luego WASD para conducir. Pulsa F otra vez para salir. Igual con botes, helis y el cohete - Shift da empuje a los vehículos aéreos.' },
 	'npc.carla.cars.c0':   { en: 'How do the controls work?',      de: 'Wie funktioniert die Steuerung?', es: '¿Cómo funcionan los controles?' },
 	'npc.carla.cars.c1':   { en: 'Got it.',                        de: 'Verstanden.',                es: 'Entendido.' },
 	'npc.carla.controls.text': { en: 'WASD moves you, Space jumps, Shift sprints. Z toggles the on-screen control hint. Shift+C is the free camera; T teleports you there.',
@@ -192,9 +201,9 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'npc.carla.controls.c1': { en: 'Thanks!',                      de: 'Danke!',                     es: '¡Gracias!' },
 
 	'npc.dieter.role':     { en: 'Mechanic',                      de: 'Mechaniker',                 es: 'Mecánico' },
-	'npc.dieter.greet.text': { en: 'You can tune the cars from the Vehicles folder in the right-hand debug panel — friction, suspension, engine force. Changes apply to anything you spawn next.',
-	                           de: 'Du kannst die Autos im Vehicles-Ordner im rechten Debug-Panel tunen — Reibung, Federung, Motorkraft. Änderungen gelten für alles, was du danach spawnst.',
-	                           es: 'Puedes afinar los autos desde la carpeta Vehicles del panel de debug derecho — fricción, suspensión, fuerza del motor. Los cambios se aplican a lo que aparezca después.' },
+	'npc.dieter.greet.text': { en: 'You can tune the cars from the Vehicles folder in the right-hand debug panel - friction, suspension, engine force. Changes apply to anything you spawn next.',
+	                           de: 'Du kannst die Autos im Vehicles-Ordner im rechten Debug-Panel tunen - Reibung, Federung, Motorkraft. Änderungen gelten für alles, was du danach spawnst.',
+	                           es: 'Puedes afinar los autos desde la carpeta Vehicles del panel de debug derecho - fricción, suspensión, fuerza del motor. Los cambios se aplican a lo que aparezca después.' },
 	'npc.dieter.greet.c0': { en: 'What can I tune exactly?',       de: 'Was kann ich genau einstellen?', es: '¿Qué puedo ajustar exactamente?' },
 	'npc.dieter.greet.c1': { en: "What's in the World folder?",    de: 'Was steckt im World-Ordner?', es: '¿Qué hay en la carpeta World?' },
 	'npc.dieter.greet.c2': { en: 'Cool, thanks.',                  de: 'Cool, danke.',               es: 'Genial, gracias.' },
