@@ -12,7 +12,7 @@ import { UpdateOrder } from '../../enums/UpdateOrder';
 // the camera is too far away to read them.
 //
 // Pattern adapted from manuelhintermayr-portfolio/three-js
-// WorldLabels — ported from a manual screen-projection system to one
+// WorldLabels - ported from a manual screen-projection system to one
 // that piggy-backs on Sketchbook's existing CSS2D pipeline. The big
 // win: animals (and any future ad-hoc labels) get distance culling
 // without each entity having to know about the camera.
@@ -22,7 +22,19 @@ export interface RegisterOptions
 	maxDistance?: number;
 	className?: string;
 	feature?: string;
+	yOffset?: number;
 }
+
+// Default y-offset above the anchor's local origin. Was 1.2 - sat too
+// far above NPCs when their model origin is roughly at the centre of
+// the physics capsule. 0.5 places the tag right above the head.
+const DEFAULT_LABEL_Y = 0.5;
+
+// Default cull distance - labels disappear past 10 m. NPCs were
+// unlimited before; 30 m turned out to still keep the whole spawn
+// crowd labelled at once. 10 m gives an "only what I'm walking up to"
+// readout. Animals override this to match (see WanderingAnimals).
+const DEFAULT_MAX_DISTANCE = 10;
 
 interface RegisteredLabel
 {
@@ -65,13 +77,13 @@ export class WorldLabels implements IUpdatable
 		div.textContent = text;
 
 		const object = new CSS2DObject(div);
-		object.position.set(0, 1.2, 0);
+		object.position.set(0, options.yOffset ?? DEFAULT_LABEL_Y, 0);
 		target.add(object);
 
 		this.labels.push({
 			object,
 			target,
-			maxDistance: options.maxDistance ?? Infinity,
+			maxDistance: options.maxDistance ?? DEFAULT_MAX_DISTANCE,
 			feature: options.feature,
 		});
 
@@ -96,24 +108,25 @@ export class WorldLabels implements IUpdatable
 
 		for (const entry of this.labels)
 		{
-			const div = entry.object.element as HTMLElement;
+			// Toggle the three.js Object3D `visible` flag - CSS2DRenderer
+			// resets `element.style.display` to '' or 'none' every frame
+			// based on it (see CSS2DRenderer.js render loop), so
+			// overriding the inline style directly would be wiped on the
+			// very next render pass.
 
 			// Feature gate (e.g. animal labels off by default).
 			if (entry.feature !== undefined && params !== undefined && params[entry.feature] === false)
 			{
-				if (div.style.display !== 'none') div.style.display = 'none';
+				entry.object.visible = false;
 				continue;
 			}
 
 			// Distance cull. CSS2D anchors via the target's world
-			// position — fetch it through getWorldPosition so this works
+			// position - fetch it through getWorldPosition so this works
 			// for animals whose target Object3D moves each frame.
 			entry.target.getWorldPosition(_temp);
 			const dist = _temp.distanceTo(camPos);
-			const visible = dist <= entry.maxDistance;
-
-			if (visible && div.style.display === 'none') div.style.display = '';
-			else if (!visible && div.style.display !== 'none') div.style.display = 'none';
+			entry.object.visible = dist <= entry.maxDistance;
 		}
 	}
 }

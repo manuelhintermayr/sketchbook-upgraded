@@ -18,15 +18,15 @@ import { CAT_BEHAVIOR } from './CatBehavior';
 // *manager*: it owns the InstancedMeshes, the spawn placement, the
 // per-frame integration of velocity into position, the ground-height
 // raycasts, and the CSS2D label anchors. All per-animal state-machine
-// decisions live in DogBehavior / CatBehavior — see their files for
+// decisions live in DogBehavior / CatBehavior - see their files for
 // the rules each species follows.
 //
 // Movement is graphics-only: animals are not physics bodies. Ground
 // height is queried via a cannon raycast against the trimesh terrain
-// (throttled — see GROUND_QUERY_INTERVAL_S below).
+// (throttled - see GROUND_QUERY_INTERVAL_S below).
 //
 // Pattern adapted from manuelhintermayr-portfolio/three-js
-// WanderingAnimals — reshaped from a React useFrame hook into an
+// WanderingAnimals - reshaped from a React useFrame hook into an
 // IWorldEntity. The portfolio used a procedural simplex terrain
 // height function; here we raycast against the actual cannon physics
 // world so the animals stay on whatever map is loaded.
@@ -40,7 +40,7 @@ const SPAWN_OUTER = 80;   // Inthenew map's playable area is ~200 wide
 // the lerp toward targetGroundY this stays visually smooth on slopes.
 const GROUND_QUERY_INTERVAL_S = 0.1;
 
-// Mulberry32 — small deterministic PRNG so spawn placement is the same
+// Mulberry32 - small deterministic PRNG so spawn placement is the same
 // on every page load (otherwise reload would scramble the world).
 function mulberry32(seed: number): () => number
 {
@@ -154,8 +154,8 @@ export class WanderingAnimals implements IWorldEntity
 		world.sky.csm.setupMaterial(this.catMesh.material as THREE.Material);
 
 		// Attach label anchors + CSS2D tags. WorldLabels distance-culls
-		// at 30 units and feature-gates on params.Animal_Labels (off by
-		// default — opt-in via the Settings panel, otherwise the spawn
+		// at 10 units and feature-gates on params.Animal_Labels (off by
+		// default - opt-in via the Settings panel, otherwise the spawn
 		// looks busy with 18 tags floating).
 		for (const animal of this.animals)
 		{
@@ -164,7 +164,7 @@ export class WanderingAnimals implements IWorldEntity
 			const className = animal.kind === 'dog' ? 'name-label animal dog' : 'name-label animal cat';
 			attachNameLabel(animal.labelAnchor, text, false, {
 				className,
-				maxDistance: 30,
+				maxDistance: 10,
 				feature: 'Animal_Labels',
 			});
 		}
@@ -232,7 +232,7 @@ export class WanderingAnimals implements IWorldEntity
 				animal.position.z,
 			);
 
-			// Stick to terrain. Throttled raycast — refresh the cached
+			// Stick to terrain. Throttled raycast - refresh the cached
 			// targetGroundY every 100ms, lerp toward it each frame.
 			// Off-map detection (raycast miss or below sea level) still
 			// fires inside the throttle window so a wandering animal
@@ -348,7 +348,7 @@ export class WanderingAnimals implements IWorldEntity
 			_dummy.rotation.set(0, -animal.heading, 0);
 			_dummy.scale.setScalar(animal.scale);
 
-			// Bobbing while moving — adds a tiny bit of life.
+			// Bobbing while moving - adds a tiny bit of life.
 			const speed = animal.velocity.length();
 			if (speed > 0.3)
 			{
