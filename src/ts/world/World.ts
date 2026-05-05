@@ -41,6 +41,7 @@ import { setupRendererPipeline } from './setup/RendererPipeline';
 import { createParamsGUI } from './setup/ParamsGUI';
 import { loadScene } from './loading/SceneLoader';
 import { WorldLabels } from './ui/WorldLabels';
+import { TouchControls } from '../core/TouchControls';
 
 export class World
 {
@@ -128,7 +129,7 @@ export class World
 
 		// Z toggles the controls overlay (ported from Inthenew). Listened
 		// at document level so it works whichever input receiver is
-		// active — character, vehicle, or free camera.
+		// active - character, vehicle, or free camera.
 		document.addEventListener('keydown', (e) =>
 		{
 			if (e.code === 'KeyZ' && !e.repeat) this.toggleControlsOverlay();
@@ -160,7 +161,14 @@ export class World
 		this.stats = new Stats();
 		this.stats.dom.id = 'statsBox';
 		this.stats.dom.style.display = 'none';
-		document.getElementById('ui-container').appendChild(this.stats.dom);
+		// stats.js sets inline `position: fixed; top: 0; left: 0` on
+		// the dom element. Inside the debug-stack flex column we want
+		// it in the normal flow - strip those so CSS class selectors
+		// take over.
+		this.stats.dom.style.position = 'static';
+		this.stats.dom.style.top = '';
+		this.stats.dom.style.left = '';
+		document.getElementById('debug-stack').appendChild(this.stats.dom);
 		for (const panel of Array.from(this.stats.dom.children) as HTMLElement[])
 		{
 			panel.style.display = 'inline-block';
@@ -168,7 +176,7 @@ export class World
 		// Create right panel GUI
 		createParamsGUI(this);
 
-		// Pause menu (Esc) — disabled until the loader's
+		// Pause menu (Esc) - disabled until the loader's
 		// onFinishedCallback fires so it can't open over the welcome
 		// dialog. The Settings button opens the SettingsModal, which
 		// is built below and writes back through lil-gui controllers
@@ -189,22 +197,28 @@ export class World
 		this.cameraShake = new CameraShake(this);
 		this.registerUpdatable(this.cameraShake);
 
-		// Outline effect — depth-based Sobel edges. Owned by World so the
+		// Outline effect - depth-based Sobel edges. Owned by World so the
 		// render pipeline can call its renderPass after the composer pass.
 		// No-op when params.Outlines is false.
 		this.outlineEffect = new OutlineEffect(this);
 
-		// Ambient soundscape — wind / birds / water. Lazily creates an
+		// Ambient soundscape - wind / birds / water. Lazily creates an
 		// AudioContext when first enabled (browser autoplay policy is
 		// satisfied by the title-screen gesture).
 		this.ambientSound = new AmbientSound(this);
 		this.registerUpdatable(this.ambientSound);
 
-		// World labels — registry + distance culling for CSS2D tags.
+		// World labels - registry + distance culling for CSS2D tags.
 		// Constructed early so attachNameLabel calls from later spawn
 		// code go through it.
 		this.worldLabels = new WorldLabels(this);
 		this.registerUpdatable(this.worldLabels);
+
+		// Touch controls were installed at module load (sketchbook.ts) so
+		// the DOM listeners are already wired up. Now that the World is
+		// alive, hand it over so TouchControls can poll character/vehicle
+		// proximity and toggle context-aware on-screen buttons.
+		TouchControls.attachWorld(this);
 
 		// Day / night cycle (ported from Inthenew/Sketchbook).
 		// Mirror sky.phi back into params.Sun_Elevation (folded over 180 so
@@ -237,7 +251,7 @@ export class World
 				Swal.fire({
 					title: t('world.welcome.title'),
 					text: t('world.welcome.body'),
-					footer: '<a href="https://github.com/swift502/Sketchbook" target="_blank">GitHub page</a><a href="https://discord.gg/fGuEqCe" target="_blank">Discord server</a>',
+					footer: '<a href="https://github.com/manuelhintermayr/sketchbook-upgraded" target="_blank">GitHub page</a>',
 					confirmButtonText: t('world.welcome.button'),
 					buttonsStyling: false
 				}).then((result) => {
@@ -257,7 +271,7 @@ export class World
 			}
 			else if (worldScenePath && worldScenePath.scene instanceof THREE.Object3D)
 			{
-				// BaseScene instance — build a synthetic GLTF-shaped object
+				// BaseScene instance - build a synthetic GLTF-shaped object
 				// and feed it through the same loadScene path. A throwaway
 				// tracker entry keeps the loading-screen accounting honest
 				// in case no other async loads (vehicle GLBs) follow.
@@ -460,7 +474,7 @@ export class World
 		if (this.params.FXAA) this.composer.render();
 		else this.renderer.render(this.graphicsWorld, this.camera);
 
-		// Depth-Sobel outline overlay — internally guarded by params.Outlines
+		// Depth-Sobel outline overlay - internally guarded by params.Outlines
 		// so a disabled toggle costs one branch per frame.
 		this.outlineEffect.renderPass();
 
@@ -558,7 +572,6 @@ export class World
 	{
 		if (this.lastScenarioID !== undefined)
 		{
-			document.exitPointerLock();
 			// Hide the chaotic teardown / respawn flash behind the iris,
 			// then re-open it once the new scenario's spawn points have
 			// run. clearEntities + scenario.launch are synchronous so the

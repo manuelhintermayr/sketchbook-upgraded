@@ -6,7 +6,7 @@
  *
  * Without these the lil-gui debug panel hogs the right edge of every
  * screen and the controls overlay text is unreadable on a 5-inch
- * phone (the 3D canvas itself is fine — it just fills whatever
+ * phone (the 3D canvas itself is fine - it just fills whatever
  * pixels it gets).
  */
 
@@ -14,25 +14,26 @@
 @media (max-width: 768px)
 {
 	/* lil-gui: hide on touch-first devices. It's a desktop debug
-	 * panel — long property names and tiny number sliders that don't
+	 * panel - long property names and tiny number sliders that don't
 	 * survive being squeezed into a phone width. The SettingsModal
 	 * (Pause → Settings) covers everything a player actually needs. */
-	.lil-gui.root
+	.lil-gui.lil-root
 	{
 		display: none !important;
 	}
 
-	/* Stats box: scale down. stats.js's three-panel mode is laid out
-	 * for desktop; on phones the box covers the top-left corner of
-	 * gameplay. */
-	#statsBox
+	/* Stats box: hide alongside lil-gui. The Debug_FPS toggle still
+	 * lives in the Settings modal but the on-screen panel itself is
+	 * desktop-only - three side-by-side canvases don't survive the
+	 * narrow viewport even when scaled. */
+	#statsBox,
+	#debug-stack
 	{
-		transform: scale(0.65);
-		transform-origin: top left;
+		display: none !important;
 	}
 
 	/* Controls overlay (Z-key toggle list): tighten and shrink.
-	 * The overlay is helpful but not essential — it should hint, not
+	 * The overlay is helpful but not essential - it should hint, not
 	 * block the canvas. */
 	.left-panel .panel-segment
 	{
@@ -91,7 +92,7 @@
 /* ───────── Phone portrait (≤ 480px) ───────── */
 @media (max-width: 480px)
 {
-	/* Hide the desktop controls overlay completely on small phones —
+	/* Hide the desktop controls overlay completely on small phones -
 	 * the touch-controls overlay (joystick + jump/F/run buttons) is
 	 * the actually-used input layer there. */
 	.left-panel
@@ -104,8 +105,6 @@
 	{
 		width: 110px;
 		height: 110px;
-		bottom: var(--space-6);
-		left: var(--space-6);
 	}
 
 	#touch-joystick-thumb
@@ -126,8 +125,38 @@
  */
 @media (pointer: coarse)
 {
-	.lil-gui.root
+	.lil-gui.lil-root
 	{
 		display: none !important;
 	}
+}
+
+/* Touch session - TouchControls.ts toggles `touch-active` on <html>:
+ * on for real touch pointerdown, off again the moment the player goes
+ * back to mouse / keyboard. While it's on, the lil-gui debug panel and
+ * the keyboard-controls overlay both go away - they're noise for a
+ * touch player and the on-screen overlay covers the same ground.
+ */
+html.touch-active .lil-gui.lil-root,
+html.touch-active .left-panel,
+html.touch-active #debug-stack
+{
+	display: none !important;
+}
+
+/* Belt-and-braces fallback: any element starting with `.lil-gui` (the
+ * library prefixes every internal class with that). lil-gui sets some
+ * sizing inline so we keep `!important` to win over those.
+ */
+@media (max-width: 768px), (pointer: coarse)
+{
+	.lil-gui
+	{
+		display: none !important;
+	}
+}
+
+html.touch-active .lil-gui
+{
+	display: none !important;
 }

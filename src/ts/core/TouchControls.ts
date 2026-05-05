@@ -1,75 +1,105 @@
-// On-screen touch controls. Auto-mounted on touch devices. Synthesises
-// the same KeyboardEvent / MouseEvent pairs the existing Joycon layer
-// already dispatches (Client.js → document) so the engine doesn't need
-// to know about touch at all — InputManager picks them up like any
-// other keyboard/mouse input.
+// On-screen touch controls. Auto-mounted at module load on touch-capable
+// devices, attached to the World once it boots. Synthesises the same
+// KeyboardEvent / MouseEvent pairs the existing InputManager already
+// listens for, plus a few CustomEvents so ProximityPrompt can route
+// E / F taps to the right interact target.
 //
-// Layout: virtual joystick bottom-left for WASD, three action buttons
-// bottom-right (jump / action / sprint), and camera-drag anywhere on
-// the right half of the screen that isn't a button.
+// Layout: dynamic joystick anywhere on the canvas (appears at first
+// drag), context-aware button cluster bottom-right. Buttons differ by
+// state: foot-no-near = nothing, foot-near = E/F, in-vehicle = brake +
+// vehicle-specific extras, dialog-open = nothing (the dialog UI owns
+// the bottom edge).
 //
-// Pattern adapted from manuelhintermayr-portfolio/three-js
-// useCustomTouchControls + TouchCircles. The portfolio version pumps
-// joystick state into ecctrl's joystick store; here we dispatch
-// keyboard events instead to slot into Sketchbook's InputManager
-// without touching the engine.
+// Touch / mouse coexistence: html.touch-active is added on real touch
+// pointerdown, removed on mouse pointerdown or any gameplay keypress.
+// CSS hides the entire #touch-controls + the keyboard-controls overlay
+// + the lil-gui debug panel based on this class so hybrid devices (a
+// Surface, a laptop with a touchscreen) get the right HUD per session.
+//
+// Pattern adapted from manuelhintermayr-portfolio-v2/MobileJoystick +
+// portfolio/three-js useCustomTouchControls.
 
+import { World } from '../world/World';
+import { EntityType } from '../enums/EntityType';
+import { DialogBox } from '../world/ui/DialogBox';
 import { t } from '../i18n';
 
-const JOYSTICK_RADIUS = 70;     // px — full deflection at this displacement
-const JOYSTICK_DEADZONE = 0.2;  // ignore tiny finger jitter
-const SPRINT_AUTO_THRESHOLD = 0.85; // auto-sprint when joystick is at the rim
+const JOYSTICK_RADIUS = 70;
+const JOYSTICK_DEADZONE = 0.2;
+const SPRINT_AUTO_THRESHOLD = 0.85;
+const TAP_MAX_MOVE = 10;
+const TAP_MAX_TIME = 500;
+const TOUCH_CAM_SENSITIVITY = 2.5;
+const NEAR_VEHICLE_DISTANCE = 10;      // matches Character.findVehicleToEnter
+const KEYBOARD_DEACTIVATE_KEYS = new Set([
+	'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'KeyF', 'KeyV', 'KeyX', 'KeyQ', 'KeyR',
+	'Space', 'ShiftLeft', 'Escape',
+]);
 
 type DirectionKey = 'KeyW' | 'KeyA' | 'KeyS' | 'KeyD';
+type FingerRole = 'joystick' | 'camera';
+type TouchMode = 'foot' | 'car' | 'boat' | 'aircraft' | 'rocket' | 'passenger' | 'dialog';
 
-interface JoystickState
+interface FingerSlot
 {
-	active: boolean;
-	fingerId: number;
+	pointerId: number;
+	role: FingerRole;
 	startX: number;
 	startY: number;
+	startTime: number;
 	currentX: number;
 	currentY: number;
 }
 
+interface ButtonSpec
+{
+	id: string;
+	label: string;
+	code: string;
+	primary: boolean;
+	visible: boolean;
+}
+
 export class TouchControls
 {
-	private static initialized: boolean = false;
+	private static instance: TouchControls | null = null;
+
+	private world: World | null = null;
 
 	private root: HTMLDivElement;
 	private joystickBase: HTMLDivElement;
 	private joystickThumb: HTMLDivElement;
-	private btnJump: HTMLButtonElement;
-	private btnAction: HTMLButtonElement;
-	private btnSprint: HTMLButtonElement;
+	private buttonCluster: HTMLDivElement;
+	private buttons: Map<string, HTMLButtonElement> = new Map();
 
-	private joystick: JoystickState =
-	{
-		active: false,
-		fingerId: -1,
-		startX: 0,
-		startY: 0,
-		currentX: 0,
-		currentY: 0,
-	};
-
-	// Track which direction keys we currently hold down so we can release
-	// them cleanly when the finger leaves a quadrant.
+	private fingers: (FingerSlot | null)[] = [null, null];
 	private heldDirections: Set<DirectionKey> = new Set();
 	private sprintAuto: boolean = false;
 
-	// Camera-drag finger (anywhere on the right half that isn't a button).
-	private cameraFingerId: number = -1;
-	private cameraLastX: number = 0;
-	private cameraLastY: number = 0;
 	private canvas: HTMLElement | null = null;
+
+	// State driving button visibility
+	private mode: TouchMode = 'foot';
+	private nearInteractCount = 0;
+	private nearDialogCount = 0;
+	private nearVehicle = false;
+	private dialogOpen = false;
 
 	public static install(): void
 	{
-		if (TouchControls.initialized) return;
+		if (TouchControls.instance !== null) return;
 		if (!('ontouchstart' in window) && navigator.maxTouchPoints === 0) return;
-		TouchControls.initialized = true;
-		new TouchControls();
+		TouchControls.instance = new TouchControls();
+	}
+
+	public static attachWorld(world: World): void
+	{
+		TouchControls.instance?.setWorld(world);
+	}
+
+	public setWorld(world: World): void
+	{
+		this.world = world;
 	}
 
 	private constructor()
@@ -84,119 +114,450 @@ export class TouchControls
 		this.joystickBase.appendChild(this.joystickThumb);
 		this.root.appendChild(this.joystickBase);
 
-		this.btnJump = this.makeActionButton('touch-btn-jump', t('touch.jump'), 'Space');
-		this.btnAction = this.makeActionButton('touch-btn-action', t('touch.action'), 'KeyF');
-		this.btnSprint = this.makeActionButton('touch-btn-sprint', t('touch.run'), 'ShiftLeft');
-		this.root.appendChild(this.btnJump);
-		this.root.appendChild(this.btnAction);
-		this.root.appendChild(this.btnSprint);
+		this.buttonCluster = document.createElement('div');
+		this.buttonCluster.id = 'touch-buttons';
+		this.root.appendChild(this.buttonCluster);
+
+		// Build all possible buttons up front; CSS + JS toggle their
+		// visibility per mode. Each spec carries its keycode and a
+		// primary/secondary flag (drives size hierarchy).
+		this.makeButton('touch-btn-talk',  t('touch.talk'),   'KeyE',     'primary');
+		this.makeButton('touch-btn-action', t('touch.action'), 'KeyF',     'primary');
+		this.makeButton('touch-btn-brake', t('touch.brake'),  'Space',    'secondary');
+		this.makeButton('touch-btn-up',    t('touch.up'),     'ShiftLeft','secondary');
+		this.makeButton('touch-btn-down',  t('touch.down'),   'Space',    'secondary');
+		this.makeButton('touch-btn-view',  t('touch.view'),   'KeyV',     'secondary');
+		this.makeButton('touch-btn-seat',  t('touch.seat'),   'KeyX',     'secondary');
 
 		document.body.appendChild(this.root);
 
 		this.canvas = document.getElementById('canvas');
 
-		this.joystickBase.addEventListener('touchstart', (e) => this.onJoystickStart(e), { passive: false });
-		this.joystickBase.addEventListener('touchmove', (e) => this.onJoystickMove(e), { passive: false });
-		this.joystickBase.addEventListener('touchend', (e) => this.onJoystickEnd(e));
-		this.joystickBase.addEventListener('touchcancel', (e) => this.onJoystickEnd(e));
+		// Pointer events (joystick + camera) on document so we catch any
+		// touch outside the control widgets. Buttons have their own
+		// listeners + stopPropagation so they're skipped here.
+		document.addEventListener('pointerdown', (e) => this.onPointerDown(e), { passive: false });
+		document.addEventListener('pointermove', (e) => this.onPointerMove(e), { passive: false });
+		document.addEventListener('pointerup', (e) => this.onPointerUp(e));
+		document.addEventListener('pointercancel', (e) => this.onPointerUp(e));
 
-		// Camera drag — listen on document so we catch any touch outside
-		// the control widgets. The handlers ignore touches that landed on
-		// a control by checking the target.
-		document.addEventListener('touchstart', (e) => this.onCameraStart(e), { passive: false });
-		document.addEventListener('touchmove', (e) => this.onCameraMove(e), { passive: false });
-		document.addEventListener('touchend', (e) => this.onCameraEnd(e));
-		document.addEventListener('touchcancel', (e) => this.onCameraEnd(e));
+		// Mode toggle: keypress on a gameplay key drops touch-active so
+		// the keyboard HUD comes back. Mirrors the Babylon reference's
+		// disableTouchMode-on-keydown branch.
+		//
+		// `isTrusted` filters out our OWN synthesised KeyboardEvents -
+		// the joystick dispatches KeyW/A/S/D and the F/E buttons
+		// dispatch their codes too. Without this guard, the very first
+		// joystick drag would re-activate keyboard mode and yank the
+		// touch UI out from under the player.
+		document.addEventListener('keydown', (e) =>
+		{
+			if (!e.isTrusted) return;
+			if (!document.documentElement.classList.contains('touch-active')) return;
+			if (KEYBOARD_DEACTIVATE_KEYS.has(e.code)) this.exitTouchMode();
+		});
+
+		// State signals from elsewhere in the engine
+		window.addEventListener('proximity-near', (e) =>
+		{
+			const kind = (e as CustomEvent).detail?.kind;
+			if (kind === 'dialog') this.nearDialogCount++;
+			else if (kind === 'interact') this.nearInteractCount++;
+			this.refreshButtons();
+		});
+		window.addEventListener('proximity-far', (e) =>
+		{
+			const kind = (e as CustomEvent).detail?.kind;
+			if (kind === 'dialog') this.nearDialogCount = Math.max(0, this.nearDialogCount - 1);
+			else if (kind === 'interact') this.nearInteractCount = Math.max(0, this.nearInteractCount - 1);
+			this.refreshButtons();
+		});
+		window.addEventListener('dialog-change', (e) =>
+		{
+			this.dialogOpen = !!(e as CustomEvent).detail?.open;
+			this.refreshButtons();
+		});
+
+		// Vehicle proximity polling - Character/Vehicle don't dispatch
+		// events for "player got close enough to enter", so we sample
+		// once per animation frame. Cheap: a single distanceTo per
+		// vehicle, max ~5 vehicles in a typical scene.
+		const tick = (): void =>
+		{
+			this.pollWorldState();
+			requestAnimationFrame(tick);
+		};
+		requestAnimationFrame(tick);
+
+		this.refreshButtons();
 	}
 
-	private makeActionButton(id: string, label: string, code: string): HTMLButtonElement
+	private makeButton(id: string, label: string, code: string, kind: 'primary' | 'secondary'): void
 	{
 		const btn = document.createElement('button');
 		btn.id = id;
-		btn.className = 'touch-action-btn';
+		btn.className = 'touch-action-btn ' + (kind === 'primary' ? 'touch-action-btn--primary' : 'touch-action-btn--secondary');
 		btn.textContent = label;
+		btn.dataset.code = code;
+		btn.style.display = 'none';
 
-		const press = (e: Event): void =>
+		const press = (e: PointerEvent): void =>
 		{
 			e.preventDefault();
+			e.stopPropagation();
 			btn.classList.add('pressed');
+			// setPointerCapture so a held finger that drifts off the
+			// circle still gets pointerup → release. Without it pointer
+			// leave fired mid-hold and silently dropped the key.
+			try { btn.setPointerCapture(e.pointerId); } catch (_err) { /* noop */ }
+			// E and F also drive ProximityPrompts via a synthetic event
+			// - keyboard players press E/F directly, touch players go
+			// through this bridge.
+			if (code === 'KeyE')
+			{
+				window.dispatchEvent(new CustomEvent('touch-interact', { detail: { kind: 'dialog' } }));
+			}
+			else if (code === 'KeyF')
+			{
+				window.dispatchEvent(new CustomEvent('touch-interact', { detail: { kind: 'interact' } }));
+			}
 			this.dispatchKey(code, true);
 		};
-		const release = (e: Event): void =>
+		const release = (e: PointerEvent): void =>
 		{
 			e.preventDefault();
+			e.stopPropagation();
 			btn.classList.remove('pressed');
+			try { btn.releasePointerCapture(e.pointerId); } catch (_err) { /* noop */ }
 			this.dispatchKey(code, false);
 		};
 
-		btn.addEventListener('touchstart', press, { passive: false });
-		btn.addEventListener('touchend', release);
-		btn.addEventListener('touchcancel', release);
-		// Mouse fallback — handy on hybrid devices.
-		btn.addEventListener('mousedown', press);
-		btn.addEventListener('mouseup', release);
-		btn.addEventListener('mouseleave', (e) =>
-		{
-			if (btn.classList.contains('pressed')) release(e);
-		});
+		btn.addEventListener('pointerdown', press);
+		btn.addEventListener('pointerup', release);
+		btn.addEventListener('pointercancel', release);
 
-		return btn;
+		this.buttonCluster.appendChild(btn);
+		this.buttons.set(id, btn);
+	}
+
+	// --- World state polling ---------------------------------------------
+
+	private pollWorldState(): void
+	{
+		if (this.world === null) return;
+		const player = this.world.characters[0];
+		if (!player) return;
+
+		// Mode from controlledObject.entityType (driver) or occupyingSeat
+		// (passenger - controlledObject is only set on the driver, but a
+		// passenger still needs Exit + Seat-Switch buttons).
+		let nextMode: TouchMode;
+		if (this.dialogOpen) nextMode = 'dialog';
+		else if (player.controlledObject !== undefined)
+		{
+			const et = (player.controlledObject as any).entityType as EntityType | undefined;
+			switch (et)
+			{
+				case EntityType.Car:        nextMode = 'car'; break;
+				case EntityType.Boat:       nextMode = 'boat'; break;
+				case EntityType.Helicopter:
+				case EntityType.Airplane:   nextMode = 'aircraft'; break;
+				case EntityType.RocketShip: nextMode = 'rocket'; break;
+				default:                    nextMode = 'foot';
+			}
+		}
+		else if (player.occupyingSeat !== null) nextMode = 'passenger';
+		else nextMode = 'foot';
+
+		// Cheap vehicle-proximity sample (only matters on foot)
+		let nextNearVehicle = false;
+		if (nextMode === 'foot')
+		{
+			for (const v of this.world.vehicles)
+			{
+				if (player.position.distanceTo(v.position) < NEAR_VEHICLE_DISTANCE)
+				{
+					nextNearVehicle = true;
+					break;
+				}
+			}
+		}
+
+		if (nextMode !== this.mode || nextNearVehicle !== this.nearVehicle)
+		{
+			this.mode = nextMode;
+			this.nearVehicle = nextNearVehicle;
+			this.refreshButtons();
+		}
+	}
+
+	// --- Button visibility ------------------------------------------------
+
+	private refreshButtons(): void
+	{
+		this.root.dataset.touchMode = this.mode;
+
+		// Compute which buttons should show + which is the primary
+		// (single big one, others stay small). DialogBox owns the bottom
+		// edge during a conversation so we hide every touch button.
+		const visible: Set<string> = new Set();
+		let primary: string | null = null;
+
+		if (this.mode === 'dialog')
+		{
+			// no buttons
+		}
+		else if (this.mode === 'foot')
+		{
+			if (this.nearDialogCount > 0)
+			{
+				visible.add('touch-btn-talk');
+				primary = 'touch-btn-talk';
+			}
+			if (this.nearInteractCount > 0 || this.nearVehicle)
+			{
+				visible.add('touch-btn-action');
+				if (primary === null) primary = 'touch-btn-action';
+			}
+		}
+		else if (this.mode === 'car' || this.mode === 'boat')
+		{
+			visible.add('touch-btn-action'); // Exit (F)
+			visible.add('touch-btn-brake');  // Space
+			visible.add('touch-btn-view');   // V
+			visible.add('touch-btn-seat');   // X
+			primary = 'touch-btn-action';
+		}
+		else if (this.mode === 'aircraft')
+		{
+			visible.add('touch-btn-action'); // Exit (F)
+			visible.add('touch-btn-up');     // ShiftLeft
+			visible.add('touch-btn-down');   // Space (descend)
+			visible.add('touch-btn-view');   // V
+			primary = 'touch-btn-action';
+		}
+		else if (this.mode === 'rocket')
+		{
+			visible.add('touch-btn-action'); // Exit (F)
+			visible.add('touch-btn-up');     // ShiftLeft
+			visible.add('touch-btn-down');   // Space
+			primary = 'touch-btn-action';
+		}
+		else if (this.mode === 'passenger')
+		{
+			// Passengers can't drive - just exit (F) or swap into the
+			// driver seat (X). Brake / throttle / view all belong to
+			// the driver.
+			visible.add('touch-btn-action'); // Exit (F)
+			visible.add('touch-btn-seat');   // Seat-switch (X)
+			primary = 'touch-btn-action';
+		}
+
+		for (const [id, btn] of this.buttons)
+		{
+			const show = visible.has(id);
+			btn.style.display = show ? 'flex' : 'none';
+			btn.classList.toggle('touch-action-btn--primary', show && id === primary);
+			btn.classList.toggle('touch-action-btn--secondary', show && id !== primary);
+		}
+	}
+
+	// --- Joystick + camera (pointer dispatch) ----------------------------
+
+	private onPointerDown(e: PointerEvent): void
+	{
+		// Mouse → step out of touch mode. On a real desktop with a
+		// mouse this fires immediately and the touch UI never shows.
+		if (e.pointerType === 'mouse')
+		{
+			this.exitTouchMode();
+			return;
+		}
+		if (this.isOnControlWidget(e.target as HTMLElement)) return;
+
+		this.enterTouchMode();
+
+		// preventDefault stops the browser from claiming the gesture
+		// for scroll / swipe-back / pull-to-refresh - without it a
+		// vertical drag fires pointercancel mid-joystick and yanks the
+		// visual.
+		e.preventDefault();
+
+		// Slot 0 = movement joystick (always - appears at touch point),
+		// slot 1 = camera drag. Both roles are decided up front so the
+		// joystick visual shows up the instant the player touches down,
+		// matching the portfolio's TouchCircles behaviour. A pure tap
+		// (no drag) still fires jump on release; the joystick just
+		// also flashes briefly, which is the conventional pattern.
+		const slot = this.fingers[0] === null ? 0 : (this.fingers[1] === null ? 1 : -1);
+		if (slot === -1) return;
+
+		const role: FingerRole = slot === 0 ? 'joystick' : 'camera';
+		const finger: FingerSlot =
+		{
+			pointerId: e.pointerId,
+			role,
+			startX: e.clientX,
+			startY: e.clientY,
+			startTime: Date.now(),
+			currentX: e.clientX,
+			currentY: e.clientY,
+		};
+		this.fingers[slot] = finger;
+
+		// Capture the pointer on whichever element actually got it
+		// (typically the canvas) so subsequent pointermove keeps
+		// firing on the same element even if the finger drifts off.
+		// Without this, Chrome reroutes mid-stroke and the joystick
+		// vanishes when the finger crosses over a CSS2D label or off
+		// the canvas edge.
+		const captureTarget = e.target as Element | null;
+		if (captureTarget !== null)
+		{
+			try { captureTarget.setPointerCapture(e.pointerId); } catch (_err) { /* noop */ }
+		}
+
+		if (role === 'joystick')
+		{
+			this.showJoystick(e.clientX, e.clientY);
+		}
+	}
+
+	private onPointerMove(e: PointerEvent): void
+	{
+		if (e.pointerType === 'mouse') return;
+
+		const finger = this.findFingerByPointerId(e.pointerId);
+		if (finger === null) return;
+
+		const dx = e.clientX - finger.currentX;
+		const dy = e.clientY - finger.currentY;
+		finger.currentX = e.clientX;
+		finger.currentY = e.clientY;
+
+		if (finger.role === 'joystick')
+		{
+			this.applyJoystick(e.clientX, e.clientY, finger);
+		}
+		else
+		{
+			this.dispatchMouseMove(dx * TOUCH_CAM_SENSITIVITY, dy * TOUCH_CAM_SENSITIVITY);
+		}
+	}
+
+	private onPointerUp(e: PointerEvent): void
+	{
+		if (e.pointerType === 'mouse') return;
+
+		const finger = this.findFingerByPointerId(e.pointerId);
+		if (finger === null) return;
+
+		const duration = Date.now() - finger.startTime;
+		const totalDx = e.clientX - finger.startX;
+		const totalDy = e.clientY - finger.startY;
+		const drift = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
+
+		// Tap on ANY finger = jump (matches portfolio reference). No
+		// drag, released fast, on foot - drift gate stops a casual
+		// joystick flick from also firing jump.
+		if (drift <= TAP_MAX_MOVE && duration < TAP_MAX_TIME)
+		{
+			if (this.mode === 'foot') this.fireJump();
+		}
+
+		if (finger.role === 'joystick')
+		{
+			this.hideJoystick();
+			this.releaseAllDirections();
+			this.releaseSprintAuto();
+		}
+
+		const slotIndex = this.fingers.indexOf(finger);
+		if (slotIndex !== -1) this.fingers[slotIndex] = null;
+	}
+
+	private findFingerByPointerId(pointerId: number): FingerSlot | null
+	{
+		for (const f of this.fingers)
+		{
+			if (f !== null && f.pointerId === pointerId) return f;
+		}
+		return null;
+	}
+
+	private isOnControlWidget(target: HTMLElement | null): boolean
+	{
+		while (target !== null && target !== document.body)
+		{
+			if (target.id === 'touch-joystick-base' ||
+				target.id === 'touch-joystick-thumb' ||
+				target.classList?.contains('touch-action-btn') ||
+				target.classList?.contains('lil-gui') ||
+				target.id === 'pause-menu' ||
+				target.id === 'settings-modal' ||
+				target.id === 'dialog-bar' ||
+				target.id === 'title-screen' ||
+				target.id === 'planet-menu')
+			{
+				return true;
+			}
+			target = target.parentElement;
+		}
+		return false;
+	}
+
+	// --- Mode toggle ------------------------------------------------------
+
+	private enterTouchMode(): void
+	{
+		const html = document.documentElement;
+		if (html.classList.contains('touch-active')) return;
+		html.classList.add('touch-active');
+		window.dispatchEvent(new CustomEvent('touchmode-change', { detail: { touch: true } }));
+	}
+
+	private exitTouchMode(): void
+	{
+		const html = document.documentElement;
+		if (!html.classList.contains('touch-active')) return;
+		html.classList.remove('touch-active');
+		// Drop anything we were holding so the keyboard player isn't
+		// stuck with WASD pressed-from-touch.
+		this.releaseAllDirections();
+		this.releaseSprintAuto();
+		this.hideJoystick();
+		this.fingers[0] = null;
+		this.fingers[1] = null;
+		window.dispatchEvent(new CustomEvent('touchmode-change', { detail: { touch: false } }));
 	}
 
 	// --- Joystick ---------------------------------------------------------
 
-	private onJoystickStart(e: TouchEvent): void
+	private showJoystick(x: number, y: number): void
 	{
-		if (this.joystick.active) return;
-		e.preventDefault();
-		const touch = e.changedTouches[0];
-		if (touch === undefined) return;
-
-		const rect = this.joystickBase.getBoundingClientRect();
-		this.joystick.active = true;
-		this.joystick.fingerId = touch.identifier;
-		this.joystick.startX = rect.left + rect.width / 2;
-		this.joystick.startY = rect.top + rect.height / 2;
-		this.joystick.currentX = touch.clientX;
-		this.joystick.currentY = touch.clientY;
 		this.joystickBase.classList.add('active');
-		this.applyJoystick();
+		const halfW = this.joystickBase.offsetWidth / 2 || JOYSTICK_RADIUS;
+		const halfH = this.joystickBase.offsetHeight / 2 || JOYSTICK_RADIUS;
+		this.joystickBase.style.left = `${x - halfW}px`;
+		this.joystickBase.style.top = `${y - halfH}px`;
+		this.joystickThumb.style.transform = 'translate(-50%, -50%)';
 	}
 
-	private onJoystickMove(e: TouchEvent): void
+	private hideJoystick(): void
 	{
-		if (!this.joystick.active) return;
-		const touch = this.findTouch(e.changedTouches, this.joystick.fingerId);
-		if (touch === null) return;
-		e.preventDefault();
-		this.joystick.currentX = touch.clientX;
-		this.joystick.currentY = touch.clientY;
-		this.applyJoystick();
-	}
-
-	private onJoystickEnd(e: TouchEvent): void
-	{
-		if (!this.joystick.active) return;
-		const touch = this.findTouch(e.changedTouches, this.joystick.fingerId);
-		if (touch === null) return;
-		this.joystick.active = false;
-		this.joystick.fingerId = -1;
 		this.joystickBase.classList.remove('active');
 		this.joystickThumb.style.transform = 'translate(-50%, -50%)';
-		this.releaseAllDirections();
-		this.releaseSprintAuto();
 	}
 
-	private applyJoystick(): void
+	private applyJoystick(currentX: number, currentY: number, finger: FingerSlot): void
 	{
-		const dx = this.joystick.currentX - this.joystick.startX;
-		const dy = this.joystick.currentY - this.joystick.startY;
+		const dx = currentX - finger.startX;
+		const dy = currentY - finger.startY;
 		const len = Math.sqrt(dx * dx + dy * dy);
 		const clampedLen = Math.min(len, JOYSTICK_RADIUS);
 		const nx = len > 0 ? (dx / len) * clampedLen : 0;
 		const ny = len > 0 ? (dy / len) * clampedLen : 0;
 
-		// Move the visible thumb (px, relative to base centre).
 		this.joystickThumb.style.transform =
 			`translate(calc(-50% + ${nx}px), calc(-50% + ${ny}px))`;
 
@@ -204,24 +565,26 @@ export class TouchControls
 		const normY = ny / JOYSTICK_RADIUS;
 		const magnitude = Math.sqrt(normX * normX + normY * normY);
 
-		// Map quadrants to WASD with a small deadzone.
 		this.setDirection('KeyA', normX < -JOYSTICK_DEADZONE);
 		this.setDirection('KeyD', normX >  JOYSTICK_DEADZONE);
 		this.setDirection('KeyW', normY < -JOYSTICK_DEADZONE);
 		this.setDirection('KeyS', normY >  JOYSTICK_DEADZONE);
 
-		// Auto-sprint at the rim — saves the player from juggling a
-		// dedicated sprint button while moving.
-		const wantSprint = magnitude > SPRINT_AUTO_THRESHOLD;
-		if (wantSprint && !this.sprintAuto)
+		// Auto-sprint at the joystick rim only makes sense on foot;
+		// vehicles don't read ShiftLeft as run, so leave it alone.
+		if (this.mode === 'foot')
 		{
-			this.dispatchKey('ShiftLeft', true);
-			this.sprintAuto = true;
-		}
-		else if (!wantSprint && this.sprintAuto)
-		{
-			this.dispatchKey('ShiftLeft', false);
-			this.sprintAuto = false;
+			const wantSprint = magnitude > SPRINT_AUTO_THRESHOLD;
+			if (wantSprint && !this.sprintAuto)
+			{
+				this.dispatchKey('ShiftLeft', true);
+				this.sprintAuto = true;
+			}
+			else if (!wantSprint && this.sprintAuto)
+			{
+				this.dispatchKey('ShiftLeft', false);
+				this.sprintAuto = false;
+			}
 		}
 	}
 
@@ -258,71 +621,13 @@ export class TouchControls
 		}
 	}
 
-	// --- Camera drag ------------------------------------------------------
-
-	private onCameraStart(e: TouchEvent): void
+	private fireJump(): void
 	{
-		if (this.cameraFingerId !== -1) return;
-		const touch = e.changedTouches[0];
-		if (touch === undefined) return;
-		if (this.isOnControlWidget(touch.target as HTMLElement)) return;
-		// Right half of the screen only — left half overlaps with the
-		// joystick zone.
-		if (touch.clientX < window.innerWidth / 2) return;
-
-		this.cameraFingerId = touch.identifier;
-		this.cameraLastX = touch.clientX;
-		this.cameraLastY = touch.clientY;
-	}
-
-	private onCameraMove(e: TouchEvent): void
-	{
-		if (this.cameraFingerId === -1) return;
-		const touch = this.findTouch(e.changedTouches, this.cameraFingerId);
-		if (touch === null) return;
-
-		const dx = touch.clientX - this.cameraLastX;
-		const dy = touch.clientY - this.cameraLastY;
-		this.cameraLastX = touch.clientX;
-		this.cameraLastY = touch.clientY;
-		this.dispatchMouseMove(dx, dy);
-	}
-
-	private onCameraEnd(e: TouchEvent): void
-	{
-		if (this.cameraFingerId === -1) return;
-		const touch = this.findTouch(e.changedTouches, this.cameraFingerId);
-		if (touch === null) return;
-		this.cameraFingerId = -1;
-	}
-
-	private isOnControlWidget(target: HTMLElement | null): boolean
-	{
-		while (target !== null && target !== document.body)
-		{
-			if (target.id === 'touch-joystick-base' ||
-				target.id === 'touch-joystick-thumb' ||
-				target.classList?.contains('touch-action-btn'))
-			{
-				return true;
-			}
-			target = target.parentElement;
-		}
-		return false;
-	}
-
-	private findTouch(list: TouchList, id: number): Touch | null
-	{
-		for (let i = 0; i < list.length; i++)
-		{
-			if (list[i].identifier === id) return list[i];
-		}
-		return null;
+		this.dispatchKey('Space', true);
+		setTimeout(() => this.dispatchKey('Space', false), 80);
 	}
 
 	// --- Event dispatch ---------------------------------------------------
-	// Mirror the Joycon layer (Client.js): keyboard events on document,
-	// mouse events on the canvas. InputManager already listens for both.
 
 	private dispatchKey(code: string, pressed: boolean): void
 	{
@@ -335,9 +640,6 @@ export class TouchControls
 		if (this.canvas === null) this.canvas = document.getElementById('canvas');
 		if (this.canvas === null) return;
 
-		// Wrap each delta in mousedown / mousemove / mouseup so InputManager
-		// processes it whether or not pointer-lock is active. Same trick
-		// the Joycon Client.js uses for its mouse synthesis.
 		this.canvas.dispatchEvent(new MouseEvent('mousedown'));
 		this.canvas.dispatchEvent(new MouseEvent('mousemove', {
 			movementX: deltaX,
