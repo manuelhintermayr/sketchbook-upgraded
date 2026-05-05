@@ -5,7 +5,7 @@ import { t } from '../../i18n';
 // font links, the loading screen, the in-game UI container with the
 // GitHub corner + controls overlay slot, the planet-selection modal
 // the rocket flips visible at apogee, and the renderer's canvas.
-// All written via insertAdjacentHTML — this only runs once at world
+// All written via insertAdjacentHTML - this only runs once at world
 // construction; the markup never changes after.
 export function bootstrapHTML(world: World): void
 {
@@ -41,11 +41,20 @@ export function bootstrapHTML(world: World): void
 		</div>
 	`);
 
+	// Debug stack - pinned top-right column that holds the FPS box on
+	// top and the lil-gui debug panel below. Both elements are
+	// otherwise free-floating (lil-gui auto-places `position: fixed`,
+	// stats.js sets inline `position: fixed; left: 0`); inside this
+	// flex container they sit in the normal flow and stack cleanly.
+	document.body.insertAdjacentHTML('beforeend', `
+		<div id="debug-stack"></div>
+	`);
+
 	// UI
 	document.body.insertAdjacentHTML('beforeend', `
 		<div id="ui-container" style="display: none;">
 			<div class="github-corner">
-				<a href="https://github.com/swift502/Sketchbook" target="_blank" title="Fork me on GitHub">
+				<a href="https://github.com/manuelhintermayr/sketchbook-upgraded" target="_blank" title="Fork me on GitHub">
 					<svg viewbox="0 0 100 100" fill="currentColor">
 						<title>Fork me on GitHub</title>
 						<path d="M0 0v100h100V0H0zm60 70.2h.2c1 2.7.3 4.7 0 5.2 1.4 1.4 2 3 2 5.2 0 7.4-4.4 9-8.7 9.5.7.7 1.3 2

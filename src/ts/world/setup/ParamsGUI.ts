@@ -8,9 +8,8 @@ import { Car } from '../../vehicles/Car';
 // Builds the lil-gui debug panel and the params object that backs it.
 // All onChange wiring lives here so that callers (SettingsModal, the
 // pause-menu Settings card) can route writes through the matching
-// controller's setValue() and inherit the side effects for free —
-// CSM enable/disable, pointer-lock toggling, mouse sensitivity push
-// to CameraOperator, etc.
+// controller's setValue() and inherit the side effects for free -
+// CSM enable/disable, mouse sensitivity push to CameraOperator, etc.
 //
 // Persistence: the entire gui state snapshot serializes into
 // localStorage('sketchbook-settings') on every onFinishChange and
@@ -26,7 +25,6 @@ import { Car } from '../../vehicles/Car';
 export function createParamsGUI(world: World): void
 {
 	world.params = {
-		Pointer_Lock: true,
 		Mouse_Sensitivity: 0.3,
 		Time_Scale: 1,
 		Shadows: true,
@@ -46,7 +44,7 @@ export function createParamsGUI(world: World): void
 		Damping_Compression: 2,
 		Damping_Relaxation: 2,
 		Engine_Force: 10,
-		// Audio mix — Master applies to all positional sources via the
+		// Audio mix - Master applies to all positional sources via the
 		// shared THREE.AudioListener attached to the camera; the others
 		// are reserved for future per-bus routing (currently no SFX/
 		// music separation in the engine).
@@ -60,13 +58,13 @@ export function createParamsGUI(world: World): void
 		Bloom: false,
 		Depth_Of_Field: false,
 		Animal_Labels: false,
-		// Default off — light mode is the canonical look. The Title
+		// Default off - light mode is the canonical look. The Title
 		// screen toggle and the Settings modal both flip this; lil-gui
 		// persists the value through `gui.save()` so the choice
 		// survives reloads. The Title-screen toggle reads the existing
 		// `html.dark` class on its first render so it doesn't have to
 		// know about the params object.
-		// Default off — light mode is canonical. Source of truth is
+		// Default off - light mode is canonical. Source of truth is
 		// localStorage('sketchbook.darkMode'); the Title-screen toggle
 		// writes there before World even exists. The Settings modal
 		// toggle writes there too via the lil-gui onChange below, so
@@ -76,7 +74,13 @@ export function createParamsGUI(world: World): void
 
 	document.documentElement.classList.toggle('dark', !!world.params.Dark_Mode);
 
-	const gui = new GUI();
+	// Hand the GUI a container so it sits inside #debug-stack (top-right
+	// column shared with the FPS box) instead of auto-placing itself
+	// fixed on the viewport. The container option also drops the
+	// `lil-auto-place` class, so the library's own `position: fixed`
+	// rule no longer applies.
+	const debugStack = document.getElementById('debug-stack') ?? undefined;
+	const gui = debugStack !== undefined ? new GUI({ container: debugStack }) : new GUI();
 	world.gui = gui;
 
 	// Scenario
@@ -156,11 +160,6 @@ export function createParamsGUI(world: World): void
 			{
 				light.castShadow = !!enabled;
 			});
-		});
-	settingsFolder.add(world.params, 'Pointer_Lock')
-		.onChange((enabled) =>
-		{
-			world.inputManager.setPointerLock(enabled);
 		});
 	settingsFolder.add(world.params, 'Mouse_Sensitivity', 0, 1)
 		.onChange((value) =>
