@@ -55,8 +55,6 @@ export function createParamsGUI(world: World): void
 		Engine_Sound: true,
 		Ambient_Sound: true,
 		Outlines: false,
-		Bloom: false,
-		Depth_Of_Field: false,
 		Animal_Labels: false,
 		// Default off - light mode is the canonical look. The Title
 		// screen toggle and the Settings modal both flip this; lil-gui
@@ -208,8 +206,6 @@ export function createParamsGUI(world: World): void
 	settingsFolder.add(world.params, 'Engine_Sound');
 	settingsFolder.add(world.params, 'Ambient_Sound');
 	settingsFolder.add(world.params, 'Outlines');
-	settingsFolder.add(world.params, 'Bloom');
-	settingsFolder.add(world.params, 'Depth_Of_Field');
 	settingsFolder.add(world.params, 'Animal_Labels');
 	settingsFolder.add(world.params, 'Dark_Mode')
 		.onChange((enabled) =>

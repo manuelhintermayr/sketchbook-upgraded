@@ -2,8 +2,6 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 
@@ -11,15 +9,13 @@ import { World } from '../World';
 import { RenderLayer } from '../../enums/RenderLayers';
 
 // Build the rendering pipeline - WebGL renderer, CSS2D label overlay,
-// scene + camera, composer with FXAA / Bloom / DoF stacked in their
-// canonical order, plus the window-resize handler that keeps every
-// surface in sync. Bloom and DoF are added with `.enabled = false`
-// so toggling them at runtime never has to rebuild the composer.
+// scene + camera, composer with FXAA, plus the window-resize handler
+// that keeps every surface in sync.
 //
 // Side effects assigned to world by the time this returns:
 //   - world.renderer, world.labelRenderer
 //   - world.graphicsWorld, world.camera
-//   - world.composer, world.bloomPass, world.bokehPass
+//   - world.composer
 //
 // Run before bootstrapHTML - that function appends
 // world.renderer.domElement to <body> as the canvas, so the renderer
@@ -77,34 +73,11 @@ export function setupRendererPipeline(world: World): void
 	fxaaPass.material['uniforms'].resolution.value.x = 1 / (window.innerWidth * pixelRatio);
 	fxaaPass.material['uniforms'].resolution.value.y = 1 / (window.innerHeight * pixelRatio);
 
-	// Composer
+	// Composer - FXAA only. Bloom + DoF were dropped because they cost
+	// frames on integrated GPUs without giving the toon-ish look much.
 	world.composer = new EffectComposer(world.renderer);
 	world.composer.addPass(renderPass);
 	world.composer.addPass(fxaaPass);
-
-	// Bloom + Depth-of-Field. Both are added to the pipeline up-front
-	// with .enabled=false so the FXAA toggle path doesn't have to
-	// rebuild the composer when the player flips them on. Order:
-	//   render → fxaa → bloom → bokeh
-	// Bloom intensity adapts to time-of-day (stronger at night) and
-	// DoF focus is tighter while driving - both updated per frame in
-	// render().
-	world.bloomPass = new UnrealBloomPass(
-		new THREE.Vector2(window.innerWidth, window.innerHeight),
-		0.5,    // strength
-		0.4,    // radius
-		0.85,   // luminanceThreshold
-	);
-	world.bloomPass.enabled = false;
-	world.composer.addPass(world.bloomPass);
-
-	world.bokehPass = new BokehPass(world.graphicsWorld, world.camera, {
-		focus: 30,
-		aperture: 0.0001,
-		maxblur: 0.01,
-	});
-	world.bokehPass.enabled = false;
-	world.composer.addPass(world.bokehPass);
 
 	// Auto window resize. Captures fxaaPass and pixelRatio so the
 	// FXAA shader's resolution uniform stays in sync with the new

@@ -61,8 +61,6 @@ export class SettingsModal
 		this.setToggle('Engine_Sound', p.Engine_Sound);
 		this.setToggle('Ambient_Sound', p.Ambient_Sound);
 		this.setToggle('Outlines', p.Outlines);
-		this.setToggle('Bloom', p.Bloom);
-		this.setToggle('Depth_Of_Field', p.Depth_Of_Field);
 		this.setToggle('Animal_Labels', p.Animal_Labels);
 		this.setToggle('Dark_Mode', p.Dark_Mode);
 	}
@@ -99,8 +97,6 @@ export class SettingsModal
 					${this.toggleRow('FXAA', 'Anti-aliasing', 'FXAA post-process')}
 					${this.toggleRow('Has_Day_Night_Cycle', 'Day / night cycle', 'Sun moves automatically')}
 					${this.toggleRow('Outlines', 'Outlines', 'Depth-edge Sobel overlay (toon look)')}
-					${this.toggleRow('Bloom', 'Bloom', 'Glow on bright pixels (stronger at night)')}
-					${this.toggleRow('Depth_Of_Field', 'Depth of field', 'Bokeh blur - tighter focus while driving')}
 					${this.toggleRow('Animal_Labels', 'Animal labels', 'Show floating Hund / Katze tags above animals')}
 					${this.toggleRow('Dark_Mode', 'Dark mode', 'Dark surfaces for the modal stack - defaults to your system preference')}
 					${this.toggleRow('Debug_FPS', 'FPS counter', 'Show stats.js box')}
@@ -154,14 +150,14 @@ export class SettingsModal
 	}
 
 	// Quick toggles for the heavy graphics features. "Low" disables
-	// shadows + every post-FX (the things that actually move the FPS
-	// needle on integrated GPUs / mobile). "High" turns them all on so
-	// users can flip back without remembering which row was where.
+	// shadows + outlines (the things that move the FPS needle on
+	// integrated GPUs / mobile). "High" turns both on so users can flip
+	// back without remembering which row was where.
 	private applyPreset(preset: 'low' | 'high'): void
 	{
 		const targets: { [k: string]: boolean } = preset === 'low'
-			? { Shadows: false, Outlines: false, Bloom: false, Depth_Of_Field: false }
-			: { Shadows: true,  Outlines: true,  Bloom: true,  Depth_Of_Field: true };
+			? { Shadows: false, Outlines: false }
+			: { Shadows: true,  Outlines: true  };
 		for (const key in targets)
 		{
 			this.write(key, targets[key]);

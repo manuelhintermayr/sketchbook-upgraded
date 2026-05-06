@@ -3,8 +3,6 @@ import * as CANNON from 'cannon-es';
 import Swal from 'sweetalert2';
 
 import { CameraOperator } from '../core/CameraOperator';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
@@ -89,8 +87,6 @@ export class World
 	public cameraShake: CameraShake;
 	public outlineEffect: OutlineEffect;
 	public ambientSound: AmbientSound;
-	public bloomPass: UnrealBloomPass;
-	public bokehPass: BokehPass;
 	public worldLabels: WorldLabels;
 
 	private lastScenarioID: string;
@@ -445,30 +441,6 @@ export class World
 		// Stats end
 		this.stats.end();
 		this.stats.begin();
-
-		// Bloom + DoF live on the composer, so the FXAA-off branch (which
-		// renders the scene directly) bypasses them too. Sync their per-
-		// frame parameters here:
-		//   - Bloom: stronger at night so neon-ish materials and emissive
-		//     lights breathe a bit; threshold tightens at night so only
-		//     genuinely bright pixels glow.
-		//   - DoF: shifts to a tighter focus while driving so the chassis
-		//     stays crisp and the world hazes by; loosens on foot.
-		this.bloomPass.enabled = !!this.params.Bloom && !!this.params.FXAA;
-		this.bokehPass.enabled = !!this.params.Depth_Of_Field && !!this.params.FXAA;
-		if (this.bloomPass.enabled)
-		{
-			const sunY = this.sky?.sunPosition.y ?? 0;
-			const isNight = sunY < 0;
-			this.bloomPass.strength = isNight ? 1.2 : 0.5;
-			this.bloomPass.threshold = isNight ? 0.7 : 0.85;
-		}
-		if (this.bokehPass.enabled)
-		{
-			const driving = this.characters[0]?.controlledObject !== undefined;
-			(this.bokehPass as any).uniforms['focus'].value = driving ? 8 : 30;
-			(this.bokehPass as any).uniforms['aperture'].value = driving ? 0.00015 : 0.0001;
-		}
 
 		// Actual rendering with a FXAA ON/OFF switch
 		if (this.params.FXAA) this.composer.render();

@@ -52,7 +52,7 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'settings.presets':  { en: 'Quality preset',   de: 'Qualitäts-Preset',  es: 'Preset de calidad' },
 	'settings.presetLow':{ en: 'Low',              de: 'Niedrig',           es: 'Bajo' },
 	'settings.presetHigh':{ en: 'High',            de: 'Hoch',              es: 'Alto' },
-	'settings.presetDesc':{ en: 'Quick toggles for shadows + post-FX', de: 'Schatten + Post-FX en bloc', es: 'Atajos para sombras + post-FX' },
+	'settings.presetDesc':{ en: 'Quick toggles for shadows + outlines', de: 'Schatten + Outlines en bloc', es: 'Atajos para sombras + contornos' },
 
 	'error.reload':      { en: 'Reload',           de: 'Neu laden',         es: 'Recargar' },
 	'error.copy':        { en: 'Copy details',     de: 'Details kopieren',  es: 'Copiar detalles' },
