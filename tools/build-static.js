@@ -21,7 +21,7 @@ const DIST = path.join(ROOT, 'dist');
 const ITEMS = [
 	'index.html',
 	'favicon.ico',
-	'audio',                                 // audio/horn.wav
+	'audio',                                 // horn.wav + music/*.mp3
 	'build/sketchbook.min.js',
 	'build/sketchbook.min.js.LICENSE.txt',
 	'build/assets',                          // *.glb level / vehicle models

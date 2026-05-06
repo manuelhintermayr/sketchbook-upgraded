@@ -44,16 +44,17 @@ export function createParamsGUI(world: World): void
 		Damping_Compression: 2,
 		Damping_Relaxation: 2,
 		Engine_Force: 10,
-		// Audio mix - Master applies to all positional sources via the
-		// shared THREE.AudioListener attached to the camera; the others
-		// are reserved for future per-bus routing (currently no SFX/
-		// music separation in the engine).
+		// Audio mix. Master applies to all positional + procedural
+		// sources via the shared THREE.AudioListener attached to the
+		// camera, AND scales BackgroundMusic on top of Music_Volume.
+		// SFX_Volume is still reserved (no per-bus SFX routing yet).
 		Master_Volume: 80,
 		Music_Volume: 60,
 		SFX_Volume: 75,
 		Camera_Shake: true,
 		Engine_Sound: true,
 		Ambient_Sound: true,
+		Background_Music: true,
 		Outlines: false,
 		Animal_Labels: false,
 		// Default off - light mode is the canonical look. The Title
@@ -205,6 +206,7 @@ export function createParamsGUI(world: World): void
 	settingsFolder.add(world.params, 'Camera_Shake');
 	settingsFolder.add(world.params, 'Engine_Sound');
 	settingsFolder.add(world.params, 'Ambient_Sound');
+	settingsFolder.add(world.params, 'Background_Music');
 	settingsFolder.add(world.params, 'Outlines');
 	settingsFolder.add(world.params, 'Animal_Labels');
 	settingsFolder.add(world.params, 'Dark_Mode')

@@ -34,6 +34,7 @@ import { t } from '../i18n';
 import { IrisTransition } from './ui/IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './audio/AmbientSound';
+import { BackgroundMusic } from './audio/BackgroundMusic';
 import { bootstrapHTML } from './setup/HTMLBootstrap';
 import { setupRendererPipeline } from './setup/RendererPipeline';
 import { createParamsGUI } from './setup/ParamsGUI';
@@ -87,6 +88,7 @@ export class World
 	public cameraShake: CameraShake;
 	public outlineEffect: OutlineEffect;
 	public ambientSound: AmbientSound;
+	public backgroundMusic: BackgroundMusic;
 	public worldLabels: WorldLabels;
 
 	private lastScenarioID: string;
@@ -203,6 +205,11 @@ export class World
 		// satisfied by the title-screen gesture).
 		this.ambientSound = new AmbientSound(this);
 		this.registerUpdatable(this.ambientSound);
+
+		// Bundled music tracks looped in shuffle, gated by
+		// params.Background_Music + scaled by Master_Volume * Music_Volume.
+		this.backgroundMusic = new BackgroundMusic(this);
+		this.registerUpdatable(this.backgroundMusic);
 
 		// World labels - registry + distance culling for CSS2D tags.
 		// Constructed early so attachNameLabel calls from later spawn

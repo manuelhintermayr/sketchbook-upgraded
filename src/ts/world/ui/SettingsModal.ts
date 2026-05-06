@@ -60,6 +60,7 @@ export class SettingsModal
 		this.setToggle('Camera_Shake', p.Camera_Shake);
 		this.setToggle('Engine_Sound', p.Engine_Sound);
 		this.setToggle('Ambient_Sound', p.Ambient_Sound);
+		this.setToggle('Background_Music', p.Background_Music);
 		this.setToggle('Outlines', p.Outlines);
 		this.setToggle('Animal_Labels', p.Animal_Labels);
 		this.setToggle('Dark_Mode', p.Dark_Mode);
@@ -107,7 +108,8 @@ export class SettingsModal
 					${this.rangeRow('Master_Volume', 'Master volume', 0, 100, 1, 'All in-world positional + procedural audio')}
 					${this.toggleRow('Engine_Sound', 'Engine sound', 'Procedural Web Audio engine while driving')}
 					${this.toggleRow('Ambient_Sound', 'Ambient sound', 'Wind, birds, water (procedural)')}
-					${this.rangeRow('Music_Volume', 'Music', 0, 100, 1, 'Reserved - no separate music bus yet')}
+					${this.toggleRow('Background_Music', 'Background music', 'Looped soundtrack while you play')}
+					${this.rangeRow('Music_Volume', 'Music volume', 0, 100, 1, 'Background music level (multiplies with master)')}
 					${this.rangeRow('SFX_Volume', 'Sound effects', 0, 100, 1, 'Reserved - no SFX bus yet')}
 				</div>
 
