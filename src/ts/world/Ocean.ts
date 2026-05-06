@@ -80,10 +80,14 @@ export class Ocean implements IUpdatable
 		this.waveGeometry = new THREE.PlaneGeometry(this.GrdSiz, this.GrdSiz, this.segNum, this.segNum);
 		this.waveGeometry.rotateX(-Math.PI * 0.5);
 
+		// Tweaked from the original 0.5 / 0.6: lower metalness lets a
+		// touch of refracted scene colour through, slightly slicker
+		// roughness sharpens highlights so the wave crests catch the
+		// sun instead of flat-shading.
 		this.waveMaterial = new THREE.MeshStandardMaterial({
 			normalMap: this.waterNormalMap,
-			metalness: 0.5,
-			roughness: 0.6,
+			metalness: 0.3,
+			roughness: 0.45,
 			name: 'ocean.001',
 		});
 		this.waveMaterial.onBeforeCompile = (shader) =>
@@ -171,7 +175,10 @@ export class Ocean implements IUpdatable
 				`
 				#include <color_fragment>
 				if(vInvisible > 0.5) { discard; }
-				diffuseColor.rgb = mix(vec3(0.03125, 0.0625, 0.5), vec3(0.1, 0.2, 0.6), smoothstep(0.0, 6.0, vHeight));
+				// Deeper teal in the troughs, brighter aqua at the crests -
+				// gives the sea a livelier vertical gradient than the old
+				// flat dark-blue → muted-blue mix.
+				diffuseColor.rgb = mix(vec3(0.03, 0.10, 0.22), vec3(0.18, 0.42, 0.62), smoothstep(0.0, 6.0, vHeight));
 				`
 			);
 		};
@@ -274,8 +281,12 @@ export class Ocean implements IUpdatable
 
 		if (this.waterNormalMap)
 		{
-			this.waterNormalMap.offset.x -= 0.00005;
-			this.waterNormalMap.offset.y += 0.000025;
+			// Faster scroll than the original 5e-5 - the old rate was
+			// barely perceptible, so the sea looked still even though
+			// the geometry was moving. 4× brings the ripple drift up
+			// to a recognisable surface-current speed.
+			this.waterNormalMap.offset.x -= 0.0002;
+			this.waterNormalMap.offset.y += 0.0001;
 		}
 	}
 }
