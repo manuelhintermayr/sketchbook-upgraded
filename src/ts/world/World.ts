@@ -246,7 +246,10 @@ export class World
 
 				Swal.fire({
 					title: t('world.welcome.title'),
-					text: t('world.welcome.body'),
+					// html (instead of text) so the <br><br> in the i18n
+					// string actually breaks paragraphs - SweetAlert2's
+					// plain `text:` collapses whitespace.
+					html: t('world.welcome.body'),
 					footer: '<a href="https://github.com/manuelhintermayr/sketchbook-upgraded" target="_blank">GitHub page</a>',
 					confirmButtonText: t('world.welcome.button'),
 					buttonsStyling: false

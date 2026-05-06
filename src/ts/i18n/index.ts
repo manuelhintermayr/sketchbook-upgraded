@@ -68,9 +68,9 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 
 	// World - welcome dialog, lap counter, loading screen, WebGL warning, planet menu
 	'world.welcome.title': { en: 'Welcome to Sketchbook!', de: 'Willkommen bei Sketchbook!', es: '¡Bienvenido a Sketchbook!' },
-	'world.welcome.body':  { en: 'Feel free to explore the world and interact with available vehicles. There are also various scenarios ready to launch from the right panel.',
-	                         de: 'Erkunde die Welt und probiere die Fahrzeuge aus. Im rechten Panel kannst du verschiedene Szenarien starten.',
-	                         es: 'Siéntete libre de explorar el mundo e interactuar con los vehículos. También hay varios escenarios listos para lanzar desde el panel derecho.' },
+	'world.welcome.body':  { en: 'Feel free to explore the world and interact with available vehicles. There are also various scenarios ready to launch from the right panel.<br><br>Have fun with all the new features that have recently been added!',
+	                         de: 'Erkunde die Welt und probiere die Fahrzeuge aus. Im rechten Panel kannst du verschiedene Szenarien starten.<br><br>Viel Spaß bei allen neuen Features, die kürzlich hinzugefügt wurden!',
+	                         es: 'Siéntete libre de explorar el mundo e interactuar con los vehículos. También hay varios escenarios listos para lanzar desde el panel derecho.<br><br>¡Diviértete con todas las nuevas funciones añadidas recientemente!' },
 	'world.welcome.button': { en: 'Okay',                  de: 'OK',                          es: 'Vale' },
 	'world.empty.title':   { en: 'Hello world!',           de: 'Hallo Welt!',                 es: '¡Hola mundo!' },
 	'world.empty.body':    { en: 'Empty Sketchbook world was successfully initialized. Enjoy the blueness of the sky.',
