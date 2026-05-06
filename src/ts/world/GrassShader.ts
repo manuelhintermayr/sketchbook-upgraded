@@ -27,7 +27,16 @@ export let GrassShader = {
     // uniform mat4 modelViewMatrix;
     // uniform mat4 projectionMatrix;
     // uniform mat4 modelMatrix;
-    uniform vec3 playerPos;
+    // Up to MAX_PUSHERS world positions that bend nearby blades aside,
+    // each with its own influence radius (a helicopter chassis pushes a
+    // wider ring than a foot or a wheel). Filled each frame by
+    // Grass.update from the player + vehicles + wheels + animals,
+    // sorted by camera distance. pusherCount caps how many slots are
+    // valid - the rest are ignored.
+    const int MAX_PUSHERS = 16;
+    uniform vec3 pushers[MAX_PUSHERS];
+    uniform float pusherRadii[MAX_PUSHERS];
+    uniform int pusherCount;
     // attribute vec3 position;
     attribute vec3 offset;
     // attribute vec2 uv;
@@ -133,10 +142,34 @@ export let GrassShader = {
       vec4 windAngle = normalize(vec4(sin(halfAngle), 0.0, -sin(halfAngle), cos(halfAngle)));
 
       vec3 vObjectPosition = (modelMatrix * vec4( 0.0, 0.0, 0.0, 1.0 )).xyz;
-      vec3 playerLookVector = playerPos - (vObjectPosition + offset);
-      vec3 distortionAngle = normalize(vec3(playerLookVector.x, 0.0, playerLookVector.z));
+      vec3 bladeWorldPos = vObjectPosition + offset;
 
-      float distortionInfluence = clamp(1.0 - length(playerLookVector), 0.0, 1.0) * 2.3;
+      // Loop the active pushers and keep the strongest distortion. Each
+      // pusher has its own horizontal falloff radius so a foot-sized
+      // push doesn't get blown out by a wide chassis nearby. A fixed
+      // 1 m vertical tolerance gates pushers that are hovering well
+      // above the lawn (a parked airplane chassis would otherwise carve
+      // out a phantom ring just from the 3-D distance reading).
+      const float VERT_TOLERANCE = 1.0;
+      vec3 distortionAngle = vec3(0.0, 0.0, 1.0);
+      float distortionInfluence = 0.0;
+      for (int i = 0; i < MAX_PUSHERS; i++) {
+        if (i >= pusherCount) break;
+        vec3 lookVec = pushers[i] - bladeWorldPos;
+        float r = pusherRadii[i];
+        float horizDist = length(vec2(lookVec.x, lookVec.z));
+        float vertDist = abs(lookVec.y);
+        float horizFalloff = clamp(1.0 - horizDist / r, 0.0, 1.0);
+        float vertFalloff = clamp(1.0 - vertDist / VERT_TOLERANCE, 0.0, 1.0);
+        float infl = horizFalloff * vertFalloff * 2.3;
+        if (infl > distortionInfluence) {
+          distortionInfluence = infl;
+          // Normalize defensively; an exactly-overlapping blade would
+          // otherwise NaN here. The 1e-4 floor keeps the divide finite.
+          float horizLen = max(horizDist, 1e-4);
+          distortionAngle = vec3(lookVec.x / horizLen, 0.0, lookVec.z / horizLen);
+        }
+      }
 
       vec4 angle = mix(windAngle, vectorToQuaternion(distortionAngle), pow(distortionInfluence, 2.0));
       vPosition = rotateVectorByQuaternion(vPosition, angle);

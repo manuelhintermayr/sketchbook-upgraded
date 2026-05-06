@@ -49,9 +49,21 @@ export function loadScene(world: World, loadingManager: LoadingManager, gltf: an
 			// socketControl-style instanced grass field. Any mesh in
 			// world.glb whose material is named 'grass' becomes a
 			// shimmering 300k-blade lawn anchored at the mesh's
-			// transform; the original mesh stays as the dark base.
+			// transform; the original mesh stays as the base.
+			//
+			// Replace the GLB-shipped material wholesale - the original
+			// carries either a near-black diffuse map or fully-black
+			// PBR factors, which made the meadow look black past the
+			// 30 m LOD cut where the instanced blades drop out. A flat
+			// mid-green Lambert reads as continuous lawn from any
+			// distance; Grass shadow handling on the chassis is
+			// unaffected because nothing else inspects this material.
 			if (child.material.name === 'grass')
 			{
+				child.material = new THREE.MeshLambertMaterial({
+					color: 0x4a8a3a,
+					name: 'grass',
+				});
 				const grass = new Grass(child, world);
 				world.add(grass);
 			}

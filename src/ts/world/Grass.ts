@@ -7,6 +7,7 @@ import { UpdateOrder } from '../enums/UpdateOrder';
 import { RenderLayer } from '../enums/RenderLayers';
 import { Noise } from './Perlin';
 import { GrassShader } from './GrassShader';
+import { WanderingAnimals } from './animals/WanderingAnimals';
 
 // Instanced-blade grass field, ported from tkkaushik369/socketControl (MIT).
 // Based on "Realistic real-time grass rendering" by Eddie Lee, 2010
@@ -135,12 +136,26 @@ export class Grass implements IWorldEntity
 		const texture = loader.load('src/img/grass/blade_diffuse.jpg');
 		const alphaMap = loader.load('src/img/grass/blade_alpha.jpg');
 
+		// Pre-allocate the pushers array so Three.js can pick it up as a
+		// fixed-size uniform (matches `uniform vec3 pushers[MAX_PUSHERS]`
+		// in the shader). update() rewrites the contents in-place each
+		// frame; the slots past pusherCount are ignored on the GPU.
+		const pusherSlots: THREE.Vector3[] = [];
+		const pusherRadii: number[] = [];
+		for (let i = 0; i < 16; i++)
+		{
+			pusherSlots.push(new THREE.Vector3(1e6, 0, 0));
+			pusherRadii.push(1.0);
+		}
+
 		this.grassMaterial = new THREE.ShaderMaterial({
 			uniforms: {
 				map: { value: texture },
 				alphaMap: { value: alphaMap },
 				time: { value: 0 },
-				playerPos: { value: new THREE.Vector3() },
+				pushers: { value: pusherSlots },
+				pusherRadii: { value: pusherRadii },
+				pusherCount: { value: 0 },
 			},
 			vertexShader: GrassShader.vertexShader,
 			fragmentShader: GrassShader.fragmentShader,
@@ -149,11 +164,15 @@ export class Grass implements IWorldEntity
 
 		const grassMesh = new THREE.Mesh(instanced_geometry, this.grassMaterial);
 
-		// Skip grass instances past 30 units to keep the draw call cheap
-		// when the player has wandered off the lawn.
+		// Skip grass instances past 60 units to keep the draw call cheap
+		// when the player has wandered off the lawn. Was 30 - tighter
+		// but the pop into the flat lambert base was too obvious from
+		// medium-distance shots. 60 buys a much smoother transition for
+		// the cost of ~600k extra triangles inside that ring; modern
+		// GPUs handle it without a frame-rate hit.
 		const grassLod = new THREE.LOD();
 		grassLod.addLevel(grassMesh, 0);
-		grassLod.addLevel(new THREE.Mesh(), 30);
+		grassLod.addLevel(new THREE.Mesh(), 60);
 
 		grassLod.position.copy(transform.position);
 
@@ -187,10 +206,84 @@ export class Grass implements IWorldEntity
 	public update(timeStep: number): void
 	{
 		this.grassMaterial.uniforms.time.value += timeStep;
+		this.refreshPushers();
+	}
 
-		if (this.world.characters.length)
+	// Collect every world-space "object on the lawn" the shader should
+	// bend blades around: the player + every vehicle + every visible
+	// animal. Each blade only checks the closest few pushers (loop in
+	// shader caps at MAX_PUSHERS), so on crowded scenes we trim by
+	// camera distance to keep nearby pushers winning over a parked car
+	// on the other side of the map.
+	private refreshPushers(): void
+	{
+		const slots = this.grassMaterial.uniforms.pushers.value as THREE.Vector3[];
+		const radii = this.grassMaterial.uniforms.pusherRadii.value as number[];
+		const camPos = this.world.camera.position;
+
+		const candidates: { pos: THREE.Vector3; radius: number; distSq: number }[] = [];
+		const consider = (p: THREE.Vector3, radius: number): void =>
 		{
-			this.grassMaterial.uniforms.playerPos.value.copy(this.world.characters[0].position);
+			const dx = p.x - camPos.x;
+			const dz = p.z - camPos.z;
+			candidates.push({ pos: p, radius, distSq: dx * dx + dz * dz });
+		};
+
+		// Player + every NPC (Anna / Ben / Carla / Dieter live in
+		// world.characters too). 0.8 m roughly matches a person's
+		// shoulder-width plus a little aura - the original single-
+		// pusher path used 1.0 effective so this stays close.
+		for (const c of this.world.characters) consider(c.position, 0.8);
+
+		// Vehicles. Each per-frame pusher is sized to roughly the
+		// footprint that actually touches the lawn - the shader's
+		// vertical tolerance then gates anything hovering above it.
+		//
+		//  - Car: low-slung chassis above the wheels.
+		//  - Boat: hull is broad and at water level when on land.
+		//  - Helicopter: heli.glb has no wheel markers, so push from a
+		//    virtual skid below chassis (see inline note).
+		//  - Airplane: GLB-authored wheels carry the ground contact;
+		//    chassis itself is skipped.
+		//  - Rocket: stands vertically on the pad, no horizontal
+		//    footprint in the grass. Skipped.
+		for (const v of this.world.vehicles)
+		{
+			if (v.entityType === EntityType.Car) consider(v.position, 1.5);
+			else if (v.entityType === EntityType.Boat) consider(v.position, 2.0);
+			else if (v.entityType === EntityType.Helicopter)
+			{
+				// heli.glb has no wheel markers - skids are part of the
+				// chassis mesh. Approximate them with a virtual pusher
+				// 1.2 m below chassis center; when the heli is on the
+				// ground that lands roughly at blade level (vertical
+				// tolerance kicks in), when it's airborne it lifts out
+				// of tolerance and stops pushing.
+				consider(new THREE.Vector3(v.position.x, v.position.y - 1.2, v.position.z), 1.5);
+			}
+			// Airplane chassis is skipped; the GLB-authored wheels
+			// handle ground contact. RocketShip too.
+
+			for (const w of v.wheels) consider(w.wheelObject.position, 0.5);
 		}
+
+		// Animals - dogs and cats are small. 0.5 m ring per body.
+		const wa = WanderingAnimals.getInstance();
+		if (wa !== null)
+		{
+			for (const p of wa.getAnimalPositions()) consider(p, 0.5);
+		}
+
+		// Sort closest-first, then write the top MAX_PUSHERS into the
+		// uniform slots in-place.
+		candidates.sort((a, b) => a.distSq - b.distSq);
+		const max = slots.length;
+		const count = Math.min(candidates.length, max);
+		for (let i = 0; i < count; i++)
+		{
+			slots[i].copy(candidates[i].pos);
+			radii[i] = candidates[i].radius;
+		}
+		this.grassMaterial.uniforms.pusherCount.value = count;
 	}
 }

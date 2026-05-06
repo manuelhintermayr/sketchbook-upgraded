@@ -106,11 +106,21 @@ export class WanderingAnimals implements IWorldEntity
 
 	private world: World | null = null;
 	private animals: Animal[] = [];
+
+	private static singleton: WanderingAnimals | null = null;
+	public static getInstance(): WanderingAnimals | null { return WanderingAnimals.singleton; }
+	public getAnimalPositions(): THREE.Vector3[]
+	{
+		const out: THREE.Vector3[] = [];
+		for (const a of this.animals) out.push(a.position);
+		return out;
+	}
 	private dogMesh: THREE.InstancedMesh;
 	private catMesh: THREE.InstancedMesh;
 
 	constructor()
 	{
+		WanderingAnimals.singleton = this;
 		const dogGeo = buildDogGeometry();
 		const catGeo = buildCatGeometry();
 		const dogMat = new THREE.MeshStandardMaterial({ color: 0xb5651d, roughness: 0.8 });
