@@ -110,6 +110,8 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'touch.down':          { en: '↓',                      de: '↓',                           es: '↓' },
 	'touch.view':          { en: 'V',                      de: 'V',                           es: 'V' },
 	'touch.seat':          { en: 'X',                      de: 'X',                           es: 'X' },
+	'touch.yawLeft':       { en: '↺',                      de: '↺',                           es: '↺' },
+	'touch.yawRight':      { en: '↻',                      de: '↻',                           es: '↻' },
 
 	// Controls overlay header
 	'controls.header':     { en: 'Controls:',              de: 'Steuerung:',                  es: 'Controles:' },

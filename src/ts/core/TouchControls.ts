@@ -121,13 +121,15 @@ export class TouchControls
 		// Build all possible buttons up front; CSS + JS toggle their
 		// visibility per mode. Each spec carries its keycode and a
 		// primary/secondary flag (drives size hierarchy).
-		this.makeButton('touch-btn-talk',  t('touch.talk'),   'KeyE',     'primary');
-		this.makeButton('touch-btn-action', t('touch.action'), 'KeyF',     'primary');
-		this.makeButton('touch-btn-brake', t('touch.brake'),  'Space',    'secondary');
-		this.makeButton('touch-btn-up',    t('touch.up'),     'ShiftLeft','secondary');
-		this.makeButton('touch-btn-down',  t('touch.down'),   'Space',    'secondary');
-		this.makeButton('touch-btn-view',  t('touch.view'),   'KeyV',     'secondary');
-		this.makeButton('touch-btn-seat',  t('touch.seat'),   'KeyX',     'secondary');
+		this.makeButton('touch-btn-talk',     t('touch.talk'),     'KeyE',     'primary');
+		this.makeButton('touch-btn-action',   t('touch.action'),   'KeyF',     'primary');
+		this.makeButton('touch-btn-brake',    t('touch.brake'),    'Space',    'secondary');
+		this.makeButton('touch-btn-up',       t('touch.up'),       'ShiftLeft','secondary');
+		this.makeButton('touch-btn-down',     t('touch.down'),     'Space',    'secondary');
+		this.makeButton('touch-btn-view',     t('touch.view'),     'KeyV',     'secondary');
+		this.makeButton('touch-btn-seat',     t('touch.seat'),     'KeyX',     'secondary');
+		this.makeButton('touch-btn-yaw-left', t('touch.yawLeft'),  'KeyQ',     'secondary');
+		this.makeButton('touch-btn-yaw-right',t('touch.yawRight'), 'KeyE',     'secondary');
 
 		document.body.appendChild(this.root);
 
@@ -330,10 +332,12 @@ export class TouchControls
 		}
 		else if (this.mode === 'aircraft')
 		{
-			visible.add('touch-btn-action'); // Exit (F)
-			visible.add('touch-btn-up');     // ShiftLeft
-			visible.add('touch-btn-down');   // Space (descend)
-			visible.add('touch-btn-view');   // V
+			visible.add('touch-btn-action');    // Exit (F)
+			visible.add('touch-btn-up');        // ShiftLeft (ascend)
+			visible.add('touch-btn-down');      // Space (descend)
+			visible.add('touch-btn-yaw-left');  // Q
+			visible.add('touch-btn-yaw-right'); // E
+			visible.add('touch-btn-view');      // V
 			primary = 'touch-btn-action';
 		}
 		else if (this.mode === 'rocket')
