@@ -130,7 +130,20 @@ export abstract class AnimalBehavior
 	{
 		if (playerDist > giveUpDist)
 		{
-			this.transitionToIdleOrWander(animal);
+			// Only flip from 'tame' to idle/wander once. If we're
+			// already in idle/wander from a previous frame, run the
+			// state's timer down before re-randomising - calling
+			// transitionToIdleOrWander every frame picked a fresh
+			// wander target each tick, which made the pet spin in
+			// place at 60 Hz.
+			if (animal.state === 'tame')
+			{
+				this.transitionToIdleOrWander(animal);
+			}
+			else if ((animal.state === 'idle' || animal.state === 'wander') && animal.stateTimer <= 0)
+			{
+				this.transitionToIdleOrWander(animal);
+			}
 		}
 		else if (playerDist < TAME_FOLLOW_DIST)
 		{
