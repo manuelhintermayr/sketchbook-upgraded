@@ -186,12 +186,26 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			seat.update(timeStep);
 		});
 
+		// Wheel positions come out of cannon's RaycastVehicle in body-space
+		// at body.position, while the chassis above is rendered at
+		// body.interpolatedPosition. At high speeds the gap between those
+		// two is exactly the per-step velocity offset - so the wheels
+		// visually drift in front of (or behind) the car. Compensate with
+		// the same delta on every wheel so chassis + wheels stay locked.
+		const dx = this.collision.interpolatedPosition.x - this.collision.position.x;
+		const dy = this.collision.interpolatedPosition.y - this.collision.position.y;
+		const dz = this.collision.interpolatedPosition.z - this.collision.position.z;
+
 		for (let i = 0; i < this.rayCastVehicle.wheelInfos.length; i++)
 		{
 			this.rayCastVehicle.updateWheelTransform(i);
 			const transform = this.rayCastVehicle.getWheelTransformWorld(i);
 			const wheelObject = this.wheels[i].wheelObject;
-			wheelObject.position.set(transform.position.x, transform.position.y, transform.position.z);
+			wheelObject.position.set(
+				transform.position.x + dx,
+				transform.position.y + dy,
+				transform.position.z + dz,
+			);
 			wheelObject.quaternion.set(transform.quaternion.x, transform.quaternion.y, transform.quaternion.z, transform.quaternion.w);
 		}
 
