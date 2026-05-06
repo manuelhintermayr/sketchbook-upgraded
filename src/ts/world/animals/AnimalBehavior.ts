@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+import { AnimalModel } from './AnimalModels';
+
 // Domain definition for the wandering-animals system: the data each
 // animal carries each frame, the state-machine alphabet, the tuning
 // constants, and the abstract behavior strategy that every animal
@@ -65,6 +67,11 @@ export interface Animal
 	// polymorphically dispatch to the right state machine without an
 	// `if (kind === ...)` branch per animal.
 	behavior: AnimalBehavior;
+	// Hierarchical visual model with named handles (body, head, legs,
+	// tail, ears) the per-frame animator drives. Replaces the previous
+	// instanced-mesh approach so each animal can blink, breathe and
+	// run independently.
+	model: AnimalModel;
 }
 
 // State → speed table used by the manager when integrating velocity.

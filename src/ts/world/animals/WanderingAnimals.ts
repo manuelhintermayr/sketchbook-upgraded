@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { World } from '../World';
 import { IWorldEntity } from '../../interfaces/IWorldEntity';
@@ -13,23 +12,25 @@ import { t } from '../../i18n';
 import { Animal, AnimalKind, targetSpeedFor } from './AnimalBehavior';
 import { DOG_BEHAVIOR } from './DogBehavior';
 import { CAT_BEHAVIOR } from './CatBehavior';
+import { applyAnimalAnimation, buildCatModel, buildDogModel, CAT_SCHEMES, DOG_SCHEMES } from './AnimalModels';
 
 // Wandering dogs and cats around the player spawn. This file is the
-// *manager*: it owns the InstancedMeshes, the spawn placement, the
-// per-frame integration of velocity into position, the ground-height
-// raycasts, and the CSS2D label anchors. All per-animal state-machine
-// decisions live in DogBehavior / CatBehavior - see their files for
-// the rules each species follows.
+// *manager*: it owns the per-animal hierarchical model groups, the
+// spawn placement, the per-frame integration of velocity into
+// position, the ground-height raycasts, and the CSS2D label anchors.
+// All per-animal state-machine decisions live in DogBehavior /
+// CatBehavior; the visual model + per-limb animation lives in
+// AnimalModels.ts.
 //
 // Movement is graphics-only: animals are not physics bodies. Ground
 // height is queried via a cannon raycast against the trimesh terrain
 // (throttled - see GROUND_QUERY_INTERVAL_S below).
 //
 // Pattern adapted from manuelhintermayr-portfolio/three-js
-// WanderingAnimals - reshaped from a React useFrame hook into an
-// IWorldEntity. The portfolio used a procedural simplex terrain
-// height function; here we raycast against the actual cannon physics
-// world so the animals stay on whatever map is loaded.
+// WanderingAnimals + the low-poly-cat-game HTML demo. The portfolio
+// used InstancedMesh; we replaced that with per-animal Three.Groups
+// because the cat-game-style animations (idle breath, walk-cycle,
+// run-cycle, jump pose) need independent per-limb transforms.
 
 const DOG_COUNT = 8;
 const CAT_COUNT = 10;
@@ -54,50 +55,20 @@ function mulberry32(seed: number): () => number
 	};
 }
 
-function buildDogGeometry(): THREE.BufferGeometry
-{
-	const body = new THREE.SphereGeometry(1, 6, 6);
-	body.scale(0.35, 0.25, 0.6);
-	body.translate(0, 0.35, 0);
-
-	const head = new THREE.SphereGeometry(0.18, 6, 6);
-	head.translate(0, 0.45, 0.55);
-
-	const tail = new THREE.ConeGeometry(0.06, 0.3, 4);
-	tail.rotateX(-0.6);
-	tail.translate(0, 0.45, -0.55);
-
-	return mergeGeometries([body, head, tail], false);
-}
-
-function buildCatGeometry(): THREE.BufferGeometry
-{
-	const body = new THREE.SphereGeometry(1, 6, 6);
-	body.scale(0.2, 0.18, 0.45);
-	body.translate(0, 0.28, 0);
-
-	const head = new THREE.SphereGeometry(0.14, 6, 6);
-	head.translate(0, 0.35, 0.4);
-
-	const earL = new THREE.ConeGeometry(0.05, 0.12, 3);
-	earL.translate(-0.08, 0.5, 0.4);
-	const earR = new THREE.ConeGeometry(0.05, 0.12, 3);
-	earR.translate(0.08, 0.5, 0.4);
-
-	const tail = new THREE.CylinderGeometry(0.03, 0.02, 0.4, 4);
-	tail.rotateX(-0.8);
-	tail.translate(0, 0.35, -0.45);
-
-	return mergeGeometries([body, head, earL, earR, tail], false);
-}
-
 const _toPlayer = new THREE.Vector3();
 const _toTarget = new THREE.Vector3();
 const _dir = new THREE.Vector3();
-const _dummy = new THREE.Object3D();
 const _rayStart = new CANNON.Vec3();
 const _rayEnd = new CANNON.Vec3();
 const _rayResult = new CANNON.RaycastResult();
+
+// Cat-game models are authored at "real" scale (cat ≈ 2 units long,
+// dog ≈ 2.3 units long). Sketchbook needs them lawn-mower sized so
+// the lawn isn't dwarfed - shrink the whole top group uniformly. Per-
+// animal `scale` (set in spawn()) multiplies on top for population
+// variation.
+const CAT_BASE_SCALE = 0.45;
+const DOG_BASE_SCALE = 0.55;
 
 export class WanderingAnimals implements IWorldEntity
 {
@@ -115,38 +86,10 @@ export class WanderingAnimals implements IWorldEntity
 		for (const a of this.animals) out.push(a.position);
 		return out;
 	}
-	private dogMesh: THREE.InstancedMesh;
-	private catMesh: THREE.InstancedMesh;
 
 	constructor()
 	{
 		WanderingAnimals.singleton = this;
-		const dogGeo = buildDogGeometry();
-		const catGeo = buildCatGeometry();
-		const dogMat = new THREE.MeshStandardMaterial({ color: 0xb5651d, roughness: 0.8 });
-		const catMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.7 });
-
-		this.dogMesh = new THREE.InstancedMesh(dogGeo, dogMat, DOG_COUNT);
-		this.catMesh = new THREE.InstancedMesh(catGeo, catMat, CAT_COUNT);
-		this.dogMesh.castShadow = true;
-		this.dogMesh.receiveShadow = true;
-		this.catMesh.castShadow = true;
-		this.catMesh.receiveShadow = true;
-
-		// Frustum culling for InstancedMesh reads the *geometry's*
-		// bounding sphere, not the per-instance positions. A dog
-		// geometry is ~0.5 units, so the default sphere is tiny and
-		// culling would chop the herd whenever the camera looks past
-		// origin. Override with a sphere big enough to contain the
-		// whole roaming area: spawns happen in the SPAWN_INNER..OUTER
-		// ring, fleeing cats add ~40 units, terrain-Y up to ~50.
-		// Centred at (0, 25, 0) with radius 130 covers everything
-		// safely while still letting Three skip the meshes when the
-		// camera looks the other way (saves a draw call per pass +
-		// shadow pass).
-		const cullSphere = new THREE.Sphere(new THREE.Vector3(0, 25, 0), 130);
-		dogGeo.boundingSphere = cullSphere;
-		catGeo.boundingSphere = cullSphere;
 	}
 
 	public addToWorld(world: World): void
@@ -158,10 +101,19 @@ export class WanderingAnimals implements IWorldEntity
 		// empty and everything spawns at y=0 inside the ocean).
 		this.spawn();
 
-		world.graphicsWorld.add(this.dogMesh);
-		world.graphicsWorld.add(this.catMesh);
-		world.sky.csm.setupMaterial(this.dogMesh.material as THREE.Material);
-		world.sky.csm.setupMaterial(this.catMesh.material as THREE.Material);
+		// Each animal owns its own Three.Group now (no more InstancedMesh
+		// - the per-leg / per-tail-segment animations need independent
+		// transforms). Hook every mesh in the model into CSM so shadows
+		// stay sharp.
+		for (const animal of this.animals)
+		{
+			world.graphicsWorld.add(animal.model.group);
+			animal.model.group.traverse((child) =>
+			{
+				const m = (child as THREE.Mesh).material;
+				if (m && (m as THREE.Material).isMaterial) world.sky.csm.setupMaterial(m as THREE.Material);
+			});
+		}
 
 		// Attach label anchors + CSS2D tags. WorldLabels distance-culls
 		// at 10 units and feature-gates on params.Animal_Labels (off by
@@ -182,10 +134,9 @@ export class WanderingAnimals implements IWorldEntity
 
 	public removeFromWorld(world: World): void
 	{
-		world.graphicsWorld.remove(this.dogMesh);
-		world.graphicsWorld.remove(this.catMesh);
 		for (const animal of this.animals)
 		{
+			world.graphicsWorld.remove(animal.model.group);
 			world.graphicsWorld.remove(animal.labelAnchor);
 		}
 		this.world = null;
@@ -268,9 +219,12 @@ export class WanderingAnimals implements IWorldEntity
 			);
 
 			animal.animPhase += dt * (animal.velocity.length() * 2 + 0.5);
-		}
 
-		this.writeInstances();
+			// Drive the visual model: position / rotation / per-frame
+			// limb animation. Replaces the old InstancedMesh matrix
+			// write - each animal now has its own transform tree.
+			this.applyModel(animal, dt);
+		}
 	}
 
 	private spawn(): void
@@ -295,11 +249,23 @@ export class WanderingAnimals implements IWorldEntity
 				const y = this.queryGroundHeight(x, z);
 				if (y === null || y < 1) continue;
 
-				const scale = kind === 'dog' ? 0.8 + rng() * 0.4 : 0.5 + rng() * 0.3;
+				// Per-population variation on top of the species base
+				// scale (CAT_BASE_SCALE / DOG_BASE_SCALE in module
+				// scope) so dogs and cats look like a real population
+				// instead of clones.
+				const scale = kind === 'dog' ? 0.85 + rng() * 0.3 : 0.7 + rng() * 0.35;
 				const pos = new THREE.Vector3(x, y, z);
 
 				const labelAnchor = new THREE.Object3D();
 				labelAnchor.position.copy(pos);
+
+				// Pick a random colour scheme from the species palette.
+				const schemes = kind === 'dog' ? DOG_SCHEMES : CAT_SCHEMES;
+				const scheme = schemes[Math.floor(rng() * schemes.length)];
+				const model = kind === 'dog' ? buildDogModel(scheme) : buildCatModel(scheme);
+				const baseScale = kind === 'dog' ? DOG_BASE_SCALE : CAT_BASE_SCALE;
+				model.group.scale.setScalar(baseScale * scale);
+				model.group.position.copy(pos);
 
 				this.animals.push(
 				{
@@ -320,6 +286,7 @@ export class WanderingAnimals implements IWorldEntity
 					// animals don't sample on the same frame and tank it.
 					groundQueryTimer: rng() * GROUND_QUERY_INTERVAL_S,
 					behavior: kind === 'dog' ? DOG_BEHAVIOR : CAT_BEHAVIOR,
+					model,
 				});
 				placed++;
 			}
@@ -327,6 +294,29 @@ export class WanderingAnimals implements IWorldEntity
 
 		place('dog', DOG_COUNT);
 		place('cat', CAT_COUNT);
+	}
+
+	// Per-frame transform sync for one animal: world position from
+	// physics-light integrator above, heading-driven yaw, then the
+	// model-internal limb / tail / ear animation in AnimalModels.
+	private applyModel(animal: Animal, _dt: number): void
+	{
+		const g = animal.model.group;
+		g.position.copy(animal.position);
+		// heading is atan2(dx, dz). The Three model's +Z is forward, so
+		// rotate around Y by -heading to face the heading direction.
+		g.rotation.y = -animal.heading;
+
+		const speed = animal.velocity.length();
+		const moving = speed > 0.3;
+		const running = speed > 4;
+		applyAnimalAnimation(animal.model, {
+			t: animal.animPhase,
+			speed,
+			isDog: animal.kind === 'dog',
+			moving,
+			running,
+		});
 	}
 
 	// Cast a ray straight down from y=100 into the cannon physics world.
@@ -347,37 +337,4 @@ export class WanderingAnimals implements IWorldEntity
 		return hit ? _rayResult.hitPointWorld.y : null;
 	}
 
-	private writeInstances(): void
-	{
-		let dogIdx = 0;
-		let catIdx = 0;
-
-		for (const animal of this.animals)
-		{
-			_dummy.position.copy(animal.position);
-			_dummy.rotation.set(0, -animal.heading, 0);
-			_dummy.scale.setScalar(animal.scale);
-
-			// Bobbing while moving - adds a tiny bit of life.
-			const speed = animal.velocity.length();
-			if (speed > 0.3)
-			{
-				_dummy.position.y += Math.sin(animal.animPhase * 8) * 0.05 * Math.min(speed / 5, 1);
-			}
-
-			_dummy.updateMatrix();
-
-			if (animal.kind === 'dog')
-			{
-				this.dogMesh.setMatrixAt(dogIdx++, _dummy.matrix);
-			}
-			else
-			{
-				this.catMesh.setMatrixAt(catIdx++, _dummy.matrix);
-			}
-		}
-
-		this.dogMesh.instanceMatrix.needsUpdate = true;
-		this.catMesh.instanceMatrix.needsUpdate = true;
-	}
 }
