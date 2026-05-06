@@ -9,6 +9,11 @@
 	display: flex;
 	justify-content: space-between;
 	pointer-events: none;
+	/* Shadow for readability against the 3D canvas - opt-in here
+	 * since the global body shadow was removed (it bled into card
+	 * UIs). .ctrl-key opts out further down so the keycap chrome
+	 * stays crisp. */
+	text-shadow: var(--text-shadow-overlay);
 }
 
 .left-panel .panel-segment

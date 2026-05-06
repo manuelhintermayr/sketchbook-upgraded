@@ -59,6 +59,17 @@
 	--color-loading-top: #568db5;
 	--color-loading-bottom: #ccdde8;
 
+	/* Themed overlays - dialog box, SweetAlert2, planet menu, etc.
+	 * These are picked up by the matching CSS modules so a single
+	 * dark-mode flip swaps every popup at once instead of each module
+	 * carrying its own hardcoded palette. */
+	--color-overlay-bg: rgba(255, 252, 245, 0.97);
+	--color-overlay-text: #1a1a1a;
+	--color-overlay-text-soft: rgba(0, 0, 0, 0.6);
+	--color-overlay-choice-bg: rgba(0, 0, 0, 0.04);
+	--color-overlay-choice-border: rgba(0, 0, 0, 0.12);
+	--color-overlay-choice-bg-hover: rgba(255, 185, 0, 0.18);
+
 	/* Typography */
 	--font-headline: 'Solway', serif;
 	--font-body: 'Solway', serif;
@@ -157,6 +168,21 @@ html.dark,
 	--color-on-background: #e0e0e0;
 	--color-outline: #444444;
 	--color-outline-variant: #2a2a2a;
+	/* Title + loading screens. Same gradient stops as light mode but
+	 * darker ends so the player actually notices the toggle on the
+	 * title screen (the rest of the dark UI doesn't show before the
+	 * world boots). */
+	--color-loading-top: #1a2a38;
+	--color-loading-bottom: #0c141c;
+
+	/* Themed overlays - dark variant of the same tokens used by the
+	 * dialog / sweetalert / planet-menu surfaces in light mode. */
+	--color-overlay-bg: rgba(12, 15, 22, 0.93);
+	--color-overlay-text: rgba(255, 255, 255, 0.92);
+	--color-overlay-text-soft: rgba(255, 255, 255, 0.55);
+	--color-overlay-choice-bg: rgba(255, 255, 255, 0.04);
+	--color-overlay-choice-border: rgba(255, 255, 255, 0.09);
+	--color-overlay-choice-bg-hover: rgba(255, 185, 0, 0.16);
 }
 
 @media (prefers-reduced-motion: reduce)

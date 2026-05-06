@@ -44,7 +44,7 @@ html.dialog-active .proximity-prompt
 
 #dialog-bar .dialog-box
 {
-	background: rgba(12, 15, 22, 0.93);
+	background: var(--color-overlay-bg);
 	border: 2px solid rgba(255, 185, 0, 0.45);
 	border-radius: var(--radius-xl);
 	-webkit-backdrop-filter: blur(10px);
@@ -103,7 +103,7 @@ html.dialog-active .proximity-prompt
 {
 	font-family: var(--font-label);
 	font-size: var(--text-caption);
-	color: rgba(255, 255, 255, 0.45);
+	color: var(--color-overlay-text-soft);
 	text-align: center;
 }
 
@@ -130,7 +130,7 @@ html.dialog-active .proximity-prompt
 {
 	font-family: var(--font-body);
 	font-size: var(--text-body);
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--color-overlay-text);
 	line-height: var(--leading-relaxed);
 	flex: 1;
 	margin-bottom: var(--space-3);
@@ -151,10 +151,10 @@ html.dialog-active .proximity-prompt
 	align-items: center;
 	gap: var(--space-3);
 	padding: var(--space-2) var(--space-3);
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(255, 255, 255, 0.09);
+	background: var(--color-overlay-choice-bg);
+	border: 1px solid var(--color-overlay-choice-border);
 	border-radius: var(--radius-md);
-	color: rgba(255, 255, 255, 0.85);
+	color: var(--color-overlay-text);
 	font-family: var(--font-body);
 	font-size: var(--text-body-sm);
 	cursor: pointer;
@@ -167,9 +167,9 @@ html.dialog-active .proximity-prompt
 #dialog-bar .dialog-choice.selected,
 #dialog-bar .dialog-choice:focus-visible
 {
-	background: rgba(255, 185, 0, 0.12);
+	background: var(--color-overlay-choice-bg-hover);
 	border-color: rgba(255, 185, 0, 0.45);
-	color: #ffffff;
+	color: var(--color-overlay-text);
 	outline: none;
 }
 
