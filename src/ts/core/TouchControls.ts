@@ -363,7 +363,23 @@ export class TouchControls
 			btn.style.display = show ? 'flex' : 'none';
 			btn.classList.toggle('touch-action-btn--primary', show && id === primary);
 			btn.classList.toggle('touch-action-btn--secondary', show && id !== primary);
+			delete btn.dataset.slot;
 		}
+
+		// Assign slot indices in priority order: primary is slot 0
+		// (outer-low corner), secondaries fill 1..N in the order they
+		// were added to `visible`. Each slot has a fixed right/bottom
+		// position in the CSS that paints the staircase. Insertion
+		// order of a Set is iteration order in JS, so the per-mode
+		// visible.add() calls above implicitly drive the priority.
+		const ordered: string[] = [];
+		if (primary !== null) ordered.push(primary);
+		for (const id of visible) if (id !== primary) ordered.push(id);
+		ordered.forEach((id, idx) =>
+		{
+			const btn = this.buttons.get(id);
+			if (btn) btn.dataset.slot = String(idx);
+		});
 	}
 
 	// --- Joystick + camera (pointer dispatch) ----------------------------

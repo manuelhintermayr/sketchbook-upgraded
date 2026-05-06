@@ -83,25 +83,25 @@ html.touch-active #canvas
 	background: var(--color-primary);
 }
 
-/* Context-aware button cluster. Stacked column-reverse so the primary
- * (most-likely-next-action) sits at the bottom, secondaries climb
- * above it. Right edge is fixed; cluster grows up + slightly inward
- * the more buttons are visible at once.
+/* Context-aware button cluster. Buttons are absolutely positioned by
+ * data-slot index assigned in JS - primary lands at slot 0 (outer
+ * column, lowest), secondaries fill upward alternating between the
+ * inner and outer columns. Same staircase shape the original
+ * Sketchbook touch-controls used (jump / F / sprint laid out 2D)
+ * just generalised to 6 slots so vehicle modes with 4-6 buttons
+ * still pack into the bottom-right corner instead of one tall stack
+ * eating the camera-drag area.
  */
 #touch-buttons
 {
 	position: absolute;
-	right: var(--space-5);
-	bottom: var(--space-5);
-	display: flex;
-	flex-direction: column-reverse;
-	align-items: flex-end;
-	gap: var(--space-3);
+	inset: 0;
 	pointer-events: none;
 }
 
 .touch-action-btn
 {
+	position: absolute;
 	border-radius: var(--radius-full);
 	background: rgba(0, 0, 0, 0.45);
 	border: 2px solid rgba(255, 255, 255, 0.55);
@@ -136,6 +136,16 @@ html.touch-active #canvas
 	height: 60px;
 	font-size: 18px;
 }
+
+/* Slot positions, bottom-right anchored. Even slots ride the outer
+ * column (right: 24px), odd slots step inward one button-width so
+ * the cluster reads as a 2-column staircase climbing up-and-left. */
+.touch-action-btn[data-slot="0"] { right: 24px;  bottom: 24px;  }
+.touch-action-btn[data-slot="1"] { right: 110px; bottom: 50px;  }
+.touch-action-btn[data-slot="2"] { right: 24px;  bottom: 120px; }
+.touch-action-btn[data-slot="3"] { right: 110px; bottom: 140px; }
+.touch-action-btn[data-slot="4"] { right: 24px;  bottom: 200px; }
+.touch-action-btn[data-slot="5"] { right: 110px; bottom: 220px; }
 
 .touch-action-btn:active,
 .touch-action-btn.pressed
