@@ -4,6 +4,7 @@ import {
 	AnimalBehavior,
 	Animal,
 	CAT_FLEE_DIST,
+	MEOW_DURATION,
 } from './AnimalBehavior';
 
 // Module-scoped scratch vector - reused across every cat update each
@@ -23,10 +24,26 @@ class CatBehavior extends AnimalBehavior
 			return;
 		}
 
-		// Player too close → pick a flee target ~40 units in the radial-
-		// out direction, transition to flee state. Counts as one
-		// interaction toward taming.
-		if (cat.state !== 'flee' && playerDist < CAT_FLEE_DIST)
+		// Player too close -> protest with a meow first, then bolt.
+		// The meow holds the cat in place for MEOW_DURATION (mouth
+		// animation + sound), then drops into flee with a target ~40
+		// units in the radial-out direction. Counts as one interaction
+		// toward taming. Skip if already meow'ing or fleeing.
+		if (cat.state !== 'flee' && cat.state !== 'meow' && playerDist < CAT_FLEE_DIST)
+		{
+			cat.state = 'meow';
+			cat.stateTimer = MEOW_DURATION;
+			cat.pendingVoice = 'meow';
+			// Face the player while meowing - heading set so the head
+			// turns toward the camera before bolting.
+			_toPlayer.subVectors(playerPos, cat.position);
+			_toPlayer.y = 0;
+			cat.heading = Math.atan2(_toPlayer.x, _toPlayer.z);
+			return;
+		}
+
+		// Meow expired -> flip into flee with the radial-out target.
+		if (cat.state === 'meow' && cat.stateTimer <= 0)
 		{
 			cat.state = 'flee';
 			cat.stateTimer = 3 + Math.random() * 2;
@@ -38,7 +55,7 @@ class CatBehavior extends AnimalBehavior
 			return;
 		}
 
-		if (cat.stateTimer <= 0 && cat.state !== 'flee')
+		if (cat.stateTimer <= 0 && cat.state !== 'flee' && cat.state !== 'meow')
 		{
 			this.transitionToIdleOrWander(cat);
 		}

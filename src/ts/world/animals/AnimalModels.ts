@@ -47,6 +47,10 @@ export interface AnimalModel
 	tail: THREE.Object3D[];
 	legs: { fl: AnimalLeg; fr: AnimalLeg; bl: AnimalLeg; br: AnimalLeg };
 	ears: { left: THREE.Object3D; right: THREE.Object3D };
+	// Mouth-open mesh for voice animation. Hidden by default
+	// (scale.y ≈ 0); the animator scales it up while voiceFraction > 0
+	// so meowing cats and barking dogs visibly open their mouth.
+	mouthOpen: THREE.Mesh;
 	// Resting body Y inside the parent group (so idle breath returns
 	// to it and walk-cycle bobs around it).
 	restY: number;
@@ -170,6 +174,16 @@ export function buildCatModel(scheme: ColorScheme): AnimalModel
 	nose.rotation.y = Math.PI / 4;
 	head.add(nose);
 
+	// Mouth-open block - hidden by default, scaled up while meowing
+	// to show an open mouth. Sits flat against the snout's underside.
+	const mouthOpen = new THREE.Mesh(
+		new THREE.BoxGeometry(0.22, 0.18, 0.07),
+		mat(0x2a0d10),
+	);
+	mouthOpen.position.set(0, -0.27, 0.72);
+	mouthOpen.scale.y = 0.001;
+	head.add(mouthOpen);
+
 	// Eyes (simple - no pupil tracking in v1)
 	const makeEye = (x: number): THREE.Object3D =>
 	{
@@ -221,7 +235,7 @@ export function buildCatModel(scheme: ColorScheme): AnimalModel
 	const tail = makeTail(cat, 7, 1.15, -1.0, 0.22, furMat, darkMat, whiteMat);
 
 	applyShadow(root);
-	return { group: root, body, head, tail, legs, ears: { left: leftEar, right: rightEar }, restY };
+	return { group: root, body, head, tail, legs, ears: { left: leftEar, right: rightEar }, mouthOpen, restY };
 }
 
 export function buildDogModel(scheme: ColorScheme): AnimalModel
@@ -259,6 +273,15 @@ export function buildDogModel(scheme: ColorScheme): AnimalModel
 	const nose = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.18), noseMat);
 	nose.position.set(0, -0.05, 0.96);
 	head.add(nose);
+
+	// Mouth-open block under the snout - shown while barking.
+	const mouthOpen = new THREE.Mesh(
+		new THREE.BoxGeometry(0.32, 0.18, 0.1),
+		mat(0x2a0d10),
+	);
+	mouthOpen.position.set(0, -0.32, 0.86);
+	mouthOpen.scale.y = 0.001;
+	head.add(mouthOpen);
 
 	// Eyes
 	const makeEye = (x: number): THREE.Object3D =>
@@ -307,7 +330,7 @@ export function buildDogModel(scheme: ColorScheme): AnimalModel
 	if (tail.length > 0) tail[0].rotation.x = -0.6;
 
 	applyShadow(root);
-	return { group: root, body, head, tail, legs, ears: { left: leftEar, right: rightEar }, restY };
+	return { group: root, body, head, tail, legs, ears: { left: leftEar, right: rightEar }, mouthOpen, restY };
 }
 
 // Per-frame animation driver. Picks idle / walk / run pose from the
@@ -321,10 +344,22 @@ export function applyAnimalAnimation(model: AnimalModel, opts:
 	isDog: boolean;
 	moving: boolean;
 	running: boolean;
+	// 0..1, lifecycle of the active voice (1 = just started, 0 = done).
+	// Drives mouth-open scale and the dog's bark head-shake.
+	voiceFraction: number;
 }): void
 {
-	const { t, speed, isDog, moving, running } = opts;
+	const { t, speed, isDog, moving, running, voiceFraction } = opts;
 	const restY = model.restY;
+
+	// Mouth opens during voices. Smooth-step in/out so the open isn't
+	// a hard pop. Cats hold mouth open for the full meow; dogs jaw-
+	// snap on each bark - here we approximate with the same fade
+	// (synth duration is ~0.45 s, voiceFraction handles the timing).
+	const mouthScale = voiceFraction > 0
+		? Math.max(0.001, voiceFraction)
+		: 0.001;
+	model.mouthOpen.scale.y = mouthScale;
 
 	if (!moving)
 	{
@@ -361,8 +396,19 @@ export function applyAnimalAnimation(model: AnimalModel, opts:
 			model.ears.right.rotation.x = -0.08;
 		}
 
-		model.head.rotation.y = Math.sin(t * 0.5) * 0.12;
-		model.head.rotation.x = Math.sin(t * 0.7) * 0.04;
+		// Dogs barking jerk their head down on each woof; idle cats
+		// just sway their head gently. voiceFraction > 0 overrides
+		// the lazy idle motion with the bark snap.
+		if (isDog && voiceFraction > 0)
+		{
+			model.head.rotation.x = -0.18 + voiceFraction * 0.25;
+			model.head.rotation.y = Math.sin(t * 18) * 0.06;
+		}
+		else
+		{
+			model.head.rotation.y = Math.sin(t * 0.5) * 0.12;
+			model.head.rotation.x = Math.sin(t * 0.7) * 0.04;
+		}
 
 		for (const k in model.legs)
 		{

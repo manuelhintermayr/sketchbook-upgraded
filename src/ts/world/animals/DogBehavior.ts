@@ -36,12 +36,15 @@ class DogBehavior extends AnimalBehavior
 		{
 			dog.target.set(playerPos.x, 0, playerPos.z);
 
-			// Got within bark range → flip to bark + count interaction.
+			// Got within bark range -> flip to bark + count interaction.
+			// pendingVoice queues the bark synth; mouth + head shake
+			// animate via voiceTimer in WanderingAnimals.
 			if (playerDist < DOG_BARK_DIST * 2)
 			{
 				dog.state = 'bark';
 				dog.stateTimer = 3 + Math.random() * 2;
 				dog.interactionCount++;
+				dog.pendingVoice = 'bark';
 			}
 
 			// Player walked far enough to give up → head home.

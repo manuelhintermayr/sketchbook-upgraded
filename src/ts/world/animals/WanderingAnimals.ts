@@ -9,10 +9,15 @@ import { CollisionGroups } from '../../enums/CollisionGroups';
 import { attachNameLabel } from '../ui/NameLabel';
 import { t } from '../../i18n';
 
-import { Animal, AnimalKind, targetSpeedFor } from './AnimalBehavior';
+import { Animal, AnimalKind, MEOW_DURATION, TAME_FOLLOW_DIST, TAME_THRESHOLD, targetSpeedFor } from './AnimalBehavior';
 import { DOG_BEHAVIOR } from './DogBehavior';
 import { CAT_BEHAVIOR } from './CatBehavior';
 import { applyAnimalAnimation, buildCatModel, buildDogModel, CAT_SCHEMES, DOG_SCHEMES } from './AnimalModels';
+import { AnimalVoiceBus } from './AnimalVoices';
+
+// Voice fade in seconds. 0.45 covers the bark; cat meow runs longer
+// (set via MEOW_DURATION on a per-animal basis, see playVoice).
+const BARK_VOICE_DURATION = 0.45;
 
 // Wandering dogs and cats around the player spawn. This file is the
 // *manager*: it owns the per-animal hierarchical model groups, the
@@ -66,9 +71,10 @@ const _rayResult = new CANNON.RaycastResult();
 // dog ≈ 2.3 units long). Sketchbook needs them lawn-mower sized so
 // the lawn isn't dwarfed - shrink the whole top group uniformly. Per-
 // animal `scale` (set in spawn()) multiplies on top for population
-// variation.
-const CAT_BASE_SCALE = 0.45;
-const DOG_BASE_SCALE = 0.55;
+// variation. Halved from the first-pass values (was 0.45 / 0.55) so
+// the herd looks like wildlife instead of like livestock.
+const CAT_BASE_SCALE = 0.225;
+const DOG_BASE_SCALE = 0.275;
 
 export class WanderingAnimals implements IWorldEntity
 {
@@ -77,6 +83,7 @@ export class WanderingAnimals implements IWorldEntity
 
 	private world: World | null = null;
 	private animals: Animal[] = [];
+	private voiceBus: AnimalVoiceBus | null = null;
 
 	private static singleton: WanderingAnimals | null = null;
 	public static getInstance(): WanderingAnimals | null { return WanderingAnimals.singleton; }
@@ -95,6 +102,7 @@ export class WanderingAnimals implements IWorldEntity
 	public addToWorld(world: World): void
 	{
 		this.world = world;
+		this.voiceBus = new AnimalVoiceBus(world);
 
 		// Spawn animals only after the trimesh terrain has been added to
 		// the physics world (otherwise the height raycasts come back
@@ -134,11 +142,17 @@ export class WanderingAnimals implements IWorldEntity
 
 	public removeFromWorld(world: World): void
 	{
-		for (const animal of this.animals)
+		for (let i = 0; i < this.animals.length; i++)
 		{
+			const animal = this.animals[i];
 			world.graphicsWorld.remove(animal.model.group);
 			world.graphicsWorld.remove(animal.labelAnchor);
+			if (animal.kind === 'cat' && this.voiceBus !== null)
+			{
+				this.voiceBus.stopPurrLoop('cat-' + i);
+			}
 		}
+		this.voiceBus = null;
 		this.world = null;
 	}
 
@@ -220,10 +234,70 @@ export class WanderingAnimals implements IWorldEntity
 
 			animal.animPhase += dt * (animal.velocity.length() * 2 + 0.5);
 
+			// Voice trigger queue. Behaviours set animal.pendingVoice on
+			// state transitions (cat -> meow, dog approach -> bark);
+			// here we fire the synth + start the mouth-animation timer.
+			// Wrapped in try/catch so a broken AudioContext (autoplay
+			// rejection, browser quirk, suspended state) can't crash
+			// the for-loop and freeze every other animal's state
+			// machine. Mouth animation still plays from voiceTimer.
+			if (animal.pendingVoice !== null && this.voiceBus !== null)
+			{
+				try { this.voiceBus.play(animal.pendingVoice, animal.position); }
+				catch (_e) { /* audio failed, animation still runs */ }
+				animal.voiceTimer = animal.pendingVoice === 'meow' ? MEOW_DURATION : BARK_VOICE_DURATION;
+				animal.pendingVoice = null;
+			}
+			if (animal.voiceTimer > 0) animal.voiceTimer = Math.max(0, animal.voiceTimer - dt);
+
 			// Drive the visual model: position / rotation / per-frame
 			// limb animation. Replaces the old InstancedMesh matrix
 			// write - each animal now has its own transform tree.
 			this.applyModel(animal, dt);
+		}
+
+		// Purr loops for tame cats sitting near the player. Toggled per
+		// animal each frame: start when conditions are met, stop the
+		// moment the cat moves away or stops being tame. Multiple
+		// nearby tame cats can purr at once - each loop is independent.
+		this.updatePurrLoops(playerPos);
+
+		// Per-frame master volume sync - keeps voices following
+		// Master_Volume slider changes without having to wire an
+		// onChange handler. Wrapped because the voice bus's audio
+		// graph might be in a degraded state on some browsers.
+		if (this.voiceBus !== null)
+		{
+			try { this.voiceBus.updateMasterVolume(); }
+			catch (_e) { /* silent; volume will retry next frame */ }
+		}
+	}
+
+	private updatePurrLoops(playerPos: THREE.Vector3): void
+	{
+		if (this.voiceBus === null) return;
+		for (let i = 0; i < this.animals.length; i++)
+		{
+			const animal = this.animals[i];
+			if (animal.kind !== 'cat') continue;
+			const id = 'cat-' + i;
+			const dx = animal.position.x - playerPos.x;
+			const dz = animal.position.z - playerPos.z;
+			const dist = Math.sqrt(dx * dx + dz * dz);
+			const tame = animal.interactionCount >= TAME_THRESHOLD;
+			const shouldPurr = tame && dist < TAME_FOLLOW_DIST;
+			try
+			{
+				if (shouldPurr && !this.voiceBus.hasPurrLoop(id))
+				{
+					this.voiceBus.startPurrLoop(id, animal.position);
+				}
+				else if (!shouldPurr && this.voiceBus.hasPurrLoop(id))
+				{
+					this.voiceBus.stopPurrLoop(id);
+				}
+			}
+			catch (_e) { /* audio failed; loop state will retry next frame */ }
 		}
 	}
 
@@ -287,6 +361,8 @@ export class WanderingAnimals implements IWorldEntity
 					groundQueryTimer: rng() * GROUND_QUERY_INTERVAL_S,
 					behavior: kind === 'dog' ? DOG_BEHAVIOR : CAT_BEHAVIOR,
 					model,
+					pendingVoice: null,
+					voiceTimer: 0,
 				});
 				placed++;
 			}
@@ -303,19 +379,31 @@ export class WanderingAnimals implements IWorldEntity
 	{
 		const g = animal.model.group;
 		g.position.copy(animal.position);
-		// heading is atan2(dx, dz). The Three model's +Z is forward, so
-		// rotate around Y by -heading to face the heading direction.
-		g.rotation.y = -animal.heading;
+		// heading = atan2(dx, dz). Three.js Y-rotation is CCW-from-above
+		// positive; rotating the model's +Z forward axis by +heading
+		// lines it up with the target direction. The old InstancedMesh
+		// path used -heading, but that flipped models 180° east/west -
+		// invisible on simple spheres, but obvious now that cats/dogs
+		// have a clear nose/tail axis (a dog "approaching" the player
+		// was actually walking backwards).
+		g.rotation.y = animal.heading;
 
 		const speed = animal.velocity.length();
 		const moving = speed > 0.3;
 		const running = speed > 4;
+		// 0..1 fade for mouth-open / bark-shake animation. Length of
+		// the active voice is encoded in voiceTimer; we map it to a
+		// linear fade for the model. Dog bark-shake reads the same
+		// fraction so a "louder" early bark snaps the head harder.
+		const voiceMax = animal.kind === 'cat' ? MEOW_DURATION : BARK_VOICE_DURATION;
+		const voiceFraction = animal.voiceTimer > 0 ? animal.voiceTimer / voiceMax : 0;
 		applyAnimalAnimation(animal.model, {
 			t: animal.animPhase,
 			speed,
 			isDog: animal.kind === 'dog',
 			moving,
 			running,
+			voiceFraction,
 		});
 	}
 

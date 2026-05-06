@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 import { AnimalModel } from './AnimalModels';
+import { VoiceKind } from './AnimalVoices';
 
 // Domain definition for the wandering-animals system: the data each
 // animal carries each frame, the state-machine alphabet, the tuning
@@ -14,7 +15,12 @@ import { AnimalModel } from './AnimalModels';
 // stateless singletons reused across every animal of their kind.
 
 export type AnimalKind = 'dog' | 'cat';
-export type AnimalState = 'idle' | 'wander' | 'flee' | 'approach' | 'bark' | 'tame';
+export type AnimalState = 'idle' | 'wander' | 'flee' | 'approach' | 'bark' | 'tame' | 'meow';
+
+// How long a meow holds the cat in place before it switches to flee.
+// Matches the AnimalVoices meow synth duration (0.6 s) plus a touch
+// so the mouth animation finishes before the cat bolts.
+export const MEOW_DURATION = 0.7;
 
 // Distance at which dogs notice the player and start approaching.
 export const DOG_NOTICE = 15;
@@ -72,6 +78,24 @@ export interface Animal
 	// instanced-mesh approach so each animal can blink, breathe and
 	// run independently.
 	model: AnimalModel;
+	// Voice trigger queue. Behaviour layer sets this on a state
+	// transition (e.g. dog enters bark, cat starts meowing); the
+	// manager consumes it next frame, fires the synth via
+	// AnimalVoiceBus, and resets to null. Decouples behaviour from
+	// the audio bus so the state machine doesn't need a world ref.
+	pendingVoice: VoiceKind | null;
+	// Seconds of mouth-animation remaining for the active voice.
+	// Counts down each frame; while > 0 the model's mouth opens.
+	voiceTimer: number;
+}
+
+// State -> voice mapping helper. Used by behaviours to mark the
+// transition; the manager reads `pendingVoice` and fires the synth.
+export function voiceForState(state: AnimalState): VoiceKind | null
+{
+	if (state === 'meow') return 'meow';
+	if (state === 'bark') return 'bark';
+	return null;
 }
 
 // State → speed table used by the manager when integrating velocity.
@@ -87,6 +111,7 @@ export function targetSpeedFor(state: AnimalState): number
 		case 'bark':     return DOG_PURSUE_SPEED * 0.5;
 		case 'tame':     return TAME_FOLLOW_SPEED;
 		case 'wander':   return WANDER_SPEED;
+		case 'meow':     return 0;  // freezes the cat for the meow duration
 		default:         return 0;
 	}
 }
