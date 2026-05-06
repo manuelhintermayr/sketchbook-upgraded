@@ -132,6 +132,13 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 			this.camera.position.x = this.target.x + this.radius * Math.sin(this.theta * Math.PI / 180) * Math.cos(this.phi * Math.PI / 180);
 			this.camera.position.y = this.target.y + this.radius * Math.sin(this.phi * Math.PI / 180);
 			this.camera.position.z = this.target.z + this.radius * Math.cos(this.theta * Math.PI / 180) * Math.cos(this.phi * Math.PI / 180);
+			// Floor clamp: phi can swing to -85° which would otherwise put
+			// the camera ~1.6m below the player's standing plane and clip
+			// straight through the ground. Cap the orbital y at slightly
+			// below the target's feet so steep-down looks pivot in place
+			// instead of sinking the cam.
+			const minY = this.target.y - 0.3;
+			if (this.camera.position.y < minY) this.camera.position.y = minY;
 			this.camera.updateMatrix();
 
 			// 'Look around' auto-return: in first-person inside a non-rocket
