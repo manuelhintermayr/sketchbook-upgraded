@@ -1,0 +1,273 @@
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+
+import { World } from '../World';
+import { IWorldEntity } from '../../interfaces/IWorldEntity';
+import { EntityType } from '../../enums/EntityType';
+import { UpdateOrder } from '../../enums/UpdateOrder';
+import { CollisionGroups } from '../../enums/CollisionGroups';
+
+// Ambient butterflies. Pure visual decoration - no audio, no physics
+// body (they're too small to read as physical contact, and a kinematic
+// sphere on top would just thrash the cannon broadphase). Pattern
+// adapted from the low-poly-cat-game butterfly: each butterfly is a
+// little 2-wing + body group drifting on a Lissajous-style path with
+// a sin-modulated wing flap.
+//
+// Per-butterfly randomised orbit centre, two amplitudes, drift speed,
+// phase and flap rate so the swarm looks like a real ambient flutter
+// instead of a synchronised dance.
+
+const BUTTERFLY_COUNT = 8;
+
+// Real butterflies have ~5-10 cm wingspans; the cat-game model is
+// 30 cm wide at scale 1. 0.45x lands at ~13 cm wingspan - garden
+// butterfly size that doesn't dominate the camera at player scale.
+const BUTTERFLY_SCALE = 0.45;
+
+// Kinematic cannon sphere radius. Sized to roughly the visible
+// silhouette so debug-physics actually shows them and a butterfly
+// brushing the player capsule reads as contact instead of clipping.
+const BUTTERFLY_BODY_RADIUS = 0.15;
+
+const BUTTERFLY_PALETTE: number[] =
+[
+	0xffaa44, // orange
+	0xffd84a, // yellow
+	0xee5577, // pink
+	0x88ccdd, // light blue
+	0xddaa66, // tan
+	0xffffff, // white
+];
+
+// Spawn area + drift amplitude in metres. Centres land within ±6 m of
+// the player; the Lissajous motion adds another ±3-8 m on top so a
+// butterfly can wander out to ~12 m away before drifting back.
+const ORBIT_AREA = 12;
+const ORBIT_AMP_MIN = 3;
+const ORBIT_AMP_RANGE = 5;
+// Heights are offsets from the player's body-centre (cy is anchored
+// to player.position.y on the first update; that point sits ~0.9 m
+// above the feet). HEIGHT_MIN of 0.4 keeps the lowest sin-drift
+// point safely above the ground on uneven terrain; the upper end
+// caps roughly at chest height.
+const HEIGHT_MIN = 0.4;
+const HEIGHT_RANGE = 0.4;
+// Vertical drift amplitude. Tighter than x/z because the height
+// budget is small - any larger and the swarm starts clipping the
+// terrain whenever the player walks downhill from where they
+// spawned.
+const Y_DRIFT_AMP = 0.25;
+// Hard floor: butterflies never fly closer than this (in metres) to
+// the player's body-centre y, regardless of where the lissajous
+// would put them. Last-line defence for the case a butterfly drifts
+// into a downhill spot the spawn-time anchor didn't predict.
+const MIN_HEIGHT_OVER_PLAYER = 0.2;
+const DRIFT_SPEED_MIN = 0.2;
+const DRIFT_SPEED_RANGE = 0.2;
+const FLAP_SPEED_MIN = 20;
+const FLAP_SPEED_RANGE = 8;
+
+// Distance cull. Butterflies are tiny and only useful as peripheral
+// detail; past 30 m the wing geometry covers less than a pixel and
+// is just CSM + post-FX overhead.
+const CULL_DISTANCE = 30;
+const CULL_DISTANCE_SQ = CULL_DISTANCE * CULL_DISTANCE;
+
+interface Butterfly
+{
+	group: THREE.Group;
+	leftWing: THREE.Mesh;
+	rightWing: THREE.Mesh;
+	body: CANNON.Body;
+	cx: number;
+	cz: number;
+	cy: number;
+	ax: number;
+	az: number;
+	driftSpeed: number;
+	phase: number;
+	flapSpeed: number;
+}
+
+interface ButterflyMesh
+{
+	group: THREE.Group;
+	leftWing: THREE.Mesh;
+	rightWing: THREE.Mesh;
+}
+
+function buildButterflyMesh(color: number): ButterflyMesh
+{
+	const group = new THREE.Group();
+	// DoubleSide so the wings don't disappear when the butterfly is
+	// banked or viewed edge-on - the geometry is paper-thin and the
+	// camera will frequently catch a wing's underside.
+	const wingMat = new THREE.MeshStandardMaterial({ color, flatShading: true, side: THREE.DoubleSide });
+	const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, flatShading: true });
+
+	const leftWing = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.25), wingMat);
+	leftWing.position.x = -0.15;
+	group.add(leftWing);
+
+	const rightWing = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.25), wingMat);
+	rightWing.position.x = 0.15;
+	group.add(rightWing);
+
+	const body = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.2), bodyMat);
+	group.add(body);
+
+	return { group, leftWing, rightWing };
+}
+
+// Mulberry32 - small deterministic PRNG so the swarm layout is
+// stable across reloads.
+function mulberry32(seed: number): () => number
+{
+	return () =>
+	{
+		seed |= 0;
+		seed = (seed + 0x6d2b79f5) | 0;
+		let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
+const _toCam = new THREE.Vector3();
+
+export class Butterflies implements IWorldEntity
+{
+	public updateOrder: number = UpdateOrder.World;
+	public entityType: EntityType = EntityType.Decoration;
+
+	private world: World | null = null;
+	private butterflies: Butterfly[] = [];
+	private animTime: number = 0;
+	// Same first-update player anchor as the bird flock - the Inthenew
+	// spawn isn't at the world origin, so absolute centres would drop
+	// the swarm in the wrong corner of the map.
+	private originAnchored: boolean = false;
+
+	public addToWorld(world: World): void
+	{
+		this.world = world;
+		const rng = mulberry32(321);
+
+		for (let i = 0; i < BUTTERFLY_COUNT; i++)
+		{
+			const color = BUTTERFLY_PALETTE[Math.floor(rng() * BUTTERFLY_PALETTE.length)];
+			const meshes = buildButterflyMesh(color);
+			meshes.group.scale.setScalar(BUTTERFLY_SCALE);
+			world.graphicsWorld.add(meshes.group);
+			meshes.group.traverse((child) =>
+			{
+				const m = (child as THREE.Mesh).material;
+				if (m && (m as THREE.Material).isMaterial) world.sky.csm.setupMaterial(m as THREE.Material);
+			});
+
+			// Kinematic body, same idea as Birds: cannon sees the contact
+			// shape but never integrates motion - we drive position from
+			// the lissajous each frame.
+			const body = new CANNON.Body(
+			{
+				type: CANNON.Body.KINEMATIC,
+				shape: new CANNON.Sphere(BUTTERFLY_BODY_RADIUS),
+				position: new CANNON.Vec3(0, HEIGHT_MIN, 0),
+				collisionFilterGroup: CollisionGroups.Animals,
+				collisionFilterMask: CollisionGroups.Default | CollisionGroups.Characters
+					| CollisionGroups.TrimeshColliders | CollisionGroups.Animals,
+			});
+			body.allowSleep = false;
+			world.physicsWorld.addBody(body);
+
+			this.butterflies.push(
+			{
+				group: meshes.group,
+				leftWing: meshes.leftWing,
+				rightWing: meshes.rightWing,
+				body,
+				cx: (rng() - 0.5) * ORBIT_AREA,
+				cz: (rng() - 0.5) * ORBIT_AREA,
+				cy: HEIGHT_MIN + rng() * HEIGHT_RANGE,
+				ax: ORBIT_AMP_MIN + rng() * ORBIT_AMP_RANGE,
+				az: ORBIT_AMP_MIN + rng() * ORBIT_AMP_RANGE,
+				driftSpeed: DRIFT_SPEED_MIN + rng() * DRIFT_SPEED_RANGE,
+				phase: rng() * Math.PI * 2,
+				flapSpeed: FLAP_SPEED_MIN + rng() * FLAP_SPEED_RANGE,
+			});
+		}
+	}
+
+	public removeFromWorld(world: World): void
+	{
+		for (const bf of this.butterflies)
+		{
+			world.graphicsWorld.remove(bf.group);
+			world.physicsWorld.removeBody(bf.body);
+		}
+		this.butterflies.length = 0;
+		this.world = null;
+	}
+
+	public update(_timeStep: number, unscaledTimeStep: number): void
+	{
+		if (this.world === null) return;
+		const dt = Math.min(unscaledTimeStep, 0.05);
+		this.animTime += dt;
+
+		if (!this.originAnchored)
+		{
+			const player = this.world.characters[0];
+			if (player !== undefined)
+			{
+				for (const bf of this.butterflies)
+				{
+					bf.cx += player.position.x;
+					bf.cz += player.position.z;
+					bf.cy += player.position.y;
+				}
+				this.originAnchored = true;
+			}
+		}
+
+		const camPos = this.world.camera.position;
+		const player = this.world.characters[0];
+		const playerY = player !== undefined ? player.position.y : -Infinity;
+
+		for (const bf of this.butterflies)
+		{
+			// Lissajous wandering: cos + sin on each axis with co-prime
+			// frequency multipliers (1, 1.7, 1.9, 2.3) keeps the path
+			// from looping cleanly so the motion reads as wandering
+			// rather than a perfect circle.
+			const t = this.animTime * bf.driftSpeed + bf.phase;
+			const x = bf.cx + Math.cos(t) * bf.ax + Math.sin(t * 2.3) * 1.2;
+			let y = bf.cy + Math.sin(t * 1.7) * Y_DRIFT_AMP;
+			const z = bf.cz + Math.sin(t) * bf.az + Math.cos(t * 1.9) * 1.2;
+			// Hard floor relative to the player's current y - the
+			// lissajous orbits drift sideways during play, so a
+			// butterfly that wandered into a downhill spot would dip
+			// below the terrain without this clamp.
+			if (y < playerY + MIN_HEIGHT_OVER_PLAYER) y = playerY + MIN_HEIGHT_OVER_PLAYER;
+			bf.group.position.set(x, y, z);
+			bf.group.rotation.y = t;
+			bf.body.position.set(x, y, z);
+
+			// Distance cull. Toggle visible flag so frustum cull + post-FX
+			// skip the geometry entirely when the butterfly is far away.
+			_toCam.set(x - camPos.x, y - camPos.y, z - camPos.z);
+			const visible = _toCam.lengthSq() < CULL_DISTANCE_SQ;
+			if (bf.group.visible !== visible) bf.group.visible = visible;
+			if (!visible) continue;
+
+			// Wings flap by rotating around their own Y axis (paper-thin
+			// box geometry, so a Y rotation looks like a flap from any
+			// camera angle without needing pivot groups). Mirror sign on
+			// the second wing so they swing against each other.
+			const flap = Math.sin(this.animTime * bf.flapSpeed) * 0.8;
+			bf.leftWing.rotation.y = flap;
+			bf.rightWing.rotation.y = -flap;
+		}
+	}
+}

@@ -1,6 +1,7 @@
 import { World } from '../World';
 import { WanderingAnimals } from '../animals/WanderingAnimals';
 import { Birds } from '../animals/Birds';
+import { Butterflies } from '../animals/Butterflies';
 
 // Spawns the wandering dogs + cats around the Inthenew default
 // spawn. Sandboxes use their own minimal layouts where the animals
@@ -24,4 +25,14 @@ export function injectFlyingBirds(world: World): void
 {
 	const birds = new Birds();
 	world.add(birds);
+}
+
+// Spawns ambient butterflies around the player. Pure visual decoration
+// (no audio, no physics) - on every map for the same reason as birds:
+// the swarm anchors itself to the player on the first update and can
+// run on top of any scenario without needing markers in the scene.
+export function injectButterflies(world: World): void
+{
+	const butterflies = new Butterflies();
+	world.add(butterflies);
 }
