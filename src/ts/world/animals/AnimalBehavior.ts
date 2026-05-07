@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
 
 import { AnimalModel } from './AnimalModels';
 import { VoiceKind } from './AnimalVoices';
@@ -15,34 +16,50 @@ import { VoiceKind } from './AnimalVoices';
 // stateless singletons reused across every animal of their kind.
 
 export type AnimalKind = 'dog' | 'cat';
-export type AnimalState = 'idle' | 'wander' | 'flee' | 'approach' | 'bark' | 'tame' | 'meow';
+export type AnimalState = 'idle' | 'wander' | 'flee' | 'approach' | 'bark' | 'tame' | 'meow' | 'jump';
 
 // How long a meow holds the cat in place before it switches to flee.
 // Matches the AnimalVoices meow synth duration (0.6 s) plus a touch
 // so the mouth animation finishes before the cat bolts.
 export const MEOW_DURATION = 0.7;
 
+// Initial vertical velocity applied to the animal body at jump
+// kickoff. Combined with cannon's world gravity (-9.81) this gives a
+// hang-time around 0.5 s and a peak height ~0.4 m above the ground
+// (multiplied down by the per-animal scale).
+export const JUMP_KICK = 4.0;
+// Probability the next idle/wander roll picks a jump instead.
+export const JUMP_CHANCE = 0.18;
+
 // Distance at which dogs notice the player and start approaching.
 export const DOG_NOTICE = 15;
 // Distance the dog tries to maintain while barking.
 export const DOG_BARK_DIST = 3;
-// Speed used for both 'approach' (full) and 'bark' (half) movement.
-export const DOG_PURSUE_SPEED = 3;
+// Approach / chase speed. Matches the low-poly-cat-game reference's
+// player-run speed (8.5), which is the value the leg-cycle anim
+// (cycleSpeed=13 in AnimalModels) was tuned against.
+export const DOG_PURSUE_SPEED = 8.5;
 // Player has to walk this far past DOG_NOTICE before the dog gives up.
 export const DOG_GIVEUP = 10;
 
 // Distance at which cats start fleeing.
 export const CAT_FLEE_DIST = 10;
-export const CAT_FLEE_SPEED = 10;
+// Cat flee speed - same as the reference run speed so the gallop
+// animation tempo matches the actual ground travel.
+export const CAT_FLEE_SPEED = 8.5;
 
 // Both kinds: after this many interactions (cat flees, dog barks) the
 // animal flips to 'tame' and follows the player at a polite distance.
 export const TAME_THRESHOLD = 2;
-export const TAME_FOLLOW_DIST = 5;
-export const TAME_FOLLOW_SPEED = 2.5;
+export const TAME_FOLLOW_DIST = 3;
+// Walk speed when following the player. Reference cat-game uses 3.8
+// for ordinary walking; our tame follow is the same so the walk-cycle
+// (cycleSpeed=8) lines up with the actual stride length.
+export const TAME_FOLLOW_SPEED = 3.8;
 
-// Generic 'wander' speed shared by both kinds.
-export const WANDER_SPEED = 1.5;
+// Generic 'wander' speed shared by both kinds. Reference cat-game
+// walk speed - leg-cycle anim was tuned against this value.
+export const WANDER_SPEED = 3.8;
 
 export interface Animal
 {
@@ -61,12 +78,10 @@ export interface Animal
 	// each frame to match the instanced animal so its CSS2D label
 	// follows along. The label itself lives as a child of this anchor.
 	labelAnchor: THREE.Object3D;
-	// Cached ground Y from the most recent raycast hit. Cannon trimesh
-	// raycasts are expensive (~60µs each on Inthenew's terrain) and
-	// 18 animals × 60 fps would be 1080 raycasts/sec just for ground
-	// tracking. We refresh the cache on a throttle and lerp the visible
-	// Y toward it between samples.
-	targetGroundY: number;
+	// Off-map detection throttle. Body y is now driven by cannon, but
+	// we still raycast the terrain occasionally to spot animals that
+	// have wandered off the trimesh (no contact = falling forever) and
+	// redirect them home before they're lost.
 	groundQueryTimer: number;
 	// Strategy reference - DOG_BEHAVIOR or CAT_BEHAVIOR singleton from
 	// the matching subclass file. Lets WanderingAnimals.update
@@ -87,6 +102,22 @@ export interface Animal
 	// Seconds of mouth-animation remaining for the active voice.
 	// Counts down each frame; while > 0 the model's mouth opens.
 	voiceTimer: number;
+	// Cannon dynamic body for collision against the player capsule,
+	// the trimesh terrain, and other animal bodies. Manager writes
+	// the AI's desired horizontal velocity into body.velocity.x/z
+	// each frame and reads body.position back into animal.position.
+	body: CANNON.Body;
+	// True while a jump is in flight (kick fired, gravity acting,
+	// no collision with ground yet). Decoupled from the state machine
+	// so a behaviour transition mid-jump (e.g. dog notices player and
+	// flips to bark) doesn't strand vertical physics in an
+	// inconsistent state.
+	airborne: boolean;
+	// Cached body radius. Manager subtracts it from body.position.y
+	// before placing the visual root so the model's foot offset lands
+	// the paws on the ground (cannon's sphere body sits with its
+	// centre 1 radius above the contact point).
+	bodyRadius: number;
 }
 
 // State -> voice mapping helper. Used by behaviours to mark the
@@ -108,10 +139,14 @@ export function targetSpeedFor(state: AnimalState): number
 	{
 		case 'flee':     return CAT_FLEE_SPEED;
 		case 'approach': return DOG_PURSUE_SPEED;
-		case 'bark':     return DOG_PURSUE_SPEED * 0.5;
+		// 0.45 keeps the bark approach below the run threshold (4.0)
+		// so the dog walks - not gallops - the last few metres while
+		// barking. Higher values flipped the leg cycle into run anim.
+		case 'bark':     return DOG_PURSUE_SPEED * 0.45;
 		case 'tame':     return TAME_FOLLOW_SPEED;
 		case 'wander':   return WANDER_SPEED;
 		case 'meow':     return 0;  // freezes the cat for the meow duration
+		case 'jump':     return 0;  // body keeps its inertia from before kick
 		default:         return 0;
 	}
 }
@@ -125,11 +160,21 @@ export abstract class AnimalBehavior
 		return animal.interactionCount >= TAME_THRESHOLD;
 	}
 
-	// Coin-flip transition between idle (stand still N seconds) and
-	// wander (pick a random direction + walk N seconds). Used by both
-	// kinds when nothing else is happening.
+	// Three-way pick between idle (stand still), wander (walk to a
+	// random nearby spot), and jump (small playful hop). Jump only
+	// fires when the animal is grounded so we don't stack jumps mid-
+	// air; the manager's vertical-physics layer handles the rest.
+	// Used by both kinds when nothing else is happening.
 	protected transitionToIdleOrWander(animal: Animal): void
 	{
+		if (!animal.airborne && Math.random() < JUMP_CHANCE)
+		{
+			animal.state = 'jump';
+			animal.stateTimer = 1.5;
+			animal.airborne = true;
+			animal.body.velocity.y = JUMP_KICK;
+			return;
+		}
 		if (Math.random() < 0.5)
 		{
 			animal.state = 'idle';
@@ -181,6 +226,16 @@ export abstract class AnimalBehavior
 		{
 			animal.state = 'idle';
 			animal.stateTimer = 1;
+			// Tame and within follow distance: face the player every frame
+			// so the pet tracks them when they walk around it. The normal
+			// heading update only fires while moving (targetSpeed > 0), so
+			// without this an idle pet would keep its old facing forever.
+			const dx = playerPos.x - animal.position.x;
+			const dz = playerPos.z - animal.position.z;
+			if (dx * dx + dz * dz > 0.01)
+			{
+				animal.heading = Math.atan2(dx, dz);
+			}
 		}
 		else
 		{

@@ -59,7 +59,7 @@ class DogBehavior extends AnimalBehavior
 		if (dog.state === 'bark')
 		{
 			// Stay at bark distance - chase if the player drifts away,
-			// brake if too close.
+			// hold position + face the player if already in range.
 			_toPlayer.subVectors(playerPos, dog.position);
 			_toPlayer.y = 0;
 			const dist = _toPlayer.length();
@@ -69,7 +69,12 @@ class DogBehavior extends AnimalBehavior
 			}
 			else
 			{
-				dog.velocity.multiplyScalar(0.8);
+				// Pin target to current spot so the manager zeroes
+				// velocity, then override heading so the dog visibly
+				// tracks the player instead of frozen at last facing
+				// (manager only updates heading from velocity direction).
+				dog.target.set(dog.position.x, 0, dog.position.z);
+				dog.heading = Math.atan2(_toPlayer.x, _toPlayer.z);
 			}
 
 			if (playerDist > DOG_NOTICE + DOG_GIVEUP)

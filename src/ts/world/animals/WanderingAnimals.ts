@@ -21,15 +21,24 @@ const BARK_VOICE_DURATION = 0.45;
 
 // Wandering dogs and cats around the player spawn. This file is the
 // *manager*: it owns the per-animal hierarchical model groups, the
-// spawn placement, the per-frame integration of velocity into
-// position, the ground-height raycasts, and the CSS2D label anchors.
-// All per-animal state-machine decisions live in DogBehavior /
-// CatBehavior; the visual model + per-limb animation lives in
-// AnimalModels.ts.
+// spawn placement, the cannon dynamic body for each animal, the
+// off-map raycasts, and the CSS2D label anchors. All per-animal
+// state-machine decisions live in DogBehavior / CatBehavior; the
+// visual model + per-limb animation lives in AnimalModels.ts.
 //
-// Movement is graphics-only: animals are not physics bodies. Ground
-// height is queried via a cannon raycast against the trimesh terrain
-// (throttled - see GROUND_QUERY_INTERVAL_S below).
+// Each animal carries a small DYNAMIC cannon body (sphere) so the
+// physics world resolves three things automatically:
+//
+//   - terrain: body sits on the trimesh, no manual ground-snap math
+//   - player: capsule-vs-sphere collision so the boxman can bump a
+//     dog out of the way
+//   - other animals: sphere-vs-sphere so dogs and cats don't walk
+//     through each other
+//
+// Manager only writes body.velocity.x/z each frame from the AI's
+// desired motion; cannon does the rest, including jumps (we kick
+// body.velocity.y at the start, gravity pulls it back, the body's
+// 'collide' event flips the airborne flag back off on touch-down).
 //
 // Pattern adapted from manuelhintermayr-portfolio/three-js
 // WanderingAnimals + the low-poly-cat-game HTML demo. The portfolio
@@ -42,8 +51,10 @@ const CAT_COUNT = 10;
 const SPAWN_INNER = 18;   // keep clear of the spawn pad
 const SPAWN_OUTER = 80;   // Inthenew map's playable area is ~200 wide
 
-// Re-sample the trimesh terrain every 100ms per animal. Combined with
-// the lerp toward targetGroundY this stays visually smooth on slopes.
+// Off-map detection re-samples the trimesh every 100ms per animal. Y
+// is no longer lerped (cannon owns position now); the raycast only
+// catches animals that have walked off the terrain so they can be
+// redirected home.
 const GROUND_QUERY_INTERVAL_S = 0.1;
 
 // Mulberry32 - small deterministic PRNG so spawn placement is the same
@@ -75,6 +86,21 @@ const _rayResult = new CANNON.RaycastResult();
 // the herd looks like wildlife instead of like livestock.
 const CAT_BASE_SCALE = 0.225;
 const DOG_BASE_SCALE = 0.275;
+
+// Cannon body radius per kind. Sphere collider sized to the visible
+// model footprint - cats slimmer, dogs stockier. Kept conservative
+// so animals don't visibly clip into the player capsule on contact.
+const CAT_BODY_RADIUS = 0.28;
+const DOG_BODY_RADIUS = 0.38;
+// Body mass - light enough that the player capsule (mass 1) shoves
+// them out of the way easily, heavy enough that animal-vs-animal
+// nudges read as actual contact instead of vanishing through.
+const ANIMAL_MASS = 0.25;
+// Linear damping on the dynamic body. Light - we drive velocity each
+// frame from the AI (so cannon's damping isn't the speed control),
+// but a tiny non-zero damping kills the residual sideways drift from
+// collision response.
+const ANIMAL_DAMPING = 0.1;
 
 export class WanderingAnimals implements IWorldEntity
 {
@@ -109,10 +135,10 @@ export class WanderingAnimals implements IWorldEntity
 		// empty and everything spawns at y=0 inside the ocean).
 		this.spawn();
 
-		// Each animal owns its own Three.Group now (no more InstancedMesh
-		// - the per-leg / per-tail-segment animations need independent
-		// transforms). Hook every mesh in the model into CSM so shadows
-		// stay sharp.
+		// Each animal owns its own Three.Group + cannon body. Add both
+		// to the world here. Models hook into CSM for shadows; bodies
+		// get a 'collide' listener so we can flip airborne off the
+		// instant they touch terrain (or anything else).
 		for (const animal of this.animals)
 		{
 			world.graphicsWorld.add(animal.model.group);
@@ -120,6 +146,23 @@ export class WanderingAnimals implements IWorldEntity
 			{
 				const m = (child as THREE.Mesh).material;
 				if (m && (m as THREE.Material).isMaterial) world.sky.csm.setupMaterial(m as THREE.Material);
+			});
+			world.physicsWorld.addBody(animal.body);
+			animal.body.addEventListener('collide', () =>
+			{
+				// First contact after a kick - flip airborne off so the
+				// animator drops the jump pose. State machine is left
+				// alone unless still in 'jump' (a behaviour transition
+				// mid-air may have already changed it).
+				if (animal.airborne)
+				{
+					animal.airborne = false;
+					if (animal.state === 'jump')
+					{
+						animal.state = 'idle';
+						animal.stateTimer = 0.5 + Math.random() * 1.5;
+					}
+				}
 			});
 		}
 
@@ -147,6 +190,7 @@ export class WanderingAnimals implements IWorldEntity
 			const animal = this.animals[i];
 			world.graphicsWorld.remove(animal.model.group);
 			world.graphicsWorld.remove(animal.labelAnchor);
+			world.physicsWorld.removeBody(animal.body);
 			if (animal.kind === 'cat' && this.voiceBus !== null)
 			{
 				this.voiceBus.stopPurrLoop('cat-' + i);
@@ -167,6 +211,15 @@ export class WanderingAnimals implements IWorldEntity
 
 		for (const animal of this.animals)
 		{
+			// Sync graphics-side position from the cannon body. Body
+			// is the source of truth for x/y/z now; AI just steers
+			// horizontal velocity, cannon handles collision + gravity.
+			animal.position.set(
+				animal.body.position.x,
+				animal.body.position.y,
+				animal.body.position.z,
+			);
+
 			_toPlayer.subVectors(animal.position, playerPos);
 			_toPlayer.y = 0;
 			const playerDist = _toPlayer.length();
@@ -174,7 +227,20 @@ export class WanderingAnimals implements IWorldEntity
 			animal.stateTimer -= dt;
 			animal.behavior.update(animal, playerDist, playerPos);
 
+			// AI -> body velocity. Compute the desired horizontal speed
+			// from the state machine + target, then write it on the
+			// cannon body. We never touch body.velocity.y unless we're
+			// kicking off a jump - that's the only way to keep gravity
+			// + collision response consistent.
+			//
+			// animal.velocity is the AI's *intended* horizontal motion
+			// (what the animator should see). body.velocity gets the
+			// same value but cannon will modify it through damping +
+			// collision response, so reading it back wouldn't match
+			// what the animation should portray.
 			const targetSpeed = targetSpeedFor(animal.state);
+			let desiredVx = 0;
+			let desiredVz = 0;
 			if (targetSpeed > 0)
 			{
 				_toTarget.subVectors(animal.target, animal.position);
@@ -184,34 +250,18 @@ export class WanderingAnimals implements IWorldEntity
 				{
 					_dir.copy(_toTarget).normalize();
 					animal.heading = Math.atan2(_dir.x, _dir.z);
-					animal.velocity.lerp(_dir.multiplyScalar(targetSpeed), dt * 3);
-				}
-				else
-				{
-					animal.velocity.multiplyScalar(0.9);
+					desiredVx = _dir.x * targetSpeed;
+					desiredVz = _dir.z * targetSpeed;
 				}
 			}
-			else
-			{
-				animal.velocity.multiplyScalar(0.9);
-			}
+			animal.body.velocity.x = desiredVx;
+			animal.body.velocity.z = desiredVz;
+			animal.velocity.set(desiredVx, 0, desiredVz);
 
-			animal.position.addScaledVector(animal.velocity, dt);
-
-			// Keep the label anchor on top of the animal. CSS2DObject
-			// uses the world position of its parent, so updating the
-			// anchor each frame is what makes the tag follow.
-			animal.labelAnchor.position.set(
-				animal.position.x,
-				animal.position.y + 0.7,
-				animal.position.z,
-			);
-
-			// Stick to terrain. Throttled raycast - refresh the cached
-			// targetGroundY every 100ms, lerp toward it each frame.
-			// Off-map detection (raycast miss or below sea level) still
-			// fires inside the throttle window so a wandering animal
-			// gets redirected within ~100ms of leaving the map.
+			// Off-map detection - throttled raycast spots animals that
+			// have walked off the trimesh edge (ocean rim, ramp gaps)
+			// where cannon collision finds nothing to land on. Redirect
+			// them home before they fall into oblivion.
 			animal.groundQueryTimer -= dt;
 			if (animal.groundQueryTimer <= 0)
 			{
@@ -223,16 +273,23 @@ export class WanderingAnimals implements IWorldEntity
 					animal.state = 'wander';
 					animal.stateTimer = 3;
 				}
-				else
-				{
-					animal.targetGroundY = queryY;
-				}
 			}
-			animal.position.y = THREE.MathUtils.lerp(
-				animal.position.y, animal.targetGroundY, Math.min(1, dt * 12),
+
+			// Keep the label anchor on top of the animal. CSS2DObject
+			// uses the world position of its parent, so updating the
+			// anchor each frame is what makes the tag follow.
+			animal.labelAnchor.position.set(
+				animal.position.x,
+				animal.position.y + 0.7,
+				animal.position.z,
 			);
 
-			animal.animPhase += dt * (animal.velocity.length() * 2 + 0.5);
+			// Pure time driver - matches the cat-game reference where
+			// animTime += dt and the leg-cycle frequency comes solely
+			// from cycleSpeed (13 run / 8 walk) inside AnimalModels.
+			// Earlier velocity-coupled drivers stacked on top of that
+			// and gave 4+ Hz leg flicker at sprint speed.
+			animal.animPhase += dt;
 
 			// Voice trigger queue. Behaviours set animal.pendingVoice on
 			// state transitions (cat -> meow, dog approach -> bark);
@@ -316,9 +373,9 @@ export class WanderingAnimals implements IWorldEntity
 			{
 				attempts++;
 				const angle = rng() * Math.PI * 2;
-				const radius = SPAWN_INNER + rng() * (SPAWN_OUTER - SPAWN_INNER);
-				const x = Math.cos(angle) * radius;
-				const z = Math.sin(angle) * radius;
+				const spawnRadius = SPAWN_INNER + rng() * (SPAWN_OUTER - SPAWN_INNER);
+				const x = Math.cos(angle) * spawnRadius;
+				const z = Math.sin(angle) * spawnRadius;
 
 				const y = this.queryGroundHeight(x, z);
 				if (y === null || y < 1) continue;
@@ -341,6 +398,27 @@ export class WanderingAnimals implements IWorldEntity
 				model.group.scale.setScalar(baseScale * scale);
 				model.group.position.copy(pos);
 
+				// Sphere body, sized to the visible footprint. Spawn it
+				// half a body-radius above the terrain so it doesn't
+				// start interpenetrating and shoot upward on the first
+				// physics step.
+				const radius = kind === 'dog' ? DOG_BODY_RADIUS : CAT_BODY_RADIUS;
+				const body = new CANNON.Body({
+					mass: ANIMAL_MASS,
+					shape: new CANNON.Sphere(radius),
+					position: new CANNON.Vec3(x, y + radius + 0.05, z),
+					collisionFilterGroup: CollisionGroups.Animals,
+					// Collide with terrain (Default + TrimeshColliders for
+					// the actual ground), the player capsule (Characters),
+					// and other animal bodies. Ocean / iris / etc. live on
+					// other groups and we don't want to bump them.
+					collisionFilterMask: CollisionGroups.Default | CollisionGroups.Characters
+						| CollisionGroups.TrimeshColliders | CollisionGroups.Animals,
+					linearDamping: ANIMAL_DAMPING,
+					fixedRotation: true,  // sphere shouldn't roll about
+				});
+				body.allowSleep = false;
+
 				this.animals.push(
 				{
 					kind,
@@ -355,7 +433,6 @@ export class WanderingAnimals implements IWorldEntity
 					interactionCount: 0,
 					homePosition: pos.clone(),
 					labelAnchor,
-					targetGroundY: y,
 					// Stagger first raycast across the interval so all 18
 					// animals don't sample on the same frame and tank it.
 					groundQueryTimer: rng() * GROUND_QUERY_INTERVAL_S,
@@ -363,6 +440,9 @@ export class WanderingAnimals implements IWorldEntity
 					model,
 					pendingVoice: null,
 					voiceTimer: 0,
+					body,
+					airborne: false,
+					bodyRadius: radius,
 				});
 				placed++;
 			}
@@ -378,7 +458,15 @@ export class WanderingAnimals implements IWorldEntity
 	private applyModel(animal: Animal, _dt: number): void
 	{
 		const g = animal.model.group;
-		g.position.copy(animal.position);
+		// body.position.y is the sphere centre, which sits 1 radius
+		// above the ground after collision. The visual model has its
+		// FOOT_OFFSET shift inside, so plant the root at body bottom
+		// (= body.position.y - radius) and the paws land flush.
+		g.position.set(
+			animal.position.x,
+			animal.position.y - animal.bodyRadius,
+			animal.position.z,
+		);
 		// heading = atan2(dx, dz). Three.js Y-rotation is CCW-from-above
 		// positive; rotating the model's +Z forward axis by +heading
 		// lines it up with the target direction. The old InstancedMesh
@@ -404,6 +492,8 @@ export class WanderingAnimals implements IWorldEntity
 			moving,
 			running,
 			voiceFraction,
+			jumping: animal.airborne,
+			velocityY: animal.body.velocity.y,
 		});
 	}
 

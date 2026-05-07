@@ -1,5 +1,6 @@
 export enum CollisionGroups {
 	Default = 1,
 	Characters = 2,
-	TrimeshColliders = 4
+	TrimeshColliders = 4,
+	Animals = 8,
 }

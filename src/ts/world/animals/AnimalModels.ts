@@ -136,10 +136,19 @@ function makeTail(parent: THREE.Object3D, segCount: number, rootY: number, rootZ
 	return segs;
 }
 
+// Y-shift inside the species group so the lowest paw sits at the
+// root group's origin (= ground level). With makeLeg's chain (thigh
+// y=0.65, shin y=-0.5, paw y=-0.5, paw geometry half-height 0.07)
+// the lowest visible point is -0.42 in species-local space; lifting
+// the species group by +0.42 cancels that out so the manager can
+// just plant the root at ground without manual offsets per kind.
+const FOOT_OFFSET = 0.42;
+
 export function buildCatModel(scheme: ColorScheme): AnimalModel
 {
 	const root = new THREE.Group();
 	const cat = new THREE.Group();
+	cat.position.y = FOOT_OFFSET;
 	root.add(cat);
 
 	const furMat = mat(scheme.main);
@@ -242,6 +251,7 @@ export function buildDogModel(scheme: ColorScheme): AnimalModel
 {
 	const root = new THREE.Group();
 	const dog = new THREE.Group();
+	dog.position.y = FOOT_OFFSET;
 	root.add(dog);
 
 	const furMat = mat(scheme.main);
@@ -347,10 +357,38 @@ export function applyAnimalAnimation(model: AnimalModel, opts:
 	// 0..1, lifecycle of the active voice (1 = just started, 0 = done).
 	// Drives mouth-open scale and the dog's bark head-shake.
 	voiceFraction: number;
+	// True while the body is in mid-air (cannon hasn't reported the
+	// landing collision yet). Picks the jump pose ahead of any other
+	// animation branch.
+	jumping: boolean;
+	// Body's vertical velocity in m/s; positive ascending, negative
+	// descending. Drives body lean + leg pose during jumping.
+	velocityY: number;
 }): void
 {
-	const { t, speed, isDog, moving, running, voiceFraction } = opts;
+	const { t, speed, isDog, moving, running, voiceFraction, jumping, velocityY } = opts;
 	const restY = model.restY;
+
+	// Mid-jump pose. Takes priority over walk/idle/run so the silhouette
+	// reads as airborne instead of an awkward walking-in-mid-air.
+	if (jumping)
+	{
+		model.body.position.y = restY;
+		model.body.scale.set(1, 1, 1);
+		model.body.rotation.x = velocityY > 0 ? -0.12 : 0.18;
+		const tuck = velocityY > 0;
+		for (const k in model.legs)
+		{
+			const leg = model.legs[k as 'fl' | 'fr' | 'bl' | 'br'];
+			leg.thigh.rotation.x = tuck ? -0.5 : 0.35;
+			leg.shin.rotation.x = tuck ? 1.0 : 0.0;
+		}
+		model.head.rotation.x = velocityY > 0 ? -0.18 : 0.12;
+		model.head.rotation.y *= 0.85;
+		model.mouthOpen.scale.y = 0.001;
+		for (const seg of model.tail) seg.rotation.y *= 0.85;
+		return;
+	}
 
 	// Mouth opens during voices. Smooth-step in/out so the open isn't
 	// a hard pop. Cats hold mouth open for the full meow; dogs jaw-
