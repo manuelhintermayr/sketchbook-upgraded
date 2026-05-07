@@ -19,7 +19,7 @@ import { BirdSound } from './BirdSound';
 // its wings on a sin-cycle, and bobs up/down. No state machine -
 // birds just fly forever.
 
-const BIRD_COUNT = 7;
+const BIRD_COUNT = 2;
 const BIRD_PALETTE: Array<[number, number]> =
 [
 	[0x4477aa, 0x335588],

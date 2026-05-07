@@ -18,7 +18,7 @@ import { CollisionGroups } from '../../enums/CollisionGroups';
 // phase and flap rate so the swarm looks like a real ambient flutter
 // instead of a synchronised dance.
 
-const BUTTERFLY_COUNT = 8;
+const BUTTERFLY_COUNT = 2;
 
 // Real butterflies have ~5-10 cm wingspans; the cat-game model is
 // 30 cm wide at scale 1. 0.45x lands at ~13 cm wingspan - garden

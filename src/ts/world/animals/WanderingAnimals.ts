@@ -46,8 +46,8 @@ const BARK_VOICE_DURATION = 0.45;
 // because the cat-game-style animations (idle breath, walk-cycle,
 // run-cycle, jump pose) need independent per-limb transforms.
 
-const DOG_COUNT = 8;
-const CAT_COUNT = 10;
+const DOG_COUNT = 1;
+const CAT_COUNT = 2;
 const SPAWN_INNER = 18;   // keep clear of the spawn pad
 const SPAWN_OUTER = 80;   // Inthenew map's playable area is ~200 wide
 
