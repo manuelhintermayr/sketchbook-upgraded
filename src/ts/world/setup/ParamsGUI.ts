@@ -82,8 +82,10 @@ export function createParamsGUI(world: World): void
 	const gui = debugStack !== undefined ? new GUI({ container: debugStack }) : new GUI();
 	world.gui = gui;
 
-	// Scenario
-	world.scenarioGUIFolder = gui.addFolder('Scenarios');
+	// Scenario + Map - one folder. The map dropdown is added by
+	// addMapSwitcher before the scenario buttons so the player picks
+	// the world first, then the scenario to launch on it.
+	world.scenarioGUIFolder = gui.addFolder('Map & Scenarios');
 	world.scenarioGUIFolder.open();
 
 	// World

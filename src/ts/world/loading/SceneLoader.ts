@@ -30,6 +30,11 @@ import { injectWanderingAnimals, injectFlyingBirds, injectButterflies } from '..
 // authored. Same flow as before, just lifted out of World.
 export function loadScene(world: World, loadingManager: LoadingManager, gltf: any): void
 {
+	// Map switcher first - the dropdown lands at the top of the
+	// 'Map & Scenarios' folder so the player picks the world before
+	// the per-map scenario buttons that get added during the traversal.
+	addMapSwitcher(world);
+
 	gltf.scene.traverse((child) =>
 	{
 		if (!child.hasOwnProperty('userData')) return;
@@ -151,12 +156,6 @@ export function loadScene(world: World, loadingManager: LoadingManager, gltf: an
 	});
 
 	world.graphicsWorld.add(gltf.scene);
-
-	// Map switcher in the Scenarios panel - sits below the scenario
-	// list and reloads the page with the alternate world.glb. Default
-	// (no localStorage entry) is the Inthenew map; the SocketControl
-	// map is opt-in and persists across reloads.
-	addMapSwitcher(world);
 
 	// Hand-placed NPCs around the Inthenew default spawn - gives the
 	// world some visible occupants without authoring markers in
