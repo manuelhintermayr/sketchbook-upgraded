@@ -1,17 +1,17 @@
 import { World } from '../World';
 import { ProceduralAudio } from './ProceduralAudio';
 
-// Procedural ambient atmosphere - wind (filtered white noise), bird
-// chirps (FM-synthesised sine bursts on a Poisson-ish schedule), and
-// water (bandpass-filtered noise modulated by an LFO, gated by
-// camera proximity to the ocean). All procedural - no sample files.
+// Procedural ambient atmosphere - wind (filtered white noise) and
+// water (bandpass-filtered noise modulated by an LFO, gated by camera
+// proximity to the ocean). Bird chirps moved out to per-bird
+// PositionalAudio in Birds.ts so they fall off with distance instead
+// of playing flat across the whole world.
 //
 // Lifecycle (start / stop / master volume sync / autoplay-resume) is
 // inherited from ProceduralAudio; this file only builds the synth
 // graph and updates per-frame water-proximity gating.
 
 const WIND_GAIN = 0.08;
-const BIRD_GAIN = 0.05;
 const WATER_GAIN = 0.12;
 
 interface AmbientNodes
@@ -20,11 +20,6 @@ interface AmbientNodes
 	windLowpass: BiquadFilterNode;
 	windHighpass: BiquadFilterNode;
 	windGain: GainNode;
-	birdCarrier: OscillatorNode;
-	birdModulator: OscillatorNode;
-	birdModGain: GainNode;
-	birdFilter: BiquadFilterNode;
-	birdGain: GainNode;
 	waterSource: AudioBufferSourceNode;
 	waterFilter: BiquadFilterNode;
 	waterLfo: OscillatorNode;
@@ -37,7 +32,6 @@ export class AmbientSound extends ProceduralAudio
 	protected readonly masterMix = 0.7;
 
 	private nodes: AmbientNodes | null = null;
-	private chirpTimeout: ReturnType<typeof setTimeout> | undefined;
 
 	constructor(world: World)
 	{
@@ -83,36 +77,6 @@ export class AmbientSound extends ProceduralAudio
 		windGain.connect(master);
 		windSource.start();
 
-		// Birds - FM synthesis on a sine carrier; modulator frequency
-		// shifts each chirp burst for variety. Gain is normally 0 and
-		// briefly pulsed by scheduleChirp.
-		const birdCarrier = ctx.createOscillator();
-		birdCarrier.type = 'sine';
-		birdCarrier.frequency.value = 2000;
-
-		const birdModulator = ctx.createOscillator();
-		birdModulator.type = 'sine';
-		birdModulator.frequency.value = 8;
-
-		const birdModGain = ctx.createGain();
-		birdModGain.gain.value = 500;
-
-		const birdFilter = ctx.createBiquadFilter();
-		birdFilter.type = 'bandpass';
-		birdFilter.frequency.value = 3000;
-		birdFilter.Q.value = 2;
-
-		const birdGain = ctx.createGain();
-		birdGain.gain.value = 0;
-
-		birdModulator.connect(birdModGain);
-		birdModGain.connect(birdCarrier.frequency);
-		birdCarrier.connect(birdFilter);
-		birdFilter.connect(birdGain);
-		birdGain.connect(master);
-		birdCarrier.start();
-		birdModulator.start();
-
 		// Water - bandpass-filtered noise with a slow LFO sweeping the
 		// filter centre. Gated by proximity to the ocean each frame.
 		const waterSource = ctx.createBufferSource();
@@ -145,28 +109,17 @@ export class AmbientSound extends ProceduralAudio
 		this.nodes =
 		{
 			windSource, windLowpass, windHighpass, windGain,
-			birdCarrier, birdModulator, birdModGain, birdFilter, birdGain,
 			waterSource, waterFilter, waterLfo, waterLfoGain, waterGain,
 		};
-
-		this.scheduleChirp();
 	}
 
 	protected teardownSynth(): void
 	{
-		if (this.chirpTimeout !== undefined)
-		{
-			clearTimeout(this.chirpTimeout);
-			this.chirpTimeout = undefined;
-		}
-
 		const n = this.nodes;
 		if (n === null) return;
 		try
 		{
 			n.windSource.stop();
-			n.birdCarrier.stop();
-			n.birdModulator.stop();
 			n.waterSource.stop();
 			n.waterLfo.stop();
 		}
@@ -190,34 +143,5 @@ export class AmbientSound extends ProceduralAudio
 		const cam = this.world.camera.position;
 		const nearWater = this.world.ocean !== null && cam.y < 25;
 		n.waterGain.gain.setTargetAtTime(nearWater ? WATER_GAIN : 0, this.ctx.currentTime, 0.3);
-	}
-
-	// FM-synthesised bird chirp scheduler. Pokes birdCarrier frequency +
-	// briefly opens birdGain for a short burst; reschedules itself on a
-	// random 2-7s delay. Cleared in teardownSynth so a stop doesn't
-	// leave a dangling timer poking dead nodes.
-	private scheduleChirp(): void
-	{
-		const delay = 2000 + Math.random() * 5000;
-		this.chirpTimeout = setTimeout(() =>
-		{
-			const n = this.nodes;
-			if (n === null || this.ctx === null || this.ctx.state === 'closed') return;
-
-			const now = this.ctx.currentTime;
-			const chirpCount = 1 + Math.floor(Math.random() * 4);
-			const chirpDuration = 0.1 + Math.random() * 0.2;
-
-			for (let c = 0; c < chirpCount; c++)
-			{
-				const t = now + c * (chirpDuration + 0.05);
-				n.birdCarrier.frequency.setValueAtTime(1500 + Math.random() * 2000, t);
-				n.birdModulator.frequency.setValueAtTime(5 + Math.random() * 15, t);
-				n.birdGain.gain.linearRampToValueAtTime(BIRD_GAIN, t + 0.02);
-				n.birdGain.gain.linearRampToValueAtTime(0, t + chirpDuration);
-			}
-
-			this.scheduleChirp();
-		}, delay);
 	}
 }

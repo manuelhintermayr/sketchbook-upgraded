@@ -15,7 +15,7 @@ import { Grass } from '../Grass';
 import { Speaker } from '../audio/Speaker';
 import { addMapSwitcher } from '../setup/MapSwitcher';
 import { injectDefaultSceneNPCs } from '../setup/DefaultNPCInjector';
-import { injectWanderingAnimals } from '../setup/AnimalInjector';
+import { injectWanderingAnimals, injectFlyingBirds } from '../setup/AnimalInjector';
 
 // Walks a freshly-loaded GLTF scene (real or sandbox-synthesised) and
 // dispatches each node by its userData.data tag to the right entity
@@ -168,6 +168,12 @@ export function loadScene(world: World, loadingManager: LoadingManager, gltf: an
 	// Inthenew map (the sandboxes are testing zones with their own
 	// flat layouts, animals would just walk off the edge).
 	injectWanderingAnimals(world);
+
+	// Flying birds + per-bird positional chirp synths. Spawned on
+	// every map - they orbit at altitude so the layout below them
+	// doesn't matter, and the chirps replace the global bird-chirp
+	// synth that used to live in AmbientSound.
+	injectFlyingBirds(world);
 
 	// Launch default scenario
 	let defaultScenarioID: string | undefined;
