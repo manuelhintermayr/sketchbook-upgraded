@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { World } from '../World';
 import { IUpdatable } from '../../interfaces/IUpdatable';
 import { UpdateOrder } from '../../enums/UpdateOrder';
+import { getMasterVolume } from './AudioHelpers';
 
 // Base class for procedural Web Audio synthesisers (engine sound,
 // ambient soundscape, anything that builds an oscillator / filter
@@ -89,7 +90,7 @@ export abstract class ProceduralAudio implements IUpdatable
 
 	private targetMasterVolume(): number
 	{
-		return ((this.world.params?.Master_Volume ?? 80) / 100) * this.masterMix;
+		return getMasterVolume(this.world) * this.masterMix;
 	}
 
 	private startInternal(): void

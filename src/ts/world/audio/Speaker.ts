@@ -3,6 +3,7 @@ import { World } from '../World';
 import { IWorldEntity } from '../../interfaces/IWorldEntity';
 import { EntityType } from '../../enums/EntityType';
 import { UpdateOrder } from '../../enums/UpdateOrder';
+import { ensureAudioListener } from './AudioHelpers';
 
 // 3D positional audio source, simplified port of tkkaushik369/socketControl's
 // Speaker. The original spawned an HTMLMesh with a play/pause checkbox;
@@ -45,17 +46,7 @@ export class Speaker extends THREE.Object3D implements IWorldEntity
 
 	private attachAudio(audioUrl: string, world: World): void
 	{
-		let listener = world.audioListener;
-		if (listener === null)
-		{
-			listener = new THREE.AudioListener();
-			world.camera.add(listener);
-			world.audioListener = listener;
-			// Honour the persisted Master_Volume even before the
-			// settings modal is opened.
-			const stored = world.params?.Master_Volume;
-			if (typeof stored === 'number') listener.setMasterVolume(stored / 100);
-		}
+		const listener = ensureAudioListener(world);
 
 		const audioDom = document.createElement('audio');
 		audioDom.preload = 'auto';

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { World } from '../World';
+import { ensureAudioListener } from './AudioHelpers';
 
 // Per-character positional sound effects. Same role for Characters that
 // EngineSound has for Vehicles: every character (player + NPCs) carries
@@ -44,23 +45,6 @@ export class CharacterSfx
 		this.mixGain = null;
 	}
 
-	// Lazy listener creation - same trick the per-bird BirdSound uses,
-	// so a scene with no Speaker still gets a working listener the
-	// moment a character takes its first step.
-	private ensureListener(): THREE.AudioListener
-	{
-		let listener = this.world.audioListener;
-		if (listener === null)
-		{
-			listener = new THREE.AudioListener();
-			this.world.camera.add(listener);
-			this.world.audioListener = listener;
-			const stored = this.world.params?.Master_Volume;
-			if (typeof stored === 'number') listener.setMasterVolume(stored / 100);
-		}
-		return listener;
-	}
-
 	// Build the permanent PositionalAudio + mixGain on first play. Also
 	// gates on the global Sfx_Sounds toggle so callers don't need their
 	// own check.
@@ -69,7 +53,7 @@ export class CharacterSfx
 		if (!this.world.params?.Sfx_Sounds) return false;
 		if (this.posAudio === null)
 		{
-			const listener = this.ensureListener();
+			const listener = ensureAudioListener(this.world);
 			const ctx = THREE.AudioContext.getContext() as AudioContext;
 			this.mixGain = ctx.createGain();
 			this.mixGain.gain.value = 1;

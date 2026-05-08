@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 import { World } from '../World';
+import { getMasterVolume } from '../audio/AudioHelpers';
 
 // Procedural play-once meow / bark / purr synthesis. One global
 // AnimalVoiceBus that owns the AudioContext + master gain (so
@@ -59,7 +60,7 @@ export class AnimalVoiceBus
 		// Voices use full master mix - they're brief enough that
 		// dampening them under the engine sound bus would just make
 		// them inaudible. Master_Volume still scales everything.
-		return ((this.world.params?.Master_Volume ?? 80) / 100);
+		return getMasterVolume(this.world);
 	}
 
 	// Sync per-frame so the slider feels live, not toggled.

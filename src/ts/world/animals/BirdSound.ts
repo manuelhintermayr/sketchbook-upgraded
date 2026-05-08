@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { World } from '../World';
+import { ensureAudioListener } from '../audio/AudioHelpers';
 
 // Per-bird positional chirp synth. Same FM-bird timbre that used to
 // live globally in AmbientSound; here it sits on a THREE.PositionalAudio
@@ -68,26 +69,9 @@ export class BirdSound
 		this.active = false;
 	}
 
-	// Lazily creates the AudioListener if Speaker / Birds haven't yet.
-	// Honours the persisted Master_Volume the same way Speaker does so a
-	// page reload keeps the slider value.
-	private ensureListener(): THREE.AudioListener
-	{
-		let listener = this.world.audioListener;
-		if (listener === null)
-		{
-			listener = new THREE.AudioListener();
-			this.world.camera.add(listener);
-			this.world.audioListener = listener;
-			const stored = this.world.params?.Master_Volume;
-			if (typeof stored === 'number') listener.setMasterVolume(stored / 100);
-		}
-		return listener;
-	}
-
 	private start(): void
 	{
-		const listener = this.ensureListener();
+		const listener = ensureAudioListener(this.world);
 		const ctx = THREE.AudioContext.getContext() as AudioContext;
 
 		const carrier = ctx.createOscillator();

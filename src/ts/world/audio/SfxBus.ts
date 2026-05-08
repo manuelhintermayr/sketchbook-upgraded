@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { World } from '../World';
+import { getMasterVolume } from './AudioHelpers';
 
 // Procedural sound-effects bus. Centralises every UI / player-action /
 // race / vehicle / environmental SFX so the rest of the codebase only
@@ -42,8 +43,7 @@ export class SfxBus
 		{
 			try { this.ctx.resume(); } catch (_e) { /* autoplay-blocked, retry next call */ }
 		}
-		const vol = (this.world.params?.Master_Volume ?? 80) / 100;
-		this.masterGain!.gain.setTargetAtTime(vol * 0.6, this.ctx.currentTime, 0.05);
+		this.masterGain!.gain.setTargetAtTime(getMasterVolume(this.world) * 0.6, this.ctx.currentTime, 0.05);
 		return true;
 	}
 
