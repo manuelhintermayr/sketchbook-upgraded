@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 
-import { World } from '../World';
-import { getMasterVolume } from './AudioHelpers';
+import { AudioWorldContext, getMasterVolume } from './AudioHelpers';
 
 // Procedural play-once meow / bark / purr synthesis. One global
 // AnimalVoiceBus that owns the AudioContext + master gain (so
@@ -23,12 +22,12 @@ const _scratch = new THREE.Vector3();
 
 export class AnimalVoiceBus
 {
-	private world: World;
+	private world: AudioWorldContext;
 	private ctx: AudioContext | null = null;
 	private master: GainNode | null = null;
 	private purrLoops: Map<string, PurrLoop> = new Map();
 
-	constructor(world: World)
+	constructor(world: AudioWorldContext)
 	{
 		this.world = world;
 	}
@@ -335,13 +334,13 @@ export class AnimalVoiceBus
 class PurrLoop
 {
 	private ctx: AudioContext;
-	private world: World;
+	private world: AudioWorldContext;
 	private position: THREE.Vector3;
 	private osc: OscillatorNode;
 	private lfo: OscillatorNode;
 	private env: GainNode;
 
-	constructor(ctx: AudioContext, master: GainNode, world: World, position: THREE.Vector3)
+	constructor(ctx: AudioContext, master: GainNode, world: AudioWorldContext, position: THREE.Vector3)
 	{
 		this.ctx = ctx;
 		this.world = world;

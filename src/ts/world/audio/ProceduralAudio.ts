@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { World } from '../World';
 import { IUpdatable } from '../../interfaces/IUpdatable';
 import { UpdateOrder } from '../../enums/UpdateOrder';
-import { getMasterVolume } from './AudioHelpers';
+import { AudioWorldContext, getMasterVolume } from './AudioHelpers';
 
 // Base class for procedural Web Audio synthesisers (engine sound,
 // ambient soundscape, anything that builds an oscillator / filter
@@ -37,14 +36,14 @@ export abstract class ProceduralAudio implements IUpdatable
 {
 	public updateOrder: number = UpdateOrder.Audio;
 
-	protected world: World;
+	protected world: AudioWorldContext;
 	protected ctx: AudioContext | null = null;
 	protected masterGain: GainNode | null = null;
 	private active: boolean = false;
 
 	protected abstract readonly masterMix: number;
 
-	constructor(world: World)
+	constructor(world: AudioWorldContext)
 	{
 		this.world = world;
 	}

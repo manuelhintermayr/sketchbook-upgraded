@@ -1,6 +1,6 @@
-import { World } from '../World';
 import { Vehicle } from '../../vehicles/Vehicle';
 import { ProceduralAudio } from './ProceduralAudio';
+import { AudioWorldContext } from './AudioHelpers';
 
 // Procedural engine sound: 2-layer Web Audio synthesis (sawtooth +
 // square exhaust through a lowpass + bandpass-filtered noise intake)
@@ -55,7 +55,7 @@ export class EngineSound extends ProceduralAudio
 	private nodes: EngineNodes | null = null;
 	private rpm: number = IDLE_RPM;
 
-	constructor(vehicle: Vehicle, world: World, profile: EngineProfile)
+	constructor(vehicle: Vehicle, world: AudioWorldContext, profile: EngineProfile)
 	{
 		super(world);
 		this.vehicle = vehicle;
@@ -64,7 +64,7 @@ export class EngineSound extends ProceduralAudio
 
 	protected shouldPlay(): boolean
 	{
-		return !!this.world.params?.Engine_Sound
+		return !!this.world.params?.Sound_Effects
 			&& this.vehicle.controllingCharacter !== undefined;
 	}
 

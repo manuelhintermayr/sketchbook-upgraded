@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { World } from '../World';
-import { ensureAudioListener } from './AudioHelpers';
+import { AudioWorldContext, ensureAudioListener } from './AudioHelpers';
 
 // Per-character positional sound effects. Same role for Characters that
 // EngineSound has for Vehicles: every character (player + NPCs) carries
@@ -23,11 +22,11 @@ const MAX_DISTANCE = 35;
 export class CharacterSfx
 {
 	private readonly parent: THREE.Object3D;
-	private readonly world: World;
+	private readonly world: AudioWorldContext;
 	private posAudio: THREE.PositionalAudio | null = null;
 	private mixGain: GainNode | null = null;
 
-	constructor(parent: THREE.Object3D, world: World)
+	constructor(parent: THREE.Object3D, world: AudioWorldContext)
 	{
 		this.parent = parent;
 		this.world = world;
@@ -46,11 +45,11 @@ export class CharacterSfx
 	}
 
 	// Build the permanent PositionalAudio + mixGain on first play. Also
-	// gates on the global Sfx_Sounds toggle so callers don't need their
-	// own check.
+	// gates on the global Sound_Effects toggle so callers don't need
+	// their own check.
 	private ensureNodes(): boolean
 	{
-		if (!this.world.params?.Sfx_Sounds) return false;
+		if (!this.world.params?.Sound_Effects) return false;
 		if (this.posAudio === null)
 		{
 			const listener = ensureAudioListener(this.world);

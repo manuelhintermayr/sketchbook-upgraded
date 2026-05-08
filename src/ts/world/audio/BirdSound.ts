@@ -1,13 +1,12 @@
 import * as THREE from 'three';
-import { World } from '../World';
-import { ensureAudioListener } from './AudioHelpers';
+import { AudioWorldContext, ensureAudioListener } from './AudioHelpers';
 
 // Per-bird positional chirp synth. Same FM-bird timbre that used to
 // live globally in AmbientSound; here it sits on a THREE.PositionalAudio
 // attached to the bird's group so chirps fade with distance and pan
 // from the bird's actual location.
 //
-// Lifecycle is gated on params.Ambient_Sound: started lazily on first
+// Lifecycle is gated on params.Sound_Effects: started lazily on first
 // audio gesture (browser autoplay policy) and stopped when the toggle
 // flips off. Carrier + modulator run continuously with gain=0 between
 // bursts; scheduleChirp() pulses the gain on a Poisson schedule.
@@ -35,13 +34,13 @@ interface BirdNodes
 export class BirdSound
 {
 	private readonly parent: THREE.Object3D;
-	private readonly world: World;
+	private readonly world: AudioWorldContext;
 	private positionalAudio: THREE.PositionalAudio | null = null;
 	private nodes: BirdNodes | null = null;
 	private chirpTimeout: ReturnType<typeof setTimeout> | undefined;
 	private active: boolean = false;
 
-	constructor(parent: THREE.Object3D, world: World)
+	constructor(parent: THREE.Object3D, world: AudioWorldContext)
 	{
 		this.parent = parent;
 		this.world = world;
@@ -49,7 +48,7 @@ export class BirdSound
 
 	public update(): void
 	{
-		const should = !!this.world.params?.Ambient_Sound;
+		const should = !!this.world.params?.Sound_Effects;
 
 		if (should && !this.active)
 		{

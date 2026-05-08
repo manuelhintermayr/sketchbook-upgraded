@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { World } from '../World';
-import { getMasterVolume } from './AudioHelpers';
+import { AudioWorldContext, getMasterVolume } from './AudioHelpers';
 
 // Procedural sound-effects bus. Centralises every UI / player-action /
 // race / vehicle / environmental SFX so the rest of the codebase only
@@ -12,18 +11,18 @@ import { getMasterVolume } from './AudioHelpers';
 // finishes. Cheap; we never hold more than the few nodes needed for
 // the currently-playing sound.
 //
-// Master_Volume on world.params is honoured per-call; Sfx_Sounds
+// Master_Volume on world.params is honoured per-call; Sound_Effects
 // toggle gates everything (silently no-ops when off, so callers don't
 // need to check). All play* methods are safe to call before any user
 // gesture - the AudioContext starts suspended and resumes on demand.
 
 export class SfxBus
 {
-	private world: World;
+	private world: AudioWorldContext;
 	private ctx: AudioContext | null = null;
 	private masterGain: GainNode | null = null;
 
-	constructor(world: World)
+	constructor(world: AudioWorldContext)
 	{
 		this.world = world;
 	}
@@ -32,7 +31,7 @@ export class SfxBus
 	// false when the SFX toggle is off so callers can short-circuit.
 	private ensureContext(): boolean
 	{
-		if (!this.world.params?.Sfx_Sounds) return false;
+		if (!this.world.params?.Sound_Effects) return false;
 		if (this.ctx === null)
 		{
 			this.ctx = THREE.AudioContext.getContext() as AudioContext;

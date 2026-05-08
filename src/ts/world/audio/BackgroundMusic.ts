@@ -1,5 +1,5 @@
-import { World } from '../World';
 import { ProceduralAudio } from './ProceduralAudio';
+import { AudioWorldContext } from './AudioHelpers';
 
 // Looped background-music bus. Plays the bundled MP3s in audio/music/
 // in shuffled order, advancing on each track's `ended` event and
@@ -38,7 +38,7 @@ export class BackgroundMusic extends ProceduralAudio
 	private order: number[];
 	private cursor: number = 0;
 
-	constructor(world: World)
+	constructor(world: AudioWorldContext)
 	{
 		super(world);
 		this.order = this.shuffledOrder();

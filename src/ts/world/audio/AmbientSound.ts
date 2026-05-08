@@ -1,5 +1,5 @@
-import { World } from '../World';
 import { ProceduralAudio } from './ProceduralAudio';
+import { AudioWorldContext } from './AudioHelpers';
 
 // Procedural ambient atmosphere - wind (filtered white noise) and
 // water (bandpass-filtered noise modulated by an LFO, gated by camera
@@ -33,14 +33,14 @@ export class AmbientSound extends ProceduralAudio
 
 	private nodes: AmbientNodes | null = null;
 
-	constructor(world: World)
+	constructor(world: AudioWorldContext)
 	{
 		super(world);
 	}
 
 	protected shouldPlay(): boolean
 	{
-		return !!this.world.params?.Ambient_Sound;
+		return !!this.world.params?.Sound_Effects;
 	}
 
 	protected buildSynth(ctx: AudioContext, master: GainNode): void
@@ -135,13 +135,16 @@ export class AmbientSound extends ProceduralAudio
 		const n = this.nodes;
 		if (n === null || this.ctx === null) return;
 
-		// Water proximity - Sketchbook's Inthenew ocean sits at y=12, the
-		// wave grid covers a large area around the origin. Near-water is
-		// any time the camera is below ~25 and Ocean exists. Cheap
-		// approximation; getWaveHeightAt would be more accurate but
-		// allocates per call which is wasted for an on/off gate.
+		// Water proximity gate. Inthenew's ocean tiles sit at y=12; we
+		// gate the water synth on the camera being within 10m of that
+		// vertical level - so a player on the spawn pad (cam ~y=23) is
+		// out, but anyone walking to the strand or jumping in (cam ~y=14)
+		// hears the surf. Cheap approximation; getWaveHeightAt would be
+		// more accurate but allocates per call which is wasted for an
+		// on/off gate.
 		const cam = this.world.camera.position;
-		const nearWater = this.world.ocean !== null && cam.y < 25;
+		const oceanY = 12;
+		const nearWater = this.world.ocean !== null && Math.abs(cam.y - oceanY) < 10;
 		n.waterGain.gain.setTargetAtTime(nearWater ? WATER_GAIN : 0, this.ctx.currentTime, 0.3);
 	}
 }
