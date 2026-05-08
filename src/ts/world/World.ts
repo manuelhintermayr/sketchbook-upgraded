@@ -37,7 +37,7 @@ import { AmbientSound } from './audio/AmbientSound';
 import { BackgroundMusic } from './audio/BackgroundMusic';
 import { SfxBus } from './audio/SfxBus';
 import { bootstrapHTML } from './setup/HTMLBootstrap';
-import { setupRendererPipeline } from './setup/RendererPipeline';
+import { setupRendererPipeline, tickRenderPipeline, tickCannonDebug } from './setup/RendererPipeline';
 import { createParamsGUI } from './setup/ParamsGUI';
 import { loadScene } from './loading/SceneLoader';
 import { WorldLabels } from './ui/WorldLabels';
@@ -336,7 +336,7 @@ export class World
 		this.params.Time_Scale = THREE.MathUtils.lerp(this.params.Time_Scale, this.timeScaleTarget, 0.2);
 
 		// Physics debug
-		if (this.params.Debug_Physics) this.cannonDebugRenderer?.update();
+		if (this.params.Debug_Physics) tickCannonDebug(this);
 	}
 
 	public updatePhysics(timeStep: number): void
@@ -466,18 +466,10 @@ export class World
 		this.stats.end();
 		this.stats.begin();
 
-		// Actual rendering with a FXAA ON/OFF switch
-		if (this.params.FXAA) this.composer.render();
-		else this.renderer.render(this.graphicsWorld, this.camera);
-
-		// Depth-Sobel outline overlay - internally guarded by params.Outlines
-		// so a disabled toggle costs one branch per frame.
-		this.outlineEffect.renderPass();
-
-		// CSS2D pass projects each name-label div above its anchor
-		// world position. Cheap; no perf concerns at the scale of
-		// "a few NPCs and a player".
-		this.labelRenderer.render(this.graphicsWorld, this.camera);
+		// Actual GPU dispatch (composer/renderer + outline + label) lives
+		// in setup/RendererPipeline so the pipeline build + the per-frame
+		// draw calls sit next to each other.
+		tickRenderPipeline(this);
 
 		// Measuring render time
 		this.renderDelta = this.stopwatchDelta();

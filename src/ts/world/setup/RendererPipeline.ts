@@ -95,3 +95,37 @@ export function setupRendererPipeline(world: World): void
 		world.labelRenderer.setSize(window.innerWidth, window.innerHeight);
 	}, false);
 }
+
+// Per-frame GPU dispatch: composer or direct render (FXAA branch),
+// outline overlay, CSS2D label projection, and the cannon debug pass.
+// World.render() drives the loop (RAF + timestep + updatables); this
+// helper just writes pixels. Splitting the two keeps the render-loop
+// orchestration in World and the actual draw calls + their gating
+// flags here, where they sit next to the pipeline they were built by.
+export function tickRenderPipeline(world: World): void
+{
+	// FXAA composer when antialiasing is on, raw renderer when off.
+	// The composer wraps a RenderPass + FXAA ShaderPass; bypassing it
+	// saves the shader pass cost when the player toggles FXAA off.
+	if (world.params.FXAA) world.composer.render();
+	else world.renderer.render(world.graphicsWorld, world.camera);
+
+	// Depth-Sobel outline overlay - internally guarded by params.Outlines
+	// so a disabled toggle costs one branch per frame.
+	world.outlineEffect.renderPass();
+
+	// CSS2D pass projects each name-label div above its anchor world
+	// position. Cheap; no perf concerns at the scale of "a few NPCs
+	// and a player".
+	world.labelRenderer.render(world.graphicsWorld, world.camera);
+}
+
+// Cannon physics debug pass. Drawn after the visual pipeline so its
+// wireframes overlay the rendered scene rather than being hidden by
+// it. Gated on params.Debug_Physics by the caller (World.update);
+// the cannon-es-debugger handles its own no-op when disabled, but
+// the if-check keeps the cost zero when the player has the toggle off.
+export function tickCannonDebug(world: World): void
+{
+	world.cannonDebugRenderer?.update();
+}
