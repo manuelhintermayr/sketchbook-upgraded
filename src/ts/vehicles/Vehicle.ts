@@ -14,8 +14,10 @@ import { EntityType } from '../enums/EntityType';
 import { UpdateOrder } from '../enums/UpdateOrder';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { CameraShake } from '../core/CameraShake';
-import { EngineSound, EngineProfile } from '../world/audio/EngineSound';
+import { EngineProfile } from '../world/audio/EngineSound';
 import { StuckRecovery } from './StuckRecovery';
+import { VehicleAudioBridge } from './VehicleAudioBridge';
+import { syncWheelTransforms, updateWheelProps } from './WheelManager';
 
 export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 {
@@ -32,7 +34,6 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	public world: World;
 	public help: THREE.AxesHelper;
 	public collision: CANNON.Body;
-	private collideListener: ((e: any) => void) | undefined;
 	public materials: THREE.Material[] = [];
 	public spawnPoint: THREE.Object3D;
 	private modelContainer: THREE.Group;
@@ -63,10 +64,11 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	protected recovery: StuckRecovery;
 
 	// Procedural engine sound. Subclasses pick a profile from
-	// ENGINE_PROFILES in their constructor; null = silent. The instance
-	// is created in addToWorld so it can register as a world updatable.
+	// ENGINE_PROFILES in their constructor; null = silent. The actual
+	// EngineSound instance + the crash-audio collide listener live on
+	// the audio bridge, attached in addToWorld.
 	protected engineSoundProfile: EngineProfile | null = null;
-	private engineSound: EngineSound | null = null;
+	private audioBridge: VehicleAudioBridge | null = null;
 
 	constructor(gltf: any, handlingSetup?: any)
 	{
@@ -121,11 +123,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	// has wheels.
 	public updateWheelProps(property: string, value: number): void
 	{
-		const wheelInfos = this.rayCastVehicle.wheelInfos;
-		for (let i = 0; i < wheelInfos.length; i++)
-		{
-			(wheelInfos[i] as any)[property] = value;
-		}
+		updateWheelProps(this.rayCastVehicle, property, value);
 	}
 
 	public updateCarSpeed(_speed: number): void
@@ -187,28 +185,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			seat.update(timeStep);
 		});
 
-		// Wheel positions come out of cannon's RaycastVehicle in body-space
-		// at body.position, while the chassis above is rendered at
-		// body.interpolatedPosition. At high speeds the gap between those
-		// two is exactly the per-step velocity offset - so the wheels
-		// visually drift in front of (or behind) the car. Compensate with
-		// the same delta on every wheel so chassis + wheels stay locked.
-		const dx = this.collision.interpolatedPosition.x - this.collision.position.x;
-		const dy = this.collision.interpolatedPosition.y - this.collision.position.y;
-		const dz = this.collision.interpolatedPosition.z - this.collision.position.z;
-
-		for (let i = 0; i < this.rayCastVehicle.wheelInfos.length; i++)
-		{
-			this.rayCastVehicle.updateWheelTransform(i);
-			const transform = this.rayCastVehicle.getWheelTransformWorld(i);
-			const wheelObject = this.wheels[i].wheelObject;
-			wheelObject.position.set(
-				transform.position.x + dx,
-				transform.position.y + dy,
-				transform.position.z + dz,
-			);
-			wheelObject.quaternion.set(transform.quaternion.x, transform.quaternion.y, transform.quaternion.z, transform.quaternion.w);
-		}
+		syncWheelTransforms(this.rayCastVehicle, this.wheels, this.collision);
 
 		this.updateMatrixWorld();
 	}
@@ -441,30 +418,8 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 				world.sky.csm.setupMaterial(mat);
 			});
 
-			if (this.engineSoundProfile !== null)
-			{
-				this.engineSound = new EngineSound(this, world, this.engineSoundProfile);
-				world.registerUpdatable(this.engineSound);
-			}
-
-			// Crash audio - cannon fires 'collide' for every contact, so
-			// we throttle to ~3/sec and only play when the relative
-			// impact velocity is significant. Otherwise resting on a
-			// kerb produces a constant rumble. Listener stashed so
-			// removeFromWorld can detach it; otherwise the closure
-			// keeps the vehicle pinned via the body across scenario
-			// switches.
-			let lastCrashAt = 0;
-			this.collideListener = (e: any) =>
-			{
-				const now = performance.now();
-				if (now - lastCrashAt < 350) return;
-				const impact = Math.abs(e.contact?.getImpactVelocityAlongNormal?.() ?? 0);
-				if (impact < 4) return;
-				lastCrashAt = now;
-				world.sfxBus.playCrash(Math.min(2, impact * 0.15));
-			};
-			this.collision.addEventListener('collide', this.collideListener);
+			this.audioBridge = new VehicleAudioBridge(this.collision);
+			this.audioBridge.attach(world, this, this.engineSoundProfile);
 		}
 	}
 
@@ -479,11 +434,6 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			this.world = undefined;
 			_.pull(world.vehicles, this);
 			world.graphicsWorld.remove(this);
-			if (this.collideListener !== undefined)
-			{
-				this.collision.removeEventListener('collide', this.collideListener);
-				this.collideListener = undefined;
-			}
 			// world.physicsWorld.remove(this.collision);
 			this.rayCastVehicle.removeFromWorld(world.physicsWorld);
 
@@ -492,11 +442,10 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 				world.graphicsWorld.remove(wheel.wheelObject);
 			});
 
-			if (this.engineSound !== null)
+			if (this.audioBridge !== null)
 			{
-				world.unregisterUpdatable(this.engineSound);
-				this.engineSound.dispose();
-				this.engineSound = null;
+				this.audioBridge.detach(world);
+				this.audioBridge = null;
 			}
 		}
 	}
