@@ -31,26 +31,13 @@ import { EntityType } from '../enums/EntityType';
 import { UpdateOrder } from '../enums/UpdateOrder';
 import { commonGlobalControls } from '../core/CommonControls';
 import { t } from '../i18n';
+import * as PhysicsBridge from './CharacterPhysicsBridge';
+import * as InputBridge from './CharacterInputBridge';
 
-// Module-scoped scratch - physicsPostStep + springRotation run every
-// physics tick per character, so per-call allocations multiply across
-// all characters in the scene. Reuse these instead of new'ing each
-// call. _Y_AXIS is an immutable seed.
-const _simulatedVelocity = new THREE.Vector3();
-const _newVelocity = new THREE.Vector3();
-const _addThree = new THREE.Vector3();
-const _normal = new THREE.Vector3();
-const _q = new THREE.Quaternion();
-const _m = new THREE.Matrix4();
-const _pointVel = new CANNON.Vec3();
-const _addCannon = new CANNON.Vec3();
+// Module-scoped scratch for springRotation - reused across all
+// characters in the scene. Larger physics + raycast scratches moved
+// to CharacterPhysicsBridge alongside the physics step functions.
 const _Y_AXIS = new THREE.Vector3(0, 1, 0);
-// Hot-path scratches reused per character per frame so feetRaycast
-// doesn't allocate. Cannon trimesh raycasts are expensive enough on
-// their own without GC pressure piled on top.
-const _rayStart = new CANNON.Vec3();
-const _rayEnd = new CANNON.Vec3();
-const _rayOpts = { collisionFilterMask: CollisionGroups.Default, skipBackfaces: true };
 
 export class Character extends THREE.Object3D implements IWorldEntity
 {
@@ -334,113 +321,27 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public handleKeyboardEvent(event: KeyboardEvent, code: string, pressed: boolean): void
 	{
-		if (this.dialogFreeze) return;
-		if (this.controlledObject !== undefined)
-		{
-			this.controlledObject.handleKeyboardEvent(event, code, pressed);
-		}
-		else
-		{
-			// Free camera
-			if (code === 'KeyC' && pressed === true && event.shiftKey === true)
-			{
-				this.resetControls();
-				this.world.cameraOperator.characterCaller = this;
-				this.world.inputManager.setInputReceiver(this.world.cameraOperator);
-			}
-			else if (code === 'KeyR' && pressed === true && event.shiftKey === true)
-			{
-				this.world.restartScenario();
-			}
-			else
-			{
-				for (const action in this.actions) {
-					if (this.actions.hasOwnProperty(action)) {
-						const binding = this.actions[action];
-	
-						if (_.includes(binding.eventCodes, code))
-						{
-							this.triggerAction(action, pressed);
-						}
-					}
-				}
-			}
-		}
+		InputBridge.handleKeyboardEvent(this, event, code, pressed);
 	}
 
 	public handleMouseButton(event: MouseEvent, code: string, pressed: boolean): void
 	{
-		if (this.dialogFreeze) return;
-		if (this.controlledObject !== undefined)
-		{
-			this.controlledObject.handleMouseButton(event, code, pressed);
-		}
-		else
-		{
-			for (const action in this.actions) {
-				if (this.actions.hasOwnProperty(action)) {
-					const binding = this.actions[action];
-
-					if (_.includes(binding.eventCodes, code))
-					{
-						this.triggerAction(action, pressed);
-					}
-				}
-			}
-		}
+		InputBridge.handleMouseButton(this, event, code, pressed);
 	}
 
 	public handleMouseMove(event: MouseEvent, deltaX: number, deltaY: number): void
 	{
-		if (this.dialogFreeze) return;
-		if (this.controlledObject !== undefined)
-		{
-			this.controlledObject.handleMouseMove(event, deltaX, deltaY);
-		}
-		else
-		{
-			this.world.cameraOperator.move(deltaX, deltaY);
-		}
+		InputBridge.handleMouseMove(this, event, deltaX, deltaY);
 	}
 
 	public handleMouseWheel(event: WheelEvent, value: number): void
 	{
-		if (this.dialogFreeze) return;
-		if (this.controlledObject !== undefined)
-		{
-			this.controlledObject.handleMouseWheel(event, value);
-		}
-		else
-		{
-			this.world.scrollTheTimeScale(value);
-		}
+		InputBridge.handleMouseWheel(this, event, value);
 	}
 
 	public triggerAction(actionName: string, value: boolean): void
 	{
-		// Get action and set it's parameters
-		let action = this.actions[actionName];
-
-		if (action.isPressed !== value)
-		{
-			// Set value
-			action.isPressed = value;
-
-			// Reset the 'just' attributes
-			action.justPressed = false;
-			action.justReleased = false;
-
-			// Set the 'just' attributes
-			if (value) action.justPressed = true;
-			else action.justReleased = true;
-
-			// Tell player to handle states according to new input
-			this.charState.onInputChange();
-
-			// Reset the 'just' attributes
-			action.justPressed = false;
-			action.justReleased = false;
-		}
+		InputBridge.triggerAction(this, actionName, value);
 	}
 
 	public takeControl(): void
@@ -874,143 +775,17 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public physicsPreStep(body: CANNON.Body, character: Character): void
 	{
-		character.feetRaycast();
-
-		// Raycast debug
-		if (character.rayHasHit)
-		{
-			if (character.raycastBox.visible) {
-				character.raycastBox.position.x = character.rayResult.hitPointWorld.x;
-				character.raycastBox.position.y = character.rayResult.hitPointWorld.y;
-				character.raycastBox.position.z = character.rayResult.hitPointWorld.z;
-			}
-		}
-		else
-		{
-			if (character.raycastBox.visible) {
-				character.raycastBox.position.set(body.position.x, body.position.y - character.rayCastLength - character.raySafeOffset, body.position.z);
-			}
-		}
+		PhysicsBridge.physicsPreStep(body, character);
 	}
 
 	public feetRaycast(): void
 	{
-		// Reuses module-scoped scratches so this hot path (every character
-		// every frame) doesn't allocate. Cannon trimesh raycasts are
-		// expensive enough on their own without GC pressure on top.
-		const body = this.characterCapsule.body;
-		_rayStart.set(body.position.x, body.position.y, body.position.z);
-		_rayEnd.set(body.position.x, body.position.y - this.rayCastLength - this.raySafeOffset, body.position.z);
-		this.rayHasHit = this.world.physicsWorld.raycastClosest(_rayStart, _rayEnd, _rayOpts, this.rayResult);
+		PhysicsBridge.feetRaycast(this);
 	}
 
 	public physicsPostStep(body: CANNON.Body, character: Character): void
 	{
-		// Get velocities
-		_simulatedVelocity.set(body.velocity.x, body.velocity.y, body.velocity.z);
-
-		// Take local velocity, then turn local into global. The helper
-		// allocates internally - leave that as the helper's contract;
-		// pulling it apart here would couple us to its math.
-		const arcadeLocal = _addThree.copy(character.velocity).multiplyScalar(character.moveSpeed);
-		const arcadeVelocity = Utils.appplyVectorMatrixXZ(character.orientation, arcadeLocal);
-
-		// Additive velocity mode
-		if (character.arcadeVelocityIsAdditive)
-		{
-			_newVelocity.copy(_simulatedVelocity);
-
-			const globalVelocityTarget = Utils.appplyVectorMatrixXZ(character.orientation, character.velocityTarget);
-			const addX = arcadeVelocity.x * character.arcadeVelocityInfluence.x;
-			const addY = arcadeVelocity.y * character.arcadeVelocityInfluence.y;
-			const addZ = arcadeVelocity.z * character.arcadeVelocityInfluence.z;
-
-			if (Math.abs(_simulatedVelocity.x) < Math.abs(globalVelocityTarget.x * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.x, arcadeVelocity.x)) { _newVelocity.x += addX; }
-			if (Math.abs(_simulatedVelocity.y) < Math.abs(globalVelocityTarget.y * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.y, arcadeVelocity.y)) { _newVelocity.y += addY; }
-			if (Math.abs(_simulatedVelocity.z) < Math.abs(globalVelocityTarget.z * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.z, arcadeVelocity.z)) { _newVelocity.z += addZ; }
-		}
-		else
-		{
-			_newVelocity.set(
-				THREE.MathUtils.lerp(_simulatedVelocity.x, arcadeVelocity.x, character.arcadeVelocityInfluence.x),
-				THREE.MathUtils.lerp(_simulatedVelocity.y, arcadeVelocity.y, character.arcadeVelocityInfluence.y),
-				THREE.MathUtils.lerp(_simulatedVelocity.z, arcadeVelocity.z, character.arcadeVelocityInfluence.z),
-			);
-		}
-
-		// If we're hitting the ground, stick to ground
-		if (character.rayHasHit)
-		{
-			// Flatten velocity
-			_newVelocity.y = 0;
-
-			// Move on top of moving objects. Inline the .add() instead
-			// of going through Utils.threeVector (which would allocate).
-			if (character.rayResult.body.mass > 0)
-			{
-				character.rayResult.body.getVelocityAtWorldPoint(character.rayResult.hitPointWorld, _pointVel);
-				_newVelocity.x += _pointVel.x;
-				_newVelocity.y += _pointVel.y;
-				_newVelocity.z += _pointVel.z;
-			}
-
-			// Measure the normal vector offset from direct "up" vector
-			// and transform it into a matrix
-			_normal.set(character.rayResult.hitNormalWorld.x, character.rayResult.hitNormalWorld.y, character.rayResult.hitNormalWorld.z);
-			_q.setFromUnitVectors(_Y_AXIS, _normal);
-			_m.makeRotationFromQuaternion(_q);
-
-			// Rotate the velocity vector
-			_newVelocity.applyMatrix4(_m);
-
-			// Apply velocity
-			body.velocity.x = _newVelocity.x;
-			body.velocity.y = _newVelocity.y;
-			body.velocity.z = _newVelocity.z;
-			// Ground character
-			body.position.y = character.rayResult.hitPointWorld.y + character.rayCastLength + (_newVelocity.y / character.world.physicsFrameRate);
-		}
-		else
-		{
-			// If we're in air
-			body.velocity.x = _newVelocity.x;
-			body.velocity.y = _newVelocity.y;
-			body.velocity.z = _newVelocity.z;
-
-			// Save last in-air information
-			character.groundImpactData.velocity.x = body.velocity.x;
-			character.groundImpactData.velocity.y = body.velocity.y;
-			character.groundImpactData.velocity.z = body.velocity.z;
-		}
-
-		// Jumping
-		if (character.wantsToJump)
-		{
-			// If initJumpSpeed is set
-			if (character.initJumpSpeed > -1)
-			{
-				// Flatten velocity
-				body.velocity.y = 0;
-				const speed = Math.max(character.velocitySimulator.position.length() * 4, character.initJumpSpeed);
-				body.velocity.set(
-					character.orientation.x * speed,
-					character.orientation.y * speed,
-					character.orientation.z * speed,
-				);
-			}
-			else {
-				// Moving objects compensation
-				character.rayResult.body.getVelocityAtWorldPoint(character.rayResult.hitPointWorld, _addCannon);
-				body.velocity.vsub(_addCannon, body.velocity);
-			}
-
-			// Add positive vertical velocity
-			body.velocity.y += 4;
-			// Move above ground by 2x safe offset value
-			body.position.y += character.raySafeOffset * 2;
-			// Reset flag
-			character.wantsToJump = false;
-		}
+		PhysicsBridge.physicsPostStep(body, character);
 	}
 
 	public addToWorld(world: World): void
