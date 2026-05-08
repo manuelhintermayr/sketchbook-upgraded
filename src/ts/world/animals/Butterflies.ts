@@ -47,23 +47,16 @@ const BUTTERFLY_PALETTE: number[] =
 const ORBIT_AREA = 12;
 const ORBIT_AMP_MIN = 3;
 const ORBIT_AMP_RANGE = 5;
-// Heights are offsets from the player's body-centre (cy is anchored
-// to player.position.y on the first update; that point sits ~0.9 m
-// above the feet). HEIGHT_MIN of 0.4 keeps the lowest sin-drift
-// point safely above the ground on uneven terrain; the upper end
-// caps roughly at chest height.
-const HEIGHT_MIN = 0.4;
-const HEIGHT_RANGE = 0.4;
-// Vertical drift amplitude. Tighter than x/z because the height
-// budget is small - any larger and the swarm starts clipping the
-// terrain whenever the player walks downhill from where they
-// spawned.
+// Absolute world-Y range for butterflies. Independent of the player's
+// position - on a flat ground map (y=0) this lands at chest height;
+// on a raised pad map the swarm will be lower than the player. Player
+// X/Z are still tracked so the butterflies stay near the player
+// horizontally.
+const HEIGHT_MIN = 1.0;
+const HEIGHT_RANGE = 0.5;
+// Vertical drift amplitude on top of the static cy. Kept tight so the
+// y-band stays in chest range.
 const Y_DRIFT_AMP = 0.25;
-// Hard floor: butterflies never fly closer than this (in metres) to
-// the player's body-centre y, regardless of where the lissajous
-// would put them. Last-line defence for the case a butterfly drifts
-// into a downhill spot the spawn-time anchor didn't predict.
-const MIN_HEIGHT_OVER_PLAYER = 0.2;
 const DRIFT_SPEED_MIN = 0.2;
 const DRIFT_SPEED_RANGE = 0.2;
 const FLAP_SPEED_MIN = 20;
@@ -131,10 +124,12 @@ export class Butterflies implements IWorldEntity
 	private world: World | null = null;
 	private butterflies: Butterfly[] = [];
 	private animTime: number = 0;
-	// Same first-update player anchor as the bird flock - the Inthenew
-	// spawn isn't at the world origin, so absolute centres would drop
-	// the swarm in the wrong corner of the map.
-	private originAnchored: boolean = false;
+	// Captured ONCE on first update, then never re-read. Anchors the
+	// swarm's altitude band to the player's spawn elevation so the
+	// values still read as "fixed min/max" but adapt to maps where
+	// the spawn pad sits at y=10 (Inthenew helipad) instead of y=0.
+	// null until the first frame fires.
+	private spawnAnchorY: number | null = null;
 
 	public addToWorld(world: World): void
 	{
@@ -203,40 +198,32 @@ export class Butterflies implements IWorldEntity
 		const dt = Math.min(unscaledTimeStep, 0.05);
 		this.animTime += dt;
 
-		if (!this.originAnchored)
-		{
-			const player = this.world.characters[0];
-			if (player !== undefined)
-			{
-				for (const bf of this.butterflies)
-				{
-					bf.cx += player.position.x;
-					bf.cz += player.position.z;
-					bf.cy += player.position.y;
-				}
-				this.originAnchored = true;
-			}
-		}
-
 		const camPos = this.world.camera.position;
 		const player = this.world.characters[0];
-		const playerY = player !== undefined ? player.position.y : -Infinity;
+		// X/Z stay player-relative so the swarm doesn't wander to the
+		// other side of the map; Y is anchored to the player's spawn
+		// elevation captured on first frame, then never updated -
+		// "fixed values" relative to wherever the player started, not
+		// fixed absolute world Y (which would put butterflies under-
+		// ground on elevated maps like Inthenew's helipad).
+		const playerX = player !== undefined ? player.position.x : 0;
+		const playerZ = player !== undefined ? player.position.z : 0;
+
+		if (this.spawnAnchorY === null && player !== undefined)
+		{
+			this.spawnAnchorY = player.position.y;
+		}
+		const anchorY = this.spawnAnchorY ?? 0;
 
 		for (const bf of this.butterflies)
 		{
-			// Lissajous wandering: cos + sin on each axis with co-prime
-			// frequency multipliers (1, 1.7, 1.9, 2.3) keeps the path
-			// from looping cleanly so the motion reads as wandering
-			// rather than a perfect circle.
+			// Lissajous wandering: x/z around the player, y inside a
+			// fixed world-Y band. Co-prime frequency multipliers (1,
+			// 1.7, 1.9, 2.3) keep the path from looping cleanly.
 			const t = this.animTime * bf.driftSpeed + bf.phase;
-			const x = bf.cx + Math.cos(t) * bf.ax + Math.sin(t * 2.3) * 1.2;
-			let y = bf.cy + Math.sin(t * 1.7) * Y_DRIFT_AMP;
-			const z = bf.cz + Math.sin(t) * bf.az + Math.cos(t * 1.9) * 1.2;
-			// Hard floor relative to the player's current y - the
-			// lissajous orbits drift sideways during play, so a
-			// butterfly that wandered into a downhill spot would dip
-			// below the terrain without this clamp.
-			if (y < playerY + MIN_HEIGHT_OVER_PLAYER) y = playerY + MIN_HEIGHT_OVER_PLAYER;
+			const x = playerX + bf.cx + Math.cos(t) * bf.ax + Math.sin(t * 2.3) * 1.2;
+			const y = anchorY + bf.cy + Math.sin(t * 1.7) * Y_DRIFT_AMP;
+			const z = playerZ + bf.cz + Math.sin(t) * bf.az + Math.cos(t * 1.9) * 1.2;
 
 			// Distance cull first - far-away butterflies skip every
 			// per-frame write below (group transform, body position,

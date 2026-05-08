@@ -55,6 +55,16 @@ const ORBIT_SPEED_RANGE = 0.4;
 // frame and cannon's job is just collision presence.
 const BIRD_BODY_RADIUS = 0.4;
 
+// Beyond this distance from the camera the bird is too small / too
+// far away to read fine animation - we still keep the group's world
+// position in sync (so PositionalAudio chirps come from the right
+// direction) but skip the wing flap, banking roll, and cannon body
+// sync since none of them affect anything the player can perceive.
+// Threshold sits past the chirp MAX_DISTANCE (60 m) with a small
+// margin so the cull only kicks in once the bird is fully inaudible
+// and visually a 1-pixel speck.
+const FAR_CULL_DISTANCE_SQ = 80 * 80;
+
 interface Bird
 {
 	group: THREE.Group;
@@ -144,11 +154,12 @@ export class Birds implements IWorldEntity
 	private world: World | null = null;
 	private birds: Bird[] = [];
 	private animTime: number = 0;
-	// Orbit centres are seeded from the world origin and shifted onto the
-	// player on the first update where a character exists. The Inthenew
-	// spawn isn't at (0,0,0) - without this re-anchor the birds circle
-	// somewhere in the distance and you only ever hear them faintly.
-	private originAnchored: boolean = false;
+	// Captured ONCE on first update, then never re-read. Anchors the
+	// flight altitude band to the player's spawn elevation so the
+	// values still read as "fixed min/max" but adapt to maps where
+	// the spawn pad sits at y=10 (Inthenew helipad) instead of y=0.
+	// null until the first frame fires.
+	private spawnAnchorY: number | null = null;
 
 	public addToWorld(world: World): void
 	{
@@ -221,54 +232,71 @@ export class Birds implements IWorldEntity
 		const dt = Math.min(unscaledTimeStep, 0.05);
 		this.animTime += dt;
 
-		if (!this.originAnchored)
+		// X/Z stay player-relative so the flock doesn't wander to the
+		// other side of the map; height is anchored to the player's
+		// spawn elevation captured on first frame, then never updated -
+		// "fixed values" relative to wherever the player started, not
+		// fixed absolute world Y (which would put birds underground on
+		// elevated maps like Inthenew's helipad).
+		const player = this.world.characters[0];
+		const playerX = player !== undefined ? player.position.x : 0;
+		const playerZ = player !== undefined ? player.position.z : 0;
+
+		if (this.spawnAnchorY === null && player !== undefined)
 		{
-			const player = this.world.characters[0];
-			if (player !== undefined)
-			{
-				// Anchor every dimension. Height matters too: Inthenew's
-				// spawn isn't at y=0 (it can sit 30+ m above the world
-				// origin on raised terrain) and an absolute height of 5-14
-				// would put the flock far below the player, off-screen.
-				for (const bird of this.birds)
-				{
-					bird.cx += player.position.x;
-					bird.cz += player.position.z;
-					bird.height += player.position.y;
-				}
-				this.originAnchored = true;
-			}
+			this.spawnAnchorY = player.position.y;
 		}
+		const anchorY = this.spawnAnchorY ?? 0;
+
+		const camPos = this.world.camera.position;
 
 		for (const bird of this.birds)
 		{
-			// Orbit on the (cx, cz) circle. direction flips the angular
-			// velocity sign so half the birds fly clockwise. height bobs
-			// gently with a slow secondary sin.
+			// Orbit on the (cx, cz) circle around the player. direction
+			// flips the angular velocity sign so half the birds fly
+			// clockwise. height bobs gently with a slow secondary sin
+			// inside the fixed world-Y altitude band.
 			const a = this.animTime * bird.speed * bird.direction + bird.phase;
-			const x = bird.cx + Math.cos(a) * bird.radius;
-			const z = bird.cz + Math.sin(a) * bird.radius;
-			const y = bird.height + Math.sin(this.animTime * 0.4 + bird.phase) * 0.6;
+			const x = playerX + bird.cx + Math.cos(a) * bird.radius;
+			const z = playerZ + bird.cz + Math.sin(a) * bird.radius;
+			const y = anchorY + bird.height + Math.sin(this.animTime * 0.4 + bird.phase) * 0.6;
+
+			// Group position is always updated so the bird's
+			// PositionalAudio chirp keeps coming from the bird's actual
+			// flight position even after the visual cull kicks in.
 			bird.group.position.set(x, y, z);
 
-			// Tangent of the orbit gives the heading; bank a tiny constant
-			// roll into the turn so the silhouette reads as flying, not
-			// sliding sideways.
-			const tx = -Math.sin(a) * bird.direction;
-			const tz = Math.cos(a) * bird.direction;
-			bird.group.rotation.y = Math.atan2(tx, tz);
-			bird.group.rotation.z = bird.direction * 0.18;
+			const dx = x - camPos.x;
+			const dy = y - camPos.y;
+			const dz = z - camPos.z;
+			const distSq = dx * dx + dy * dy + dz * dz;
 
-			const flap = Math.sin(this.animTime * bird.flapSpeed) * 0.85;
-			bird.leftWing.rotation.z = flap;
-			bird.rightWing.rotation.z = -flap;
+			if (distSq < FAR_CULL_DISTANCE_SQ)
+			{
+				// Tangent of the orbit gives the heading; bank a tiny
+				// constant roll into the turn so the silhouette reads as
+				// flying, not sliding sideways.
+				const tx = -Math.sin(a) * bird.direction;
+				const tz = Math.cos(a) * bird.direction;
+				bird.group.rotation.y = Math.atan2(tx, tz);
+				bird.group.rotation.z = bird.direction * 0.18;
 
-			// Kinematic body follows the visual exactly. Cannon will
-			// resolve any contact (player capsule, ground animals) by
-			// pushing the other body away - the bird itself is unmoved
-			// because it's kinematic.
-			bird.body.position.set(x, y, z);
+				const flap = Math.sin(this.animTime * bird.flapSpeed) * 0.85;
+				bird.leftWing.rotation.z = flap;
+				bird.rightWing.rotation.z = -flap;
 
+				// Kinematic body follows the visual exactly. Cannon will
+				// resolve any contact (player capsule, ground animals)
+				// by pushing the other body away - the bird itself is
+				// unmoved because it's kinematic. Only kept in sync
+				// while in range; far birds can't collide with anything
+				// the player cares about.
+				bird.body.position.set(x, y, z);
+			}
+
+			// Sound scheduler runs regardless: chirps on a 5-12 s timer,
+			// trivial cost per frame, and silently no-ops when the
+			// PositionalAudio attenuates to zero past MAX_DISTANCE.
 			bird.sound.update();
 		}
 	}
