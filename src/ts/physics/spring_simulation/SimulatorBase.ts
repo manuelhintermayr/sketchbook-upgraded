@@ -10,13 +10,16 @@ export abstract class SimulatorBase
 	{
 		this.mass = mass;
 		this.damping = damping;
-		this.frameTime = 1 / fps;
+		// Clamp fps so 1/fps is finite. setFPS(0) or a 0 in the
+		// constructor would otherwise produce frameTime=Infinity, which
+		// later divides position/velocity samples in subclasses to NaN.
+		this.frameTime = 1 / Math.max(1, fps);
 		this.offset = 0;
 	}
 
 	public setFPS(value: number): void
 	{
-		this.frameTime = 1 / value;
+		this.frameTime = 1 / Math.max(1, value);
 	}
 
 	public lastFrame(): any

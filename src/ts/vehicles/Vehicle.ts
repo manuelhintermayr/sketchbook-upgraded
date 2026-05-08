@@ -32,6 +32,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 	public world: World;
 	public help: THREE.AxesHelper;
 	public collision: CANNON.Body;
+	private collideListener: ((e: any) => void) | undefined;
 	public materials: THREE.Material[] = [];
 	public spawnPoint: THREE.Object3D;
 	private modelContainer: THREE.Group;
@@ -449,9 +450,12 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			// Crash audio - cannon fires 'collide' for every contact, so
 			// we throttle to ~3/sec and only play when the relative
 			// impact velocity is significant. Otherwise resting on a
-			// kerb produces a constant rumble.
+			// kerb produces a constant rumble. Listener stashed so
+			// removeFromWorld can detach it; otherwise the closure
+			// keeps the vehicle pinned via the body across scenario
+			// switches.
 			let lastCrashAt = 0;
-			this.collision.addEventListener('collide', (e: any) =>
+			this.collideListener = (e: any) =>
 			{
 				const now = performance.now();
 				if (now - lastCrashAt < 350) return;
@@ -459,7 +463,8 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 				if (impact < 4) return;
 				lastCrashAt = now;
 				world.sfxBus.playCrash(Math.min(2, impact * 0.15));
-			});
+			};
+			this.collision.addEventListener('collide', this.collideListener);
 		}
 	}
 
@@ -474,6 +479,11 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			this.world = undefined;
 			_.pull(world.vehicles, this);
 			world.graphicsWorld.remove(this);
+			if (this.collideListener !== undefined)
+			{
+				this.collision.removeEventListener('collide', this.collideListener);
+				this.collideListener = undefined;
+			}
 			// world.physicsWorld.remove(this.collision);
 			this.rayCastVehicle.removeFromWorld(world.physicsWorld);
 

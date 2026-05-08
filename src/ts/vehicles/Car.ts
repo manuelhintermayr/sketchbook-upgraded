@@ -151,23 +151,29 @@ export class Car extends Vehicle implements IControllable
 		}
 		else
 		{
-			// Transmission 
+			// Transmission. Clamp gear to [1..maxGears] before indexing
+			// gearsMaxSpeeds - if gear ever drifts to 0 or above maxGears
+			// the lookup returns undefined, the (cur - prev) divisor
+			// becomes NaN, and the engine force write propagates NaN
+			// into cannon's body velocity. Same clamp is applied to the
+			// gear divisor below so we don't divide by 0.
+			const gear = Math.min(maxGears, Math.max(1, this.gear));
 			if (this.actions.reverse.isPressed)
 			{
 				const powerFactor = (gearsMaxSpeeds['R'] - this.speed) / Math.abs(gearsMaxSpeeds['R']);
-				const force = (engineForce / this.gear) * (Math.abs(powerFactor) ** 1);
+				const force = (engineForce / gear) * (Math.abs(powerFactor) ** 1);
 
 				this.applyEngineForce(force);
 			}
 			else
 			{
-				const powerFactor = (gearsMaxSpeeds[this.gear] - this.speed) / (gearsMaxSpeeds[this.gear] - gearsMaxSpeeds[this.gear - 1]);
+				const powerFactor = (gearsMaxSpeeds[gear] - this.speed) / (gearsMaxSpeeds[gear] - gearsMaxSpeeds[gear - 1]);
 
 				if (powerFactor < 0.1 && this.gear < maxGears) this.shiftUp();
 				else if (this.gear > 1 && powerFactor > 1.2) this.shiftDown();
 				else if (this.actions.throttle.isPressed)
 				{
-					const force = (engineForce / this.gear) * (powerFactor ** 1);
+					const force = (engineForce / gear) * (powerFactor ** 1);
 					this.applyEngineForce(-force);
 				}
 			}

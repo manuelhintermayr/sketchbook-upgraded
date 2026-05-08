@@ -110,8 +110,13 @@ export class Boat extends Vehicle implements IControllable
 		}
 		else if (!this.actions.reverse.isPressed)
 		{
-			const powerFactor = (gearsMaxSpeeds[String(this.gear)] - this.speed)
-				/ (gearsMaxSpeeds[String(this.gear)] - gearsMaxSpeeds[String(this.gear - 1)]);
+			// Clamp gear to [1..maxGears] before lookup - same NaN-
+			// propagation guard as Car.ts. gearsMaxSpeeds[String(0)]
+			// would index '0' (= 0) which is fine, but [String(-1)] is
+			// undefined and divides into NaN.
+			const gear = Math.min(maxGears, Math.max(1, this.gear));
+			const powerFactor = (gearsMaxSpeeds[String(gear)] - this.speed)
+				/ (gearsMaxSpeeds[String(gear)] - gearsMaxSpeeds[String(gear - 1)]);
 			if (powerFactor < 0.1 && this.gear < maxGears) this.shiftUp();
 			else if (this.gear > 1 && powerFactor > 1.2) this.shiftDown();
 		}

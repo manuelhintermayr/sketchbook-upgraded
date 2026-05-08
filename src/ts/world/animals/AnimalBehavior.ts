@@ -107,6 +107,10 @@ export interface Animal
 	// the AI's desired horizontal velocity into body.velocity.x/z
 	// each frame and reads body.position back into animal.position.
 	body: CANNON.Body;
+	// 'collide' listener reference, stashed so removeFromWorld can
+	// detach it. Without an explicit removeEventListener, the closure
+	// keeps the animal pinned in memory across scenario switches.
+	collideListener: ((e: any) => void) | undefined;
 	// True while a jump is in flight (kick fired, gravity acting,
 	// no collision with ground yet). Decoupled from the state machine
 	// so a behaviour transition mid-jump (e.g. dog notices player and

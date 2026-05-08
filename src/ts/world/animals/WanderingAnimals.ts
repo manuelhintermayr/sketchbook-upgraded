@@ -138,7 +138,10 @@ export class WanderingAnimals implements IWorldEntity
 		// Each animal owns its own Three.Group + cannon body. Add both
 		// to the world here. Models hook into CSM for shadows; bodies
 		// get a 'collide' listener so we can flip airborne off the
-		// instant they touch terrain (or anything else).
+		// instant they touch terrain (or anything else). Listener is
+		// stashed on the animal so removeFromWorld can detach it -
+		// otherwise the closure pins the animal in memory across
+		// scenario switches.
 		for (const animal of this.animals)
 		{
 			world.graphicsWorld.add(animal.model.group);
@@ -148,7 +151,7 @@ export class WanderingAnimals implements IWorldEntity
 				if (m && (m as THREE.Material).isMaterial) world.sky.csm.setupMaterial(m as THREE.Material);
 			});
 			world.physicsWorld.addBody(animal.body);
-			animal.body.addEventListener('collide', () =>
+			animal.collideListener = () =>
 			{
 				// First contact after a kick - flip airborne off so the
 				// animator drops the jump pose. State machine is left
@@ -163,7 +166,8 @@ export class WanderingAnimals implements IWorldEntity
 						animal.stateTimer = 0.5 + Math.random() * 1.5;
 					}
 				}
-			});
+			};
+			animal.body.addEventListener('collide', animal.collideListener);
 		}
 
 		// Attach label anchors + CSS2D tags. WorldLabels distance-culls
@@ -190,6 +194,11 @@ export class WanderingAnimals implements IWorldEntity
 			const animal = this.animals[i];
 			world.graphicsWorld.remove(animal.model.group);
 			world.graphicsWorld.remove(animal.labelAnchor);
+			if (animal.collideListener !== undefined)
+			{
+				animal.body.removeEventListener('collide', animal.collideListener);
+				animal.collideListener = undefined;
+			}
 			world.physicsWorld.removeBody(animal.body);
 			if (animal.kind === 'cat' && this.voiceBus !== null)
 			{
@@ -443,6 +452,7 @@ export class WanderingAnimals implements IWorldEntity
 					body,
 					airborne: false,
 					bodyRadius: radius,
+					collideListener: undefined,
 				});
 				placed++;
 			}
