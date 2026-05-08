@@ -1,11 +1,10 @@
 import * as THREE from 'three';
 import { World } from './World';
+import { IUpdatable } from '../interfaces/IUpdatable';
 import { UpdateOrder } from '../enums/UpdateOrder';
 import { Character } from '../characters/Character';
 import { TriggerCube, TriggerCenter } from './TriggerCube';
 import { DialogBox, Dialog } from './ui/DialogBox';
-import { EntityType } from '../enums/EntityType';
-import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { t } from '../i18n';
 
 export interface ProximityPromptParams
@@ -35,10 +34,9 @@ export interface ProximityPromptParams
 //
 // maxInteractDistance is mapped to a half-extent on each axis of the
 // trigger cube; interactionCooldown is enforced locally via Date.now().
-export class ProximityPrompt implements IWorldEntity
+export class ProximityPrompt implements IUpdatable
 {
 	public updateOrder = UpdateOrder.Prompts;
-	public entityType: EntityType = EntityType.Decoration;
 
 	private world: World | null = null;
 	private trigger: TriggerCube;
@@ -128,9 +126,7 @@ export class ProximityPrompt implements IWorldEntity
 		// gating apply equally.
 		window.addEventListener('touch-interact', this.boundKeyDown as any);
 		window.addEventListener('touchmode-change', this.boundTouchModeChange);
-		// world.add(this) registers us as an updatable + tracks us in
-		// sceneEntities for scenario-switch teardown - no manual
-		// registerUpdatable here. The trigger above registers itself.
+		world.registerUpdatable(this);
 	}
 
 	public removeFromWorld(world: World): void
@@ -140,8 +136,7 @@ export class ProximityPrompt implements IWorldEntity
 		document.removeEventListener('keydown', this.boundKeyDown);
 		window.removeEventListener('touch-interact', this.boundKeyDown as any);
 		window.removeEventListener('touchmode-change', this.boundTouchModeChange);
-		// Unregister handled by world.remove(this); our trigger child
-		// detaches above via its own removeFromWorld.
+		world.unregisterUpdatable(this);
 		this.world = null;
 	}
 
@@ -149,13 +144,15 @@ export class ProximityPrompt implements IWorldEntity
 
 	public update(_timeStep: number): void
 	{
-		// Orphan detection backstop - if our target NPC has been pulled
-		// from the world (scenario switch, Shift+R restart) we tear
-		// ourselves down. world.add() + sceneEntities tracking already
-		// handles the clean path; this catches any future caller that
-		// constructs a ProximityPrompt with a targetCharacter and
-		// forgets to route through world.add(), so the bug can't
-		// regress silently.
+		// Orphan detection - if our target NPC has been pulled from
+		// the world (scenario switch, Shift+R restart), tear ourselves
+		// down. Prompts are intentionally not part of clearEntities
+		// (animals + birds + butterflies are map-bound and we don't
+		// want to tear those down per scenario), so the prompt has to
+		// notice itself when its target is gone. Without this the
+		// trigger keeps reading the dead NPC's frozen position and a
+		// new scenario's player spawn that overlaps that frozen zone
+		// would see the label stuck visible permanently.
 		if (this.targetCharacter !== undefined && this.world !== null)
 		{
 			if (this.world.characters.indexOf(this.targetCharacter) === -1)
