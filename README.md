@@ -21,9 +21,11 @@ This fork pulls in the features from later community forks that I felt were wort
 - Wave-based ocean with vertex displacement and a height query that boats actually ride.
 - Procedural [300k-blade grass field](https://www.eddietree.com/grass) (instanced, 30-unit LOD) - wired to any map material called `grass`.
 - 3D positional audio sources ("Speaker") with browser-autoplay handling.
-- Procedural engine sound per vehicle (sawtooth + square exhaust + filtered noise intake; per-type profiles for car / heli / airplane / boat / rocket); RPM scales with chassis speed; routed through the same Master_Volume slider as positional audio.
-- Procedural ambient soundscape (wind via filtered noise, water via LFO-swept bandpass) with water gain gated by camera proximity to the ocean.
-- Procedural sound-effects bus: footsteps (walk + sprint cadence), jump kickoff, landing thump (force-scaled), race checkpoint ping + lap fanfare, dialog whoosh, vehicle crash (impact-throttled), door clunk, rocket-liftoff boom, iris-transition whoosh, UI ticks for prompt/pause. All signal-generated, no asset files; toggle in Settings.
+- Procedural engine sound per vehicle (sawtooth + square exhaust + filtered noise intake; per-type profiles for car / heli / airplane / boat / rocket); RPM scales with chassis speed.
+- Procedural ambient soundscape - wind (filtered noise) and water (LFO-swept bandpass), water gated to camera proximity (only audible within 10 m of the ocean's y-level).
+- Per-character positional SFX: footsteps (walk + sprint cadence), jump kickoff, landing thump (force-scaled), door clunk - each character (player + NPCs) carries its own THREE.PositionalAudio so steps fade with distance instead of playing flat.
+- Procedural sound-effects bus for the player-UI events: race checkpoint ping + lap fanfare, dialog whoosh, prompt + pause UI ticks, iris-transition whoosh, vehicle crash (impact-throttled), rocket-liftoff boom. All signal-generated, no asset files.
+- One **Master Audio** mute switch (toggleable from the title screen, the Settings modal, and the debug panel - all three mirror through localStorage). When off every audio source goes silent: continuous synths via the master-volume helper, 3D-positional sources via the THREE listener gain. Music + sound-effects can each be muted independently when master is on.
 - Variable timescale, FXAA, cascaded shadow maps, adjustable gravity (0–2×).
 - Camera shake on vehicle hard landings (sineNoise-based, three presets: collision / land / boost).
 - All settings persist to `localStorage` with a one-click reset.
@@ -40,7 +42,7 @@ This fork pulls in the features from later community forks that I felt were wort
 - Wandering dogs & cats around the spawn area, with hierarchical low-poly models (per-limb walk / run / jump / idle-breathe animation), procedural voices (bark / meow / purr-loop near tamed cats), and dynamic cannon-sphere bodies so they collide with the player and each other. Dogs notice and bark, cats flee, both can be tamed; tame pets follow the player and turn to track them.
 - Flying birds with per-bird positional FM-chirp audio (cat-game-style orbit motion, sin-flap wings, kinematic cannon body) - chirps fade with distance from each bird, replacing the old global ambient bird-chirp.
 - Ambient butterflies on a Lissajous drift around the player, distance-culled at 30 m, kinematic cannon body so debug-physics shows them.
-- Distance-culled CSS2D world labels via a central registry - opt-in animal tags ("Hund" / "Katze") follow each animal and hide past 30 units.
+- Distance-culled CSS2D world labels via a central registry - one **Labels** toggle controls every floating tag (player "Du", NPC names, Hund / Katze); hides past 10 m to keep the UI quiet at distance.
 
 ### Vehicles
 

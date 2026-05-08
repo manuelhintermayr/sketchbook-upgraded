@@ -49,9 +49,10 @@ src/
         ├── ui/                     ← TitleScreen, PauseMenu, SettingsModal, DialogBox,
         │                              ErrorOverlay, IrisTransition, NameLabel, WorldLabels
         ├── audio/                  ← ProceduralAudio base + EngineSound, AmbientSound,
-        │                              BackgroundMusic, Speaker, SfxBus (procedural sound effects)
+        │                              BackgroundMusic, Speaker, SfxBus, CharacterSfx,
+        │                              BirdSound, AnimalVoices, AudioHelpers (shared utils)
         ├── animals/                ← WanderingAnimals + AnimalBehavior/Dog/Cat,
-        │                              AnimalModels, AnimalVoices, Birds + BirdSound, Butterflies
+        │                              AnimalModels, Birds, Butterflies
         └── sandboxes/              ← BaseScene + Test/Test2/Test3/Example procedural scenes
 build/assets/                       ← world.glb, world_sc_v03.glb, world_sc_v04.glb, vehicles
 vendor/joycon/                      ← Joycon.min.js + Client.js + joycon-sketchbook.js (loaded
