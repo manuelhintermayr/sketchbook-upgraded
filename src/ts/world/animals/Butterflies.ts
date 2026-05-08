@@ -47,11 +47,9 @@ const BUTTERFLY_PALETTE: number[] =
 const ORBIT_AREA = 12;
 const ORBIT_AMP_MIN = 3;
 const ORBIT_AMP_RANGE = 5;
-// Absolute world-Y range for butterflies. Independent of the player's
-// position - on a flat ground map (y=0) this lands at chest height;
-// on a raised pad map the swarm will be lower than the player. Player
-// X/Z are still tracked so the butterflies stay near the player
-// horizontally.
+// Y-range above the player's spawn-Y (captured once on first frame
+// in spawnAnchorY). 1.0..1.5 m gets butterflies into chest range
+// regardless of whether the spawn pad sits at y=0 or y=10.
 const HEIGHT_MIN = 1.0;
 const HEIGHT_RANGE = 0.5;
 // Vertical drift amplitude on top of the static cy. Kept tight so the
@@ -217,8 +215,8 @@ export class Butterflies implements IWorldEntity
 
 		for (const bf of this.butterflies)
 		{
-			// Lissajous wandering: x/z around the player, y inside a
-			// fixed world-Y band. Co-prime frequency multipliers (1,
+			// Lissajous wandering: x/z around the player, y inside the
+			// spawn-anchored band. Co-prime frequency multipliers (1,
 			// 1.7, 1.9, 2.3) keep the path from looping cleanly.
 			const t = this.animTime * bf.driftSpeed + bf.phase;
 			const x = playerX + bf.cx + Math.cos(t) * bf.ax + Math.sin(t * 2.3) * 1.2;

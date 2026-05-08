@@ -39,11 +39,10 @@ const BARK_VOICE_DURATION = 0.45;
 // body.velocity.y at the start, gravity pulls it back, the body's
 // 'collide' event flips the airborne flag back off on touch-down).
 //
-// Pattern adapted from manuelhintermayr-portfolio/three-js
-// WanderingAnimals + the low-poly-cat-game HTML demo. The portfolio
-// used InstancedMesh; we replaced that with per-animal Three.Groups
-// because the cat-game-style animations (idle breath, walk-cycle,
-// run-cycle, jump pose) need independent per-limb transforms.
+// Each animal carries its own Three.Group so the cat-game-style
+// animations (idle breath, walk-cycle, run-cycle, jump pose) can drive
+// independent per-limb transforms - a single InstancedMesh would only
+// give us a uniform matrix per instance.
 
 const _toPlayer = new THREE.Vector3();
 const _toTarget = new THREE.Vector3();
@@ -263,8 +262,7 @@ export class WanderingAnimals implements IWorldEntity
 			if (animal.voiceTimer > 0) animal.voiceTimer = Math.max(0, animal.voiceTimer - dt);
 
 			// Drive the visual model: position / rotation / per-frame
-			// limb animation. Replaces the old InstancedMesh matrix
-			// write - each animal now has its own transform tree.
+			// limb animation against the animal's own transform tree.
 			this.applyModel(animal, dt);
 		}
 
@@ -315,7 +313,7 @@ export class WanderingAnimals implements IWorldEntity
 
 	// Per-frame transform sync for one animal: world position from
 	// physics-light integrator above, heading-driven yaw, then the
-	// model-internal limb / tail / ear animation in AnimalModels.
+	// model-internal limb / tail / ear animation in AnimalAnimator.
 	private applyModel(animal: Animal, _dt: number): void
 	{
 		const g = animal.model.group;
@@ -330,11 +328,9 @@ export class WanderingAnimals implements IWorldEntity
 		);
 		// heading = atan2(dx, dz). Three.js Y-rotation is CCW-from-above
 		// positive; rotating the model's +Z forward axis by +heading
-		// lines it up with the target direction. The old InstancedMesh
-		// path used -heading, but that flipped models 180° east/west -
-		// invisible on simple spheres, but obvious now that cats/dogs
-		// have a clear nose/tail axis (a dog "approaching" the player
-		// was actually walking backwards).
+		// lines it up with the target direction (use +heading, not
+		// -heading - the latter flips the model 180° so a "approaching"
+		// dog visibly walks backwards).
 		g.rotation.y = animal.heading;
 
 		const speed = animal.velocity.length();

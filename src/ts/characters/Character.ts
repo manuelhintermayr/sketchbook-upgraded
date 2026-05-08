@@ -175,12 +175,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		this.raycastBox = new THREE.Mesh(boxGeo, boxMat);
 		this.raycastBox.visible = false;
 
-		// Physics pre/post step callback bindings
-		//this.characterCapsule.body.preStep = (body: CANNON.Body) => { this.physicsPreStep(body, this); };
-		//this.characterCapsule.body.postStep = (body: CANNON.Body) => { this.physicsPostStep(body, this); };
-		//this.physicsPreStep(this.characterCapsule.body, this);
-		//this.physicsPostStep(this.characterCapsule.body, this);
-
 		// States
 		this.setState(new Idle(this));
 	}

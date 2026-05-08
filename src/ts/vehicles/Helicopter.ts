@@ -41,9 +41,6 @@ export class Helicopter extends Vehicle implements IControllable, IWorldEntity
 
 		this.readHelicopterData(gltf);
 
-		//this.collision.preStep = (body: CANNON.Body) => { this.physicsPreStep(body, this); };
-		//this.physicsPreStep(this.collision, this);
-
 		this.actions = {
 			'ascend': new KeyBinding('ShiftLeft'),
 			'descend': new KeyBinding('Space'),

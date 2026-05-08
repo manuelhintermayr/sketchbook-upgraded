@@ -59,9 +59,6 @@ export class Airplane extends Vehicle implements IControllable, IWorldEntity
 
 		this.readAirplaneData(gltf);
 
-		//this.collision.preStep = (body: CANNON.Body) => { this.physicsPreStep(body, this); };
-		//this.physicsPreStep(this.collision, this);
-
 		this.actions = {
 			'throttle': new KeyBinding('ShiftLeft'),
 			'brake': new KeyBinding('Space'),
