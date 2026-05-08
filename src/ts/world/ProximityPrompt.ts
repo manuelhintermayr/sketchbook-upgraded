@@ -140,7 +140,42 @@ export class ProximityPrompt implements IUpdatable
 		this.world = null;
 	}
 
-	public update(_timeStep: number): void { }
+	private safetyTickCounter = 0;
+
+	public update(_timeStep: number): void
+	{
+		// Safety net for the inside-flag / label-visibility pair: the
+		// TriggerCube's onEnter / onExit can desync (player teleport,
+		// dialogFreeze yanking velocity, NPC moving past at speed) and
+		// leave the label stuck visible past the actual leave. We
+		// re-verify with a real distance check, but only every 10
+		// frames - the stale-label window we're guarding against is
+		// much longer than 160ms anyway, and keeping this off the hot
+		// path matters across all 4 NPC prompts.
+		if (++this.safetyTickCounter < 10) return;
+		this.safetyTickCounter = 0;
+
+		if (!this.inside) return;
+		const player = this.world?.characters[0];
+		if (player === undefined) return;
+		const targetPos = this.targetCharacter !== undefined ? this.targetCharacter.position : null;
+		if (targetPos === null) return;
+		const dx = player.position.x - targetPos.x;
+		const dy = player.position.y - targetPos.y;
+		const dz = player.position.z - targetPos.z;
+		// 2x slack keeps the box-vs-sphere math forgiving (the cube's
+		// diagonal is r*sqrt(3) = 2.6r, so a player can legitimately be
+		// outside the cube but inside the inscribed sphere).
+		const r = this.maxInteractDistance * 2;
+		if (dx * dx + dy * dy + dz * dz > r * r)
+		{
+			this.inside = false;
+			this.label.style.visibility = 'hidden';
+			window.dispatchEvent(new CustomEvent('proximity-far', {
+				detail: { kind: this.kind },
+			}));
+		}
+	}
 
 	private refreshLabelText(): void
 	{
