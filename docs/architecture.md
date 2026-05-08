@@ -27,9 +27,10 @@ In-depth notes on how the engine is wired together. Pair with `CLAUDE.md` / `con
 │    setup/RendererPipeline   - renderer + composer + post-FX     │
 │    setup/HTMLBootstrap      - DOM scaffolding                   │
 │    setup/ParamsGUI          - lil-gui panel + persistence       │
-│    setup/MapSwitcher        - Scenarios-folder map dropdown     │
+│    setup/MapSwitcher        - Map & Scenarios map dropdown      │
 │    setup/DefaultNPCInjector - Anna/Ben/Carla/Dieter             │
-│    setup/AnimalInjector     - wandering dogs/cats               │
+│    setup/AnimalInjector     - wandering dogs/cats,              │
+│                                flying birds, butterflies        │
 │    loading/SceneLoader      - GLTF userData dispatcher          │
 └─────────────────────────────────────────────────────────────────┘
               │
@@ -56,8 +57,8 @@ Slot constants are defined in `src/ts/enums/UpdateOrder.ts`. Each slot is spaced
 | `Camera` (40) | `CameraOperator` - orbit/free-cam input, position lerp |
 | `Environment` (50) | `Sky` - sun position, day/night cycle, CSM frustum sync. `ShapeEntity` shares the slot |
 | `Scenarios` (60) | `RaceContent` - per-frame plane crossings against checkpoints |
-| `World` (100) | `Grass` (shader time / player-position uniforms), `Ocean` (wave / normal-map), `WanderingAnimals` (state machine + position lerp) |
-| `Audio` (110) | `ProceduralAudio` (engine + ambient) - master-volume sync, oscillator parameter modulation; `Speaker` shares the slot |
+| `World` (100) | `Grass` (shader time / player-position uniforms), `Ocean` (wave / normal-map), `WanderingAnimals` (state machine + body sync), `Birds` (orbit + flap + per-bird PositionalAudio update), `Butterflies` (Lissajous drift + visibility cull) |
+| `Audio` (110) | `ProceduralAudio` (engine + ambient + background music) - master-volume sync, oscillator parameter modulation; `Speaker` shares the slot. `SfxBus` is event-driven, no per-frame update |
 | `Triggers` (120) | `TriggerCube` - AABB containment check vs. player |
 | `Prompts` (130) | `ProximityPrompt` - no-op per frame (relies on TriggerCube + keydown) |
 | `Labels` (140) | `WorldLabels` - distance-cull CSS2D name tags |
@@ -136,10 +137,14 @@ Setup lives in `src/ts/world/setup/RendererPipeline.ts` and is called once from 
 
 All audio modules live in `src/ts/world/audio/` and share a single `THREE.AudioContext.getContext()` so the browser's ~6-context limit is never an issue, regardless of vehicle count.
 
-- `ProceduralAudio` is the abstract base. Subclasses provide `shouldPlay()`, `buildSynth()`, `teardownSynth()`, `updateSynth()`. The base handles the master-gain ramp, lazy AudioContext acquisition, and the lifecycle so each subclass focuses on the oscillator graph.
+- `ProceduralAudio` is the abstract base for *continuous* synths (engine, ambient, background music). Subclasses provide `shouldPlay()`, `buildSynth()`, `teardownSynth()`, `updateSynth()`. The base handles the master-gain ramp, lazy AudioContext acquisition, and the lifecycle so each subclass focuses on the oscillator graph. Defensive: EngineSound's `updateSynth` skips frames where the chassis velocity is non-finite (and resets `rpm` to idle if it has accumulated NaN), so a one-tick body glitch can't tear down the synth via `AudioParam.value: non-finite`.
 - `EngineSound` (per-Vehicle) has 5 timbre profiles (car / heli / airplane / boat / rocket) selected via `vehicle.engineSoundProfile`. RPM is modulated by chassis speed.
-- `AmbientSound` is the world-level wind / bird-chirp / water synth, with proximity-gated water gain (only audible near the ocean).
+- `AmbientSound` is the world-level wind + water synth, with proximity-gated water gain (only audible near the ocean). Bird chirps moved out to per-bird `BirdSound` so they fall off with distance instead of playing flat across the world.
+- `BackgroundMusic` (extends `ProceduralAudio`) loops bundled music tracks; gated by `params.Background_Music` and scaled by `Master_Volume * Music_Volume`.
+- `SfxBus` is event-driven (not a `ProceduralAudio` subclass). Centralises every UI / player-action / race / vehicle SFX so the rest of the codebase only sees `world.sfxBus.playX()`. Each `play*` method builds its tiny synth on demand and lets the browser GC the nodes once the burst finishes. Gated by a separate `params.Sfx_Sounds` toggle.
 - `Speaker` is the map-driven 3D positional audio source - built from a `userData.data='speaker'` marker. It builds an HTML `<audio>` element, wraps it in `THREE.PositionalAudio.setMediaElementSource(el)`, attaches to its own Object3D in the scene.
+- `BirdSound` (under `world/animals/` for now, by domain rather than tech) is a per-bird PositionalAudio attached to each bird's group, with its own FM-chirp synth (sine carrier + sine modulator + bandpass) on a 5–12 s Poisson chirp schedule.
+- `AnimalVoices` (also under `world/animals/`) is the procedural bark / meow / purr-loop bus for wandering animals, fired on state transitions via `pendingVoice` so behaviours don't need a world ref.
 - `THREE.AudioListener` is attached lazily to `world.camera` the first time a `Speaker` is constructed. Stored at `world.audioListener` so `SettingsModal` can call `setMasterVolume(v / 100)`.
 - Browser autoplay-policy gating: every Speaker that fails to autoplay registers itself on a static queue; a single `pointerdown`/`keydown` listener on `window` plays everything queued. The queue cleans up on `removeFromWorld` so scenario switches before the first gesture don't leak references.
 

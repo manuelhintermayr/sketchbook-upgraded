@@ -22,7 +22,8 @@ This fork pulls in the features from later community forks that I felt were wort
 - Procedural [300k-blade grass field](https://www.eddietree.com/grass) (instanced, 30-unit LOD) - wired to any map material called `grass`.
 - 3D positional audio sources ("Speaker") with browser-autoplay handling.
 - Procedural engine sound per vehicle (sawtooth + square exhaust + filtered noise intake; per-type profiles for car / heli / airplane / boat / rocket); RPM scales with chassis speed; routed through the same Master_Volume slider as positional audio.
-- Procedural ambient soundscape (wind / bird-chirps via FM / water via LFO-swept bandpass), water gain gated by camera proximity to the ocean.
+- Procedural ambient soundscape (wind via filtered noise, water via LFO-swept bandpass) with water gain gated by camera proximity to the ocean.
+- Procedural sound-effects bus: footsteps (walk + sprint cadence), jump kickoff, landing thump (force-scaled), race checkpoint ping + lap fanfare, dialog whoosh, vehicle crash (impact-throttled), door clunk, rocket-liftoff boom, iris-transition whoosh, UI ticks for prompt/pause. All signal-generated, no asset files; toggle in Settings.
 - Variable timescale, FXAA, cascaded shadow maps, adjustable gravity (0–2×).
 - Camera shake on vehicle hard landings (sineNoise-based, three presets: collision / land / boost).
 - All settings persist to `localStorage` with a one-click reset.
@@ -36,7 +37,9 @@ This fork pulls in the features from later community forks that I felt were wort
 - AI path-following - same convention used by both the AI vehicle drivers and standing/wandering NPCs.
 - Name labels float above every character via a CSS2D pass; the player is tagged "Du" and stands out in blue.
 - Two example NPCs walk a small loop at the default spawn, two more flank the player on idle.
-- Wandering dogs & cats around the spawn area - dogs notice and bark, cats flee, both can be tamed.
+- Wandering dogs & cats around the spawn area, with hierarchical low-poly models (per-limb walk / run / jump / idle-breathe animation), procedural voices (bark / meow / purr-loop near tamed cats), and dynamic cannon-sphere bodies so they collide with the player and each other. Dogs notice and bark, cats flee, both can be tamed; tame pets follow the player and turn to track them.
+- Flying birds with per-bird positional FM-chirp audio (cat-game-style orbit motion, sin-flap wings, kinematic cannon body) - chirps fade with distance from each bird, replacing the old global ambient bird-chirp.
+- Ambient butterflies on a Lissajous drift around the player, distance-culled at 30 m, kinematic cannon body so debug-physics shows them.
 - Distance-culled CSS2D world labels via a central registry - opt-in animal tags ("Hund" / "Katze") follow each animal and hide past 30 units.
 
 ### Vehicles

@@ -10,7 +10,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_Nothing on the next-version branch yet._
+A second wave on the `claude/external-features` branch: animals got a
+full overhaul (hierarchical models, voices, real cannon physics, jump),
+two new ambient creature managers (birds, butterflies), a procedural
+SFX bus that finally fills the silence around player actions, a touch-
+controls rewrite, dialog UX fixes for mobile, and a handful of numeric
+bug fixes that were hiding behind defensive layers in the audio bus.
+
+### Animals (5-phase pass)
+
+- **Hierarchical models with per-limb animation** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e995195)) - dogs and cats now build as Three.Groups with body / head / tail / leg / ear handles, replacing the previous InstancedMesh. Per-frame animator drives idle-breathe, walk-cycle, run-cycle and jump pose independently. 18 draw calls instead of 2; modern GPUs eat the trade for the silhouette + motion gain.
+- **Procedural voices** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e63d2e2)) - per-state Web Audio synth: dog bark on approach (square saw + bandpass burst), cat meow when threatened (FM sine sweep), cat purr-loop near tamed cats (LFO-modulated sawtooth). Mouth animation timed off the same voiceTimer the synth ramps. Plus smaller-scale rebalancing + orientation fix.
+- **Real cannon physics + collision + jump** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/33e9df2)) - each animal gets a dynamic cannon sphere on the new `Animals` collision group. Cannon resolves terrain, player capsule, and animal-vs-animal contact instead of the manual ground-snap path. Jump is a real arc: kick `body.velocity.y`, gravity pulls back, the body's `collide` event flips airborne off on landing. `airborne` flag decoupled from state so a behaviour transition mid-jump can't strand the vertical physics. Speeds re-tuned to the cat-game reference (walk 3.8, run 8.5), animation driver moved to pure time so the leg-cycle doesn't double-couple to velocity.
+- **Tame behaviour: closer follow + face-tracking** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/fec5c1a) / Phase 3) - tamed pets close to 3 m (was 5), face the player every frame even while idle, and the dog pins position + heading inside bark range so it visibly tracks the player while barking.
+- **Counts trimmed to a calm baseline** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/6bd1ca6)) - 1 dog, 2 cats, 2 birds, 2 butterflies. The default scene was reading as a busy zoo with the original counts (8 / 10 / 7 / 8).
+
+### New ambient entities
+
+- **Flying birds as positional audio** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/896eec2)) - new `Birds.ts` manager + `BirdSound.ts`: each bird orbits a re-anchored centre on a circular path, flaps wings on a sin-cycle, banks into turns. Per-bird `THREE.PositionalAudio` with FM-chirp synth (sine carrier + sine modulator + bandpass) replaces the old global bird-chirp synth in `AmbientSound`. Chirps fall off with distance instead of playing flat across the world. Each bird carries a kinematic cannon sphere so contact with the player capsule resolves cleanly.
+- **Ambient butterflies** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/f4486d5)) - new `Butterflies.ts`: 2 butterflies drift around the player on a Lissajous-style path (cos + sin with co-prime frequency multipliers so motion never loops cleanly). Player-anchored on first update, `HEIGHT_MIN` 0.4 over body-centre + `Y_DRIFT_AMP` 0.25 + a hard floor of 0.2 m so they can't sink below the terrain. Distance-culled at 30 m, DoubleSide wing material, kinematic cannon sphere on the Animals collision group.
+
+### Audio
+
+- **Procedural SFX bus** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/8e2d304)) - new `SfxBus.ts`. Centralises every UI / player-action / race / vehicle / iris SFX so the rest of the codebase only sees `world.sfxBus.playX()`. Each play* method builds its tiny synth on demand and lets the browser GC the nodes once the burst finishes. Hooked into Walk + Sprint footsteps (player only, 0.42 s walk cadence / 0.28 s sprint), Jump kickoff, Drop landing (force-scaled), race checkpoint + lap fanfare, Dialog open whoosh, ProximityPrompt + PauseMenu UI ticks, IrisTransition whoosh, Vehicle crash (350 ms throttle, impact > 4), door clunk, RocketShip liftoff boom. New `Sfx_Sounds` toggle in the Settings folder.
+- **Bundled background music** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/30fdb40)) - new `BackgroundMusic.ts`. Looped shuffle through bundled tracks, gated by `params.Background_Music` and scaled by `Master_Volume * Music_Volume`.
+- **AmbientSound trimmed** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/896eec2)) - bird-chirp synth, BIRD_GAIN, modulator/carrier/filter/gain and the chirpTimeout scheduler all removed. Wind + water only now; bird audio moved to per-bird PositionalAudio.
+
+### UI
+
+- **Touch controls rewrite** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/2d50e7d)) - virtual joystick now appears anywhere on the canvas (drag-to-spawn) instead of a fixed corner, and the action button cluster is fully context-aware: foot-near-NPC shows E/F, in-vehicle shows brake + vehicle-specific extras (V/X for car/boat, ascend/descend + Q/E yaw for aircraft, ascend/descend for rocket), passenger shows seat-switch only, dialog hides everything. ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/9c29da2)) adds the Q/E aircraft yaw buttons. ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/2be850c)) localises the labels and adds touch-aware prompt strings ("Touch the icon to talk to Anna" instead of "Press E"). ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b68a94c)) reformats the cluster as a 2-column staircase so the primary action sits over the joystick thumb.
+- **NPC dialog overhaul** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/70ec0ad)) - participants are dialogFreeze'd (both player and NPC stop moving and drop their actions), every other on-screen UI surface is hidden via `html.dialog-active`, the NPC rotates to face the player. Esc hint dropped (every dialog has an `end` choice).
+- **Mobile dialog layout** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/c86397c)) - on `@media (max-width: 600px)` the dialog splits into two free-standing cards: speech bubble pinned to the top (avatar + speaker + scrollable text band, max-height 28vh), choices float at the bottom of the viewport via `position: fixed`. The list itself becomes a mini-card so the per-button bg tokens (only ~4% alpha) stay readable against the game render. World stays visible in the gap between them. `backdrop-filter` dropped from `.dialog-box` on mobile - it makes the box the containing block for any position:fixed descendant and was pinning the choices to the bubble's bottom.
+- **"Map & Scenarios" folder rename + map on top** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/47012ae)) - `Scenarios` folder renamed; `addMapSwitcher` now runs at the start of `loadScene` so the map dropdown lands above the scenario buttons (logical flow: pick world → start scenario).
+- **Dark mode toggle in title screen + Settings** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/27eb7f7)).
+- **Dark mode reaches the rest of the UI** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/329806b)) - dialog, SweetAlert, lil-gui follow the toggle.
+- **Pointer-lock dropped** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/594cb4a)) - drag-to-look only. Pointer-lock was inconsistent across browsers and broke iframe embeds.
+- **Shared `#debug-stack` column** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/940b16f)) - FPS box + lil-gui live in the same flex column instead of overlapping.
+- **Name labels: 10 m cull + lower y-offset** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/ce77fb8)) - WorldLabels uses Three's `visible` flag now instead of toggling DOM display, cheaper for the CSS2D pass.
+- **Welcome dialog mentions recently added features** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/53e048c)).
+
+### Performance / cleanup
+
+- **Drop Bloom + Depth-of-Field** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/ae39cc3)) - the post-FX cost wasn't justifying the visual gain on integrated GPUs. The composer pipeline now ends at FXAA.
+- **Outline pass fades at distance** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b68fa85)) - moon outlines no longer bleed through the earth-side scene.
+- **Livelier ocean shader** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/3f59e8b)) - deeper trough, brighter crest, faster scroll.
+- **Lawn responds to all entities** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/23ce1cf)) - grass pushers extend to vehicles + animals, lighter base Lambert material so the meadow doesn't go black past the LOD cut.
+
+### Fixed
+
+- **RocketShip liftoff stage NaN** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/4cd340c)) - root cause: `LIFTOFF_STAGES` has 4 entries, but `stage` was incremented without a bound check. If the player drops `enginePower` mid-ascent the climb slows below the targetY cutoff, `stage` hits 4, `LIFTOFF_STAGES[4]` is undefined, undefined * enginePower = NaN, and that NaN seeps into `body.velocity` → EngineSound throws `'AudioParam.value: non-finite'`. Fix clamps the index with `Math.min`; EngineSound also got a defensive layer (frame-skip on non-finite speedSq + reset `this.rpm` to IDLE_RPM if it has accumulated NaN).
+- **Critical numeric + leak bugs from the audit pass** - three independent guards: (1) Car / Boat gear off-by-one - `gearsMaxSpeeds[gear-1]` returned undefined at gear 0, divisor went NaN, engine force wrote NaN into cannon's body.velocity; clamp gear to `[1..maxGears]` before the lookup. (2) `SimulatorBase` `1 / fps` with fps = 0 yielded Infinity; clamp `Math.max(1, value)` in constructor + `setFPS`. (3) Cannon body 'collide' listeners on WanderingAnimals + Vehicle were anonymous functions that pinned the entity in memory across scenario switches; stash the listener as a field, removeEventListener in `removeFromWorld`. Verified via heap snapshot diff: Body count grows ~+13 over 10 scenario switches now (was ~+250).
+- **Per-character positional SFX** - footsteps / jump / land / door clunk moved out of the global `SfxBus` into a new `CharacterSfx` attached per Character (player + NPCs alike), modelled exactly like `EngineSound` per Vehicle. Each character emits its own sounds through a `THREE.PositionalAudio` with `refDistance: 4`, `rolloff: 1.5`, `maxDistance: 35`, attenuated by the listener-on-camera. Anna walking the loop now fades with distance instead of needing a behaviour gate; an AI driver entering its vehicle gets the door clunk at the vehicle, not at the player. The earlier "is player" guards (`world.characters[0] === this.character` and the later `behaviour === undefined` fallback) are gone - every character has audio. Initial step timer in Walk / Sprint dropped to 0 so the first step lands the moment the state is entered instead of waiting half an interval. `SfxBus` keeps the player-UI sounds: race checkpoint + lap, dialog whoosh, ProximityPrompt + PauseMenu ticks, IrisTransition, vehicle crash and rocket boom.
+- **Camera no longer clips through floor on steep down-look** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/5cf4610)).
+- **Wheels locked to chassis at speed** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/6cd2387)) - cannon-es interpolation timing matched.
+- **Tamed pets stop spinning when player wanders off** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/fec5c1a)).
+- **Em-dashes replaced repo-wide with hyphens** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/3030b3f)).
 
 ## [0.8.0] - 2026-05-02
 

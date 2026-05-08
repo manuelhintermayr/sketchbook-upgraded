@@ -46,13 +46,13 @@ The bundle is **not** committed; do not assume `build/sketchbook.min.js` exists 
 
 - `src/ts/sketchbook.ts` - bundle entry point, exports `Sketchbook.World`, the four sandbox classes, `showTitleScreen`, `installErrorOverlay`.
 - `src/ts/world/World.ts` - central orchestrator (~636 LOC after the 0.8.0 split). Holds renderer / physics / scenarios / updatables registry / lil-gui / audio listener / pause menu, plus the per-frame `update` + `render` loops. Heavy setup lives in dedicated helpers (see below).
-- `src/ts/world/setup/` - single-function helpers called from World's constructor: `bootstrapHTML` (DOM scaffolding), `setupRendererPipeline` (renderer + composer + post-FX + resize), `createParamsGUI` (lil-gui panel + persistence), `addMapSwitcher` (Scenarios-folder dropdown), `injectDefaultSceneNPCs` (Anna/Ben/Carla/Dieter), `injectWanderingAnimals` (dogs/cats).
+- `src/ts/world/setup/` - single-function helpers called from World's constructor: `bootstrapHTML` (DOM scaffolding), `setupRendererPipeline` (renderer + composer + post-FX + resize), `createParamsGUI` (lil-gui panel + persistence), `addMapSwitcher` (Map & Scenarios folder dropdown - runs first so the map sits on top), `injectDefaultSceneNPCs` (Anna/Ben/Carla/Dieter), `injectWanderingAnimals` (dogs/cats), `injectFlyingBirds` (birds + their per-bird positional chirps), `injectButterflies` (Lissajous-drifting butterflies).
 - `src/ts/world/loading/SceneLoader.ts` - `loadScene(world, loadingManager, gltf)`: walks the GLTF and dispatches by `userData.data` to physics / spawn / scenario / path / ocean / grass / speaker constructors.
 - `src/ts/world/scenarios/` - `Scenario`, `Path`, `PathNode`, `defaultDialogs`. The scenario subsystem.
 - `src/ts/world/spawn/` - `Character/NPC/Vehicle/Shape SpawnPoint` + `ShapeEntity`. Marker-driven entity factories.
 - `src/ts/world/ui/` - DOM/CSS2D overlays: `TitleScreen`, `PauseMenu`, `SettingsModal`, `DialogBox`, `ErrorOverlay`, `IrisTransition`, `NameLabel`, `WorldLabels`.
-- `src/ts/world/audio/` - `ProceduralAudio` base + `EngineSound` / `AmbientSound` / `Speaker`. Shared `AudioContext` lifecycle.
-- `src/ts/world/animals/` - `WanderingAnimals` manager + `AnimalBehavior` / `DogBehavior` / `CatBehavior` (Strategy pattern, singleton instances).
+- `src/ts/world/audio/` - `ProceduralAudio` base + `EngineSound` / `AmbientSound` (wind + water, no more global bird-chirp) / `BackgroundMusic` / `Speaker` / `SfxBus` (footsteps, jumps, race, dialog, vehicle crash, iris, etc.). Shared `AudioContext` lifecycle.
+- `src/ts/world/animals/` - `WanderingAnimals` manager + `AnimalBehavior` / `DogBehavior` / `CatBehavior` (Strategy pattern, singleton instances) + `AnimalModels` (hierarchical body/head/tail/leg/ear builders for both species + per-frame animator) + `AnimalVoices` (procedural bark / meow / purr-loop synth bus). `Birds` + `BirdSound` (flying birds with per-bird positional FM chirp). `Butterflies` (Lissajous-drifting ambient particles, kinematic cannon body).
 - `src/ts/world/sandboxes/` - procedural test scenes ported from socketControl (`BaseScene` + `TestScene` / `Test2Scene` / `Test3Scene` / `ExampleScene`). They build their world in the constructor by populating `this.scene` with userData markers.
 - `src/ts/world/` (root) - visual environment entities + small subsystems: `Sky`, `Ocean`, `Grass`/`GrassShader`/`Perlin`, `OutlineEffect`, `RaceCheckpoint`/`RaceContent`, `TriggerCube`, `ProximityPrompt`.
 - `src/ts/core/` - shared infra: `LoadingManager`, `InputManager`, `CameraOperator`, `CameraShake`, `CommonControls`, `UIManager`, `FunctionLibrary`, `TouchControls`.
@@ -68,8 +68,8 @@ For deeper pointers see `docs/architecture.md` and `docs/map-authoring.md`.
 ## Mental model: how a frame happens
 
 1. `World.render()` → request RAF → compute timestep
-2. `World.update(timeStep)` runs every registered `IUpdatable.update()` sorted by `updateOrder`. Slots are named in `enums/UpdateOrder.ts` (× 10 spacing): `CharacterPhysics` (10) → `VehiclePhysics` (20) → `Input` (30) → `Camera` (40) → `Environment` (50, Sky/ShapeEntity) → `Scenarios` (60, RaceContent) → `World` (100, Grass/Ocean/WanderingAnimals) → `Audio` (110) → `Triggers` (120) → `Prompts` (130) → `Labels` (140) → `PostCamera` (150, CameraShake).
-3. `composer.render()` (FXAA + Bloom + DoF) or direct `renderer.render()`.
+2. `World.update(timeStep)` runs every registered `IUpdatable.update()` sorted by `updateOrder`. Slots are named in `enums/UpdateOrder.ts` (× 10 spacing): `CharacterPhysics` (10) → `VehiclePhysics` (20) → `Input` (30) → `Camera` (40) → `Environment` (50, Sky/ShapeEntity) → `Scenarios` (60, RaceContent) → `World` (100, Grass/Ocean/WanderingAnimals/Birds/Butterflies) → `Audio` (110) → `Triggers` (120) → `Prompts` (130) → `Labels` (140) → `PostCamera` (150, CameraShake).
+3. `composer.render()` (FXAA only; Bloom + DoF were dropped) or direct `renderer.render()`.
 4. `outlineEffect.renderPass()` overlays the depth-Sobel outline if `params.Outlines` is on.
 5. `labelRenderer.render()` projects CSS2D name labels above their anchors.
 
