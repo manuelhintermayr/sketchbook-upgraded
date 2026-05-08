@@ -88,6 +88,12 @@ export class World
 	// selector with no label.
 	public scenarioListFolder: any;
 	public updatables: IUpdatable[] = [];
+	// Scene-bound entities added via world.add() - the subset of
+	// updatables that gets torn down on scenario change. Permanent
+	// updatables (Sky, ambientSound, backgroundMusic, cameraShake,
+	// worldLabels) register via registerUpdatable directly and don't
+	// land here, so clearEntities can't accidentally remove them.
+	private sceneEntities: IWorldEntity[] = [];
 
 	public pauseMenu: PauseMenu;
 	public audioListener: THREE.AudioListener | null = null;
@@ -516,6 +522,7 @@ export class World
 	{
 		worldEntity.addToWorld(this);
 		this.registerUpdatable(worldEntity);
+		this.sceneEntities.push(worldEntity);
 
 		// Apply the current Vehicles-folder tuning to freshly spawned cars
 		// so settings restored from localStorage (or changed mid-session
@@ -541,6 +548,7 @@ export class World
 	{
 		worldEntity.removeFromWorld(this);
 		this.unregisterUpdatable(worldEntity);
+		_.pull(this.sceneEntities, worldEntity);
 	}
 
 	public unregisterUpdatable(registree: IUpdatable): void
@@ -593,14 +601,19 @@ export class World
 
 	public clearEntities(): void
 	{
-		for (let i = 0; i < this.characters.length; i++) {
-			this.remove(this.characters[i]);
-			i--;
-		}
-
-		for (let i = 0; i < this.vehicles.length; i++) {
-			this.remove(this.vehicles[i]);
-			i--;
+		// Iterate from end so the splice inside remove() (Character /
+		// Vehicle removeFromWorld pull from characters[] / vehicles[],
+		// remove() pulls from sceneEntities) doesn't skip entries.
+		// sceneEntities is the canonical list - it covers characters,
+		// vehicles, animals, birds, butterflies, grass, shape entities
+		// and any future scenario-bound IWorldEntity. Without this
+		// loop, ProximityPrompts' targetCharacter would point to a
+		// dead Character whose position is frozen, and the trigger box
+		// at that frozen position would re-fire onEnter the moment the
+		// new scenario's spawn happens to overlap it.
+		for (let i = this.sceneEntities.length - 1; i >= 0; i--)
+		{
+			this.remove(this.sceneEntities[i]);
 		}
 	}
 

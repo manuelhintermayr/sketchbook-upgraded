@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { World } from './World';
-import { IUpdatable } from '../interfaces/IUpdatable';
 import { UpdateOrder } from '../enums/UpdateOrder';
 import { Character } from '../characters/Character';
 import { TriggerCube, TriggerCenter } from './TriggerCube';
 import { DialogBox, Dialog } from './ui/DialogBox';
+import { EntityType } from '../enums/EntityType';
+import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { t } from '../i18n';
 
 export interface ProximityPromptParams
@@ -34,9 +35,10 @@ export interface ProximityPromptParams
 //
 // maxInteractDistance is mapped to a half-extent on each axis of the
 // trigger cube; interactionCooldown is enforced locally via Date.now().
-export class ProximityPrompt implements IUpdatable
+export class ProximityPrompt implements IWorldEntity
 {
 	public updateOrder = UpdateOrder.Prompts;
+	public entityType: EntityType = EntityType.Decoration;
 
 	private world: World | null = null;
 	private trigger: TriggerCube;
@@ -126,7 +128,9 @@ export class ProximityPrompt implements IUpdatable
 		// gating apply equally.
 		window.addEventListener('touch-interact', this.boundKeyDown as any);
 		window.addEventListener('touchmode-change', this.boundTouchModeChange);
-		world.registerUpdatable(this);
+		// world.add(this) registers us as an updatable + tracks us in
+		// sceneEntities for scenario-switch teardown - no manual
+		// registerUpdatable here. The trigger above registers itself.
 	}
 
 	public removeFromWorld(world: World): void
@@ -136,7 +140,8 @@ export class ProximityPrompt implements IUpdatable
 		document.removeEventListener('keydown', this.boundKeyDown);
 		window.removeEventListener('touch-interact', this.boundKeyDown as any);
 		window.removeEventListener('touchmode-change', this.boundTouchModeChange);
-		world.unregisterUpdatable(this);
+		// Unregister handled by world.remove(this); our trigger child
+		// detaches above via its own removeFromWorld.
 		this.world = null;
 	}
 
@@ -144,6 +149,24 @@ export class ProximityPrompt implements IUpdatable
 
 	public update(_timeStep: number): void
 	{
+		// Orphan detection backstop - if our target NPC has been pulled
+		// from the world (scenario switch, Shift+R restart) we tear
+		// ourselves down. world.add() + sceneEntities tracking already
+		// handles the clean path; this catches any future caller that
+		// constructs a ProximityPrompt with a targetCharacter and
+		// forgets to route through world.add(), so the bug can't
+		// regress silently.
+		if (this.targetCharacter !== undefined && this.world !== null)
+		{
+			if (this.world.characters.indexOf(this.targetCharacter) === -1)
+			{
+				const w = this.world;
+				this.label.style.visibility = 'hidden';
+				this.removeFromWorld(w);
+				return;
+			}
+		}
+
 		// Safety net for the inside-flag / label-visibility pair: the
 		// TriggerCube's onEnter / onExit can desync (player teleport,
 		// dialogFreeze yanking velocity, NPC moving past at speed) and

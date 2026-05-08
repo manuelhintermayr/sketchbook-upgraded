@@ -88,7 +88,12 @@ export class NPCSpawnPoint implements ISpawnPoint
 						targetCharacter: npc,
 					},
 				);
-				prompt.addToWorld(world);
+				// Through world.add so the prompt lands in sceneEntities
+				// and clearEntities tears it down on scenario switch.
+				// Without this it'd survive scenario changes with a stale
+				// targetCharacter reference, leaving the trigger box at
+				// the dead NPC's frozen last position.
+				world.add(prompt);
 			}
 
 			// Path-following NPC. Speed parameter mirrors the AI vehicle
