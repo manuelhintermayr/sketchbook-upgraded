@@ -6,6 +6,7 @@ import { IWorldEntity } from '../../interfaces/IWorldEntity';
 import { EntityType } from '../../enums/EntityType';
 import { UpdateOrder } from '../../enums/UpdateOrder';
 import { CollisionGroups } from '../../enums/CollisionGroups';
+import { mulberry32 } from '../../core/FunctionLibrary';
 import { attachNameLabel } from '../ui/NameLabel';
 import { t } from '../../i18n';
 
@@ -13,7 +14,7 @@ import { Animal, AnimalKind, MEOW_DURATION, TAME_FOLLOW_DIST, TAME_THRESHOLD, ta
 import { DOG_BEHAVIOR } from './DogBehavior';
 import { CAT_BEHAVIOR } from './CatBehavior';
 import { applyAnimalAnimation, buildCatModel, buildDogModel, CAT_SCHEMES, DOG_SCHEMES } from './AnimalModels';
-import { AnimalVoiceBus } from './AnimalVoices';
+import { AnimalVoiceBus } from '../audio/AnimalVoices';
 
 // Voice fade in seconds. 0.45 covers the bark; cat meow runs longer
 // (set via MEOW_DURATION on a per-animal basis, see playVoice).
@@ -56,20 +57,6 @@ const SPAWN_OUTER = 80;   // Inthenew map's playable area is ~200 wide
 // catches animals that have walked off the terrain so they can be
 // redirected home.
 const GROUND_QUERY_INTERVAL_S = 0.1;
-
-// Mulberry32 - small deterministic PRNG so spawn placement is the same
-// on every page load (otherwise reload would scramble the world).
-function mulberry32(seed: number): () => number
-{
-	return () =>
-	{
-		seed |= 0;
-		seed = (seed + 0x6d2b79f5) | 0;
-		let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
-}
 
 const _toPlayer = new THREE.Vector3();
 const _toTarget = new THREE.Vector3();

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 
 import { AnimalModel } from './AnimalModels';
-import { VoiceKind } from './AnimalVoices';
+import { VoiceKind } from '../audio/AnimalVoices';
 
 // Domain definition for the wandering-animals system: the data each
 // animal carries each frame, the state-machine alphabet, the tuning

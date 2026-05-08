@@ -633,9 +633,14 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		if (this.dialogFreeze) return;
 		if (this.vehicleEntryInstance === null)
 		{
-			let moveVector = this.getCameraRelativeMovementVector();
+			const moveVector = this.getCameraRelativeMovementVector();
 
-			if (moveVector.x === 0 && moveVector.y === 0 && moveVector.z === 0)
+			// Epsilon compare instead of `=== 0` - exact zero would be
+			// the typical idle path, but transient camera-rotated
+			// vectors can settle to ~1e-17 floats and the strict check
+			// would push the character into a setOrientation(near-zero)
+			// branch that yanks the facing.
+			if (moveVector.lengthSq() < 1e-6)
 			{
 				this.setOrientation(this.orientation);
 			}

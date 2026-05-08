@@ -6,6 +6,7 @@ import { IWorldEntity } from '../../interfaces/IWorldEntity';
 import { EntityType } from '../../enums/EntityType';
 import { UpdateOrder } from '../../enums/UpdateOrder';
 import { CollisionGroups } from '../../enums/CollisionGroups';
+import { mulberry32 } from '../../core/FunctionLibrary';
 
 // Ambient butterflies. Pure visual decoration - no audio, no physics
 // body (they're too small to read as physical contact, and a kinematic
@@ -118,20 +119,6 @@ function buildButterflyMesh(color: number): ButterflyMesh
 	group.add(body);
 
 	return { group, leftWing, rightWing };
-}
-
-// Mulberry32 - small deterministic PRNG so the swarm layout is
-// stable across reloads.
-function mulberry32(seed: number): () => number
-{
-	return () =>
-	{
-		seed |= 0;
-		seed = (seed + 0x6d2b79f5) | 0;
-		let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
 }
 
 const _toCam = new THREE.Vector3();
@@ -250,16 +237,19 @@ export class Butterflies implements IWorldEntity
 			// butterfly that wandered into a downhill spot would dip
 			// below the terrain without this clamp.
 			if (y < playerY + MIN_HEIGHT_OVER_PLAYER) y = playerY + MIN_HEIGHT_OVER_PLAYER;
-			bf.group.position.set(x, y, z);
-			bf.group.rotation.y = t;
-			bf.body.position.set(x, y, z);
 
-			// Distance cull. Toggle visible flag so frustum cull + post-FX
-			// skip the geometry entirely when the butterfly is far away.
+			// Distance cull first - far-away butterflies skip every
+			// per-frame write below (group transform, body position,
+			// wing flap), so cannon's broadphase doesn't see them and
+			// three's render skips the (already-invisible) geometry.
 			_toCam.set(x - camPos.x, y - camPos.y, z - camPos.z);
 			const visible = _toCam.lengthSq() < CULL_DISTANCE_SQ;
 			if (bf.group.visible !== visible) bf.group.visible = visible;
 			if (!visible) continue;
+
+			bf.group.position.set(x, y, z);
+			bf.group.rotation.y = t;
+			bf.body.position.set(x, y, z);
 
 			// Wings flap by rotating around their own Y axis (paper-thin
 			// box geometry, so a Y rotation looks like a flap from any

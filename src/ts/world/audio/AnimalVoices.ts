@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 import { World } from '../World';
-import { getMasterVolume } from '../audio/AudioHelpers';
+import { getMasterVolume } from './AudioHelpers';
 
 // Procedural play-once meow / bark / purr synthesis. One global
 // AnimalVoiceBus that owns the AudioContext + master gain (so

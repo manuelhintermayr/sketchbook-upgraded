@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { World } from '../World';
-import { ensureAudioListener } from '../audio/AudioHelpers';
+import { ensureAudioListener } from './AudioHelpers';
 
 // Per-bird positional chirp synth. Same FM-bird timbre that used to
 // live globally in AmbientSound; here it sits on a THREE.PositionalAudio

@@ -6,7 +6,8 @@ import { IWorldEntity } from '../../interfaces/IWorldEntity';
 import { EntityType } from '../../enums/EntityType';
 import { UpdateOrder } from '../../enums/UpdateOrder';
 import { CollisionGroups } from '../../enums/CollisionGroups';
-import { BirdSound } from './BirdSound';
+import { mulberry32 } from '../../core/FunctionLibrary';
+import { BirdSound } from '../audio/BirdSound';
 
 // Flying birds as positional audio entities. Replaces the old global
 // bird-chirp synth in AmbientSound: each bird now owns a small visual
@@ -133,20 +134,6 @@ function buildBirdMesh(scheme: [number, number]): BirdMesh
 	group.add(tail);
 
 	return { group, leftWing, rightWing };
-}
-
-// Mulberry32 - small deterministic PRNG so spawn placement is the same
-// on every page load.
-function mulberry32(seed: number): () => number
-{
-	return () =>
-	{
-		seed |= 0;
-		seed = (seed + 0x6d2b79f5) | 0;
-		let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
 }
 
 export class Birds implements IWorldEntity
