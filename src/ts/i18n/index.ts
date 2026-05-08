@@ -186,9 +186,9 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	                         es: 'Óvalo y Figura-8 son carreras de autos. El Túnel es más rápido pero las curvas muerden. La Carrera de Botes usa la marina - sube a un bote y cruza la salida.' },
 	'npc.ben.races.c0':    { en: 'Tell me about the rocket.',      de: 'Erzähl mir von der Rakete.', es: 'Cuéntame sobre el cohete.' },
 	'npc.ben.races.c1':    { en: 'Cool, thanks.',                  de: 'Cool, danke.',               es: 'Genial, gracias.' },
-	'npc.ben.rocket.text': { en: 'It launches you to the moon. Get in, hold W to start the countdown, and a planet picker shows up at apogee. Lunar gravity is real - be careful with the controls up there.',
-	                         de: 'Sie bringt dich zum Mond. Einsteigen, W halten zum Start, und am Apogäum erscheint die Planeten-Auswahl. Mondschwerkraft ist real - sei dort oben vorsichtig mit der Steuerung.',
-	                         es: 'Te lleva a la luna. Sube, mantén W para iniciar la cuenta atrás, y aparecerá el selector de planeta en el apogeo. La gravedad lunar es real - cuidado con los controles allí arriba.' },
+	'npc.ben.rocket.text': { en: 'It launches you to the moon. Get in, press Space to start the countdown, and a planet picker shows up at apogee. Lunar gravity is real - be careful when you walk around up there.',
+	                         de: 'Sie bringt dich zum Mond. Einsteigen, Leertaste drücken zum Start, und am Apogäum erscheint die Planeten-Auswahl. Mondschwerkraft ist real - sei dort oben vorsichtig beim Laufen.',
+	                         es: 'Te lleva a la luna. Sube, pulsa Espacio para iniciar la cuenta atrás, y aparecerá el selector de planeta en el apogeo. La gravedad lunar es real - cuidado al caminar allí arriba.' },
 	'npc.ben.rocket.c0':   { en: 'Any tips for the races?',        de: 'Tipps für die Rennen?',      es: '¿Algún consejo para las carreras?' },
 	'npc.ben.rocket.c1':   { en: 'Got it.',                        de: 'Verstanden.',                es: 'Entendido.' },
 
