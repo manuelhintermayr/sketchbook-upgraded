@@ -159,8 +159,22 @@ export class EngineSound extends ProceduralAudio
 
 		const dt = Math.min(unscaledTimeStep, 0.05);
 
+		// Velocity can briefly go non-finite when cannon resolves an
+		// extreme contact (the rocket teleporting to the moon pad
+		// produces a one-tick NaN in some browsers). Skip the frame
+		// instead of propagating it into AudioParam.value, which throws
+		// 'The provided float value is non-finite.' and tears down the
+		// whole synth.
 		const v = this.vehicle.collision.velocity;
-		const speed = Math.sqrt(v.x * v.x + v.z * v.z);
+		const speedSq = v.x * v.x + v.z * v.z;
+		if (!Number.isFinite(speedSq)) return;
+
+		// rpm is integrated across frames - one bad frame in the past
+		// would otherwise stick NaN into it forever. Reset to idle if it
+		// has somehow gone non-finite.
+		if (!Number.isFinite(this.rpm)) this.rpm = IDLE_RPM;
+
+		const speed = Math.sqrt(speedSq);
 		const speedFactor = Math.min(speed / this.profile.speedDivisor, 1);
 
 		const targetRPM = IDLE_RPM + (MAX_RPM - IDLE_RPM) * speedFactor;

@@ -174,11 +174,19 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 		let ticksThisStage = 0;
 		this.liftoffTimer = setInterval(() =>
 		{
+			// targetY normally cuts off the loop before stage runs out,
+			// but if the player drops enginePower the climb slows down
+			// enough that stage hits 4. Without this guard LIFTOFF_STAGES[4]
+			// is undefined, undefined * enginePower = NaN, NaN seeps into
+			// body.velocity and EngineSound throws on the next AudioParam
+			// write. Hold the last stage's thrust instead.
+			const safeStage = Math.min(stage, LIFTOFF_STAGES.length - 1);
+
 			const quat = new THREE.Quaternion(
 				body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w,
 			);
 			const up = localUp.clone().applyQuaternion(quat);
-			const thrust = LIFTOFF_STAGES[stage] * this.enginePower;
+			const thrust = LIFTOFF_STAGES[safeStage] * this.enginePower;
 			body.velocity.x += up.x * thrust;
 			body.velocity.y += up.y * thrust;
 			body.velocity.z += up.z * thrust;
