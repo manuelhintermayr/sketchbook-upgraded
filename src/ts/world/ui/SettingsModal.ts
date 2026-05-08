@@ -1,5 +1,6 @@
 import { World } from '../World';
-import { t } from '../../i18n';
+import { t, getLocale, setLocale, LOCALE_LABELS, Locale } from '../../i18n';
+import { IrisTransition } from './IrisTransition';
 
 // Settings modal opened from the pause menu. Each control writes its
 // value into world.params and forwards through the matching lil-gui
@@ -29,6 +30,11 @@ export class SettingsModal
 	public open(): void
 	{
 		if (this.isOpen) return;
+		// Lil-gui is wired up by the time the user can open this modal,
+		// so the controller cache + the gui.onChange sync hook get
+		// installed eagerly the first time we open. Subsequent opens
+		// are cheap - the cache stays warm.
+		this.ensureControllerCache();
 		this.isOpen = true;
 		this.refresh();
 		this.overlay.classList.add('visible');
@@ -55,14 +61,15 @@ export class SettingsModal
 		this.setRange('Gravity_Scale', p.Gravity_Scale);
 		this.setToggle('Shadows', p.Shadows);
 		this.setToggle('FXAA', p.FXAA);
-		this.setToggle('Has_Day_Night_Cycle', p.Has_Day_Night_Cycle);
+		this.setToggle('Sun_Cycle', p.Sun_Cycle);
 		this.setToggle('Debug_FPS', p.Debug_FPS);
 		this.setToggle('Camera_Shake', p.Camera_Shake);
-		this.setToggle('Engine_Sound', p.Engine_Sound);
-		this.setToggle('Ambient_Sound', p.Ambient_Sound);
+		this.setToggle('Master_Audio', p.Master_Audio);
+		this.setToggle('Sound_Effects', p.Sound_Effects);
 		this.setToggle('Background_Music', p.Background_Music);
+		this.applyMasterAudioGate(p.Master_Audio);
 		this.setToggle('Outlines', p.Outlines);
-		this.setToggle('Animal_Labels', p.Animal_Labels);
+		this.setToggle('Labels', p.Labels);
 		this.setToggle('Dark_Mode', p.Dark_Mode);
 	}
 
@@ -83,6 +90,33 @@ export class SettingsModal
 				</div>
 
 				<div class="settings-card">
+					<h3>${t('settings.general')}</h3>
+					<div class="setting-row">
+						<div>
+							<div class="setting-label">${t('settings.language')}</div>
+							<div class="setting-desc">${t('settings.languageDesc')}</div>
+						</div>
+						<div class="setting-control">
+							<select class="lang-select" data-lang>
+								${(Object.keys(LOCALE_LABELS) as Locale[]).map((k) =>
+									`<option value="${k}"${k === getLocale() ? ' selected' : ''}>${LOCALE_LABELS[k]}</option>`,
+								).join('')}
+							</select>
+						</div>
+					</div>
+					${this.toggleRow('Dark_Mode', t('settings.darkMode'), t('settings.darkModeDesc'))}
+					<div class="setting-row">
+						<div>
+							<div class="setting-label">${t('settings.reset')}</div>
+							<div class="setting-desc">${t('settings.resetDesc')}</div>
+						</div>
+						<div class="setting-control">
+							<button type="button" class="preset-btn" data-reset>${t('settings.resetBtn')}</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="settings-card">
 					<h3>${t('settings.graphics')}</h3>
 					<div class="setting-row">
 						<div>
@@ -96,21 +130,19 @@ export class SettingsModal
 					</div>
 					${this.toggleRow('Shadows', 'Shadows', 'Cascaded shadow maps')}
 					${this.toggleRow('FXAA', 'Anti-aliasing', 'FXAA post-process')}
-					${this.toggleRow('Has_Day_Night_Cycle', 'Day / night cycle', 'Sun moves automatically')}
+					${this.toggleRow('Sun_Cycle', 'Sun cycle', 'Sun moves automatically (off = frozen at the elevation slider)')}
 					${this.toggleRow('Outlines', 'Outlines', 'Depth-edge Sobel overlay (toon look)')}
-					${this.toggleRow('Animal_Labels', 'Animal labels', 'Show floating Hund / Katze tags above animals')}
-					${this.toggleRow('Dark_Mode', 'Dark mode', 'Dark surfaces for the modal stack - defaults to your system preference')}
+					${this.toggleRow('Labels', 'Labels', 'Floating tags above player, NPCs, dogs and cats')}
 					${this.toggleRow('Debug_FPS', 'FPS counter', 'Show stats.js box')}
 				</div>
 
 				<div class="settings-card">
 					<h3>${t('settings.audio')}</h3>
-					${this.rangeRow('Master_Volume', 'Master volume', 0, 100, 1, 'All in-world positional + procedural audio')}
-					${this.toggleRow('Engine_Sound', 'Engine sound', 'Procedural Web Audio engine while driving')}
-					${this.toggleRow('Ambient_Sound', 'Ambient sound', 'Wind, birds, water (procedural)')}
+					${this.toggleRow('Master_Audio', 'Audio', 'Master switch - when off, every sound is muted regardless of the sub-toggles below')}
+					${this.rangeRow('Master_Volume', 'Master volume', 0, 100, 1, 'Volume level for all in-world audio')}
+					${this.toggleRow('Sound_Effects', 'Sound effects', 'Engine, ambient (wind / water near the ocean), footsteps, jumps, race pings, vehicle crash, animal voices, bird chirps')}
 					${this.toggleRow('Background_Music', 'Background music', 'Looped soundtrack while you play')}
 					${this.rangeRow('Music_Volume', 'Music volume', 0, 100, 1, 'Background music level (multiplies with master)')}
-					${this.rangeRow('SFX_Volume', 'Sound effects', 0, 100, 1, 'Reserved - no SFX bus yet')}
 				</div>
 
 				<div class="settings-card">
@@ -147,8 +179,48 @@ export class SettingsModal
 		{
 			btn.addEventListener('click', () => this.applyPreset(btn.dataset.preset as 'low' | 'high'));
 		});
+		const langSelect = wrap.querySelector<HTMLSelectElement>('select[data-lang]');
+		if (langSelect !== null)
+		{
+			langSelect.addEventListener('change', () =>
+			{
+				this.applyLocale(langSelect.value as Locale);
+			});
+		}
+		const resetBtn = wrap.querySelector<HTMLButtonElement>('[data-reset]');
+		if (resetBtn !== null)
+		{
+			resetBtn.addEventListener('click', () => this.applyReset());
+		}
 
 		return wrap;
+	}
+
+	// Wipes all persisted settings (lil-gui save + dark-mode + locale +
+	// muted-flag) and reloads. The reload is the cleanest way to make
+	// the title-screen-time defaults reapply across every system that
+	// reads localStorage at construction.
+	private applyReset(): void
+	{
+		localStorage.removeItem('sketchbook-settings');
+		localStorage.removeItem('sketchbook.darkMode');
+		localStorage.removeItem('sketchbook.soundMuted');
+		localStorage.removeItem('sketchbook.locale');
+		localStorage.removeItem('sketchbook.map');
+		this.world.sfxBus.playIrisWhoosh();
+		IrisTransition.getInstance().close().then(() => location.reload());
+	}
+
+	// Language change requires a page reload - the t(key) lookups
+	// happen at construction time for every overlay, so the existing
+	// strings in the DOM stay frozen at the previous locale otherwise.
+	// Iris-wipe covers the reload flash, same trick as the map switch.
+	private applyLocale(locale: Locale): void
+	{
+		if (locale === getLocale()) return;
+		setLocale(locale);
+		this.world.sfxBus.playIrisWhoosh();
+		IrisTransition.getInstance().close().then(() => location.reload());
 	}
 
 	// Quick toggles for the heavy graphics features. "Low" disables
@@ -231,37 +303,105 @@ export class SettingsModal
 
 	// Forward to lil-gui so the existing onChange handlers fire
 	// (e.g. CSM enable/disable, sensitivity push to CameraOperator).
-	// Falls back to a direct param mutation for fields that don't have
-	// a controller, plus the Master_Volume audio listener push.
+	// controller.setValue mutates params, calls onChange, and triggers
+	// updateDisplay - doing the param write ourselves first would mean
+	// lil-gui sees no diff and might skip onChange. Fallback for fields
+	// that aren't bound to a controller.
 	private write(key: string, value: any): void
 	{
-		this.world.params[key] = value;
-
 		const controller = this.findController(key);
 		if (controller !== null)
 		{
 			controller.setValue(value);
+		}
+		else
+		{
+			this.world.params[key] = value;
 		}
 
 		if (key === 'Master_Volume')
 		{
 			this.world.setMasterVolume(value);
 		}
+
+		// Master audio gates the two sub-toggles in the modal as well.
+		if (key === 'Master_Audio')
+		{
+			this.applyMasterAudioGate(value);
+		}
+
+		// lil-gui's onChange fires on setValue but onFinishChange (where
+		// ParamsGUI hooks persist) does not - persist explicitly so a
+		// modal toggle survives a reload.
+		this.persistGui();
+	}
+
+	// Disable the dependent sub-toggles' UI when master audio is off.
+	// The underlying flags don't change - we just stop the player from
+	// fiddling with them while everything is muted globally.
+	private applyMasterAudioGate(masterOn: boolean): void
+	{
+		const subRows = ['Sound_Effects', 'Background_Music'];
+		for (const key of subRows)
+		{
+			const row = this.overlay.querySelector<HTMLElement>(`.toggle[data-toggle="${key}"]`)?.closest<HTMLElement>('.setting-row');
+			if (row !== null && row !== undefined)
+			{
+				row.classList.toggle('disabled', !masterOn);
+			}
+		}
+	}
+
+	private persistGui(): void
+	{
+		const gui = this.world.gui;
+		if (gui && typeof gui.save === 'function')
+		{
+			try { localStorage.setItem('sketchbook-settings', JSON.stringify(gui.save())); }
+			catch (_e) { /* localStorage full / disabled */ }
+		}
 	}
 
 	private findController(property: string): any
 	{
-		if (this.controllerCache === null)
+		this.ensureControllerCache();
+		return this.controllerCache?.get(property) ?? null;
+	}
+
+	private ensureControllerCache(): void
+	{
+		if (this.controllerCache !== null) return;
+		const gui = this.world.gui;
+		if (!gui || typeof gui.controllersRecursive !== 'function') return;
+		this.controllerCache = new Map();
+		for (const c of gui.controllersRecursive() as any[])
 		{
-			const gui = this.world.gui;
-			if (!gui || typeof gui.controllersRecursive !== 'function') return null;
-			this.controllerCache = new Map();
-			for (const c of gui.controllersRecursive() as any[])
-			{
-				this.controllerCache.set(c.property, c);
-			}
+			this.controllerCache.set(c.property, c);
 		}
-		return this.controllerCache.get(property) ?? null;
+		// Bi-directional sync: gui.onChange fires for every controller
+		// change (live drag + value writes). When the modal is open we
+		// reflect the new value into our toggle / range UI so the
+		// modal mirrors whatever was changed in the debug panel.
+		// onFinishChange is already taken by ParamsGUI for persistence;
+		// onChange is a separate slot.
+		gui.onChange((event: any) =>
+		{
+			if (this.isOpen) this.syncControl(event.property, event.value);
+		});
+	}
+
+	// Push a value-change from lil-gui back into the modal's UI so the
+	// open modal stays in sync without needing a full refresh().
+	private syncControl(key: string, value: any): void
+	{
+		if (typeof value === 'boolean')
+		{
+			this.setToggle(key, value);
+		}
+		else if (typeof value === 'number')
+		{
+			this.setRange(key, value);
+		}
 	}
 }
 

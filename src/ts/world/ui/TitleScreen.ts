@@ -75,6 +75,9 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 			<button class="title-theme-btn" type="button" aria-label="Toggle dark mode">
 				<span class="title-theme-icon" aria-hidden="true"></span>
 			</button>
+			<button class="title-sound-btn" type="button" aria-label="Toggle sound">
+				<span class="title-sound-icon" aria-hidden="true"></span>
+			</button>
 		</div>
 	`;
 	document.body.appendChild(wrap);
@@ -82,6 +85,7 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 	const promptEl = wrap.querySelector<HTMLParagraphElement>('.title-prompt');
 	const labelEl = wrap.querySelector<HTMLSpanElement>('.title-lang-label');
 	const themeBtn = wrap.querySelector<HTMLButtonElement>('.title-theme-btn');
+	const soundBtn = wrap.querySelector<HTMLButtonElement>('.title-sound-btn');
 
 	const refreshThemeBtn = (): void =>
 	{
@@ -106,6 +110,32 @@ export function showTitleScreen(options: TitleScreenOptions = {}): Promise<void>
 		};
 		themeBtn.addEventListener('click', onThemeClick);
 		themeBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+	}
+
+	// Sound mute toggle. Backed by sketchbook.soundMuted in localStorage
+	// so the choice survives the title-screen dismiss + ParamsGUI reads
+	// the same key when it builds the params object - whatever the
+	// player picks here lands in Master_Volume + the Sound_Effects
+	// composite the moment World boots.
+	const refreshSoundBtn = (): void =>
+	{
+		if (soundBtn === null) return;
+		const muted = localStorage.getItem('sketchbook.soundMuted') === 'true';
+		soundBtn.classList.toggle('active', !muted);
+		soundBtn.title = muted ? 'Sound: off (click to enable)' : 'Sound: on (click to mute)';
+	};
+	refreshSoundBtn();
+	if (soundBtn !== null)
+	{
+		const onSoundClick = (e: Event): void =>
+		{
+			e.stopPropagation();
+			const next = localStorage.getItem('sketchbook.soundMuted') !== 'true';
+			localStorage.setItem('sketchbook.soundMuted', next ? 'true' : 'false');
+			refreshSoundBtn();
+		};
+		soundBtn.addEventListener('click', onSoundClick);
+		soundBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 	}
 
 	const refreshActiveLang = (): void =>
@@ -178,6 +208,11 @@ function escapeHtml(s: string): string
 
 function formatPrompt(prompt: string): string
 {
-	// Wrap key names in <kbd> for the styled keycap look.
-	return escapeHtml(prompt).replace(/\b(any key|Esc|Space|Enter|F)\b/gi, '<kbd>$1</kbd>');
+	// Wrap key names in <kbd> for the styled keycap look. Per-locale
+	// patterns - the German + Spanish equivalents of "any key" need
+	// their own match so the keycap effect lands on every translation.
+	return escapeHtml(prompt).replace(
+		/\b(any key|eine Taste|Taste|una tecla|tecla|Esc|Space|Leertaste|Enter|F)\b/gi,
+		'<kbd>$1</kbd>',
+	);
 }

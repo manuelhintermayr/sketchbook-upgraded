@@ -172,3 +172,51 @@
 	box-shadow: inset -4px -4px 0 0 #fff;
 	transform: rotate(-30deg);
 }
+
+/* Sound toggle - same shape as theme button. Speaker glyph drawn in
+ * pure CSS; the line through it (mute) appears via the inactive
+ * state's pseudo-element so we don't need font icons here either. */
+#title-screen .title-sound-btn
+{
+	margin-left: var(--space-2);
+	width: 36px;
+	height: 36px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(255, 255, 255, 0.15);
+	border: 1px solid rgba(255, 255, 255, 0.4);
+	border-radius: var(--radius-full);
+	cursor: pointer;
+	padding: 0;
+	transition: background var(--motion-fast) var(--ease-default);
+}
+
+#title-screen .title-sound-btn:hover
+{
+	background: rgba(255, 255, 255, 0.3);
+}
+
+#title-screen .title-sound-icon
+{
+	display: inline-block;
+	position: relative;
+	width: 14px;
+	height: 10px;
+	background: #fff;
+	clip-path: polygon(0 30%, 35% 30%, 70% 0, 70% 100%, 35% 70%, 0 70%);
+}
+
+/* Diagonal mute slash when sound is off (button NOT .active) */
+#title-screen .title-sound-btn:not(.active) .title-sound-icon::after
+{
+	content: '';
+	position: absolute;
+	left: -2px;
+	top: 50%;
+	width: 18px;
+	height: 2px;
+	background: #ff5e5e;
+	transform: rotate(-30deg);
+	transform-origin: 0 50%;
+}

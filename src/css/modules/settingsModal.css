@@ -44,14 +44,18 @@
 {
 	font-family: var(--font-headline);
 	font-size: var(--text-h2);
-	color: var(--color-on-surface);
+	/* Header sits outside the cards, on the dim+blur game backdrop -
+	 * use the overlay-text token so it stays readable in both light
+	 * and dark mode (the game render behind the blur is rarely white). */
+	color: var(--color-on-surface-overlay);
+	text-shadow: var(--text-shadow-overlay);
 }
 
 #settings-modal .settings-close
 {
 	background: transparent;
 	border: 0;
-	color: var(--color-on-surface-variant);
+	color: rgba(255, 255, 255, 0.65);
 	font-size: var(--text-h3);
 	cursor: pointer;
 	padding: var(--space-2);
@@ -60,7 +64,7 @@
 
 #settings-modal .settings-close:hover
 {
-	color: var(--color-on-surface);
+	color: var(--color-on-surface-overlay);
 }
 
 #settings-modal .settings-card
@@ -231,4 +235,25 @@
 #settings-modal .preset-btn:active
 {
 	transform: translateY(1px);
+}
+
+#settings-modal .lang-select
+{
+	padding: var(--space-1) var(--space-3);
+	background: var(--color-surface-container-high);
+	color: var(--color-on-surface);
+	font-family: var(--font-body);
+	font-size: var(--text-body-sm);
+	border: 1px solid var(--color-surface-container-highest);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+}
+
+/* Disabled row - master audio off greys out the dependent rows so
+ * the player visually knows toggling them won't do anything until
+ * the master switch is back on. */
+#settings-modal .setting-row.disabled
+{
+	opacity: 0.45;
+	pointer-events: none;
 }
