@@ -153,7 +153,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			segments: 8,
 			friction: 0.0
 		});
-		// capsulePhysics.physical.collisionFilterMask = ~CollisionGroups.Trimesh;
 		this.characterCapsule.body.shapes.forEach((shape) => {
 			// tslint:disable-next-line: no-bitwise
 			shape.collisionFilterMask = ~CollisionGroups.TrimeshColliders;
@@ -370,7 +369,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			this.behaviour?.update(timeStep);
 		}
 		this.vehicleEntryInstance?.update(timeStep);
-		// console.log(this.occupyingSeat);
 		this.charState?.update(timeStep);
 
 		// Idle NPCs face the player when they get close. Skips walking
@@ -380,7 +378,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		// to the new target so the turn looks natural.
 		this.applyNearbyPlayerLookAt();
 
-		// this.visuals.position.copy(this.modelOffset);
 		if (this.physicsEnabled) this.springMovement(timeStep);
 		if (this.physicsEnabled) this.springRotation(timeStep);
 		if (this.physicsEnabled) this.rotateModel();
@@ -416,7 +413,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 		this.world.cameraOperator.setRadius(1.6, true);
 		this.world.cameraOperator.followMode = false;
-		// this.world.dirLight.target = this;
 
 		this.displayControls();
 	}

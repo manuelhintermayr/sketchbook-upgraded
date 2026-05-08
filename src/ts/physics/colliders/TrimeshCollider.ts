@@ -15,8 +15,8 @@ export class TrimeshCollider implements ICollider
 	constructor(mesh: Object3D, options: any)
 	{
 		this.mesh = mesh.clone();
-		//this.mesh.geometry = this.mesh.geometry.toNonIndexed();
-		// Above now implemented in World.ts. Uncomment above if that changes
+		// Geometry conversion (toNonIndexed) is done once at scene-load
+		// in World rather than per-collider here.
 
 		let defaults = {
 			mass: 0,
@@ -29,7 +29,6 @@ export class TrimeshCollider implements ICollider
 
 		let mat = new CANNON.Material('triMat');
 		mat.friction = options.friction;
-		// mat.restitution = 0.7;
 
 		// Convert THREE.Trimesh to CANNON.Trimesh
 		// NOTE: Only words if geometry is non-indexed

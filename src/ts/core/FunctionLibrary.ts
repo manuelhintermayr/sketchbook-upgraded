@@ -196,8 +196,6 @@ export function setupMeshProperties(child: any): void
 		mat.map.anisotropy = 4;
 		mat.aoMap = child.material.aoMap;
 		mat.transparent = child.material.transparent;
-		//mat.skinning = child.material.skinning; FIGURE OUT THIS PROBLEM
-		// mat.map.encoding = THREE.LinearEncoding;
 		child.material = mat;
 	}
 }
@@ -269,20 +267,6 @@ export function getMatrix(obj: THREE.Object3D, space: Space): THREE.Matrix4
 	}
 }
 
-export function countSleepyBodies(): any
-{
-	// let awake = 0;
-	// let sleepy = 0;
-	// let asleep = 0;
-	// this.physicsWorld.bodies.forEach((body) =>
-	// {
-	//     if (body.sleepState === 0) awake++;
-	//     if (body.sleepState === 1) sleepy++;
-	//     if (body.sleepState === 2) asleep++;
-	// });
-}
-
-// From online for converting Geometry to BufferGeometry
 export function isIndexed(mesh: THREE.Mesh) {
 	return mesh.geometry.index != null;
 }

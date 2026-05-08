@@ -49,7 +49,6 @@ export class VehicleDoor
 				if (this.rotation > this.targetRotation)
 				{
 					this.rotation = this.targetRotation;
-					// this.resetPhysTrailer();
 					this.achievingTargetRotation = false;
 					this.physicsEnabled = true;
 				}
@@ -61,7 +60,6 @@ export class VehicleDoor
 				if (this.rotation < this.targetRotation)
 				{
 					this.rotation = this.targetRotation;
-					// this.resetPhysTrailer();
 					this.achievingTargetRotation = false;
 					this.physicsEnabled = false;
 				}
@@ -134,7 +132,6 @@ export class VehicleDoor
 
 	public open(): void
 	{
-		// this.resetPhysTrailer();
 		this.achievingTargetRotation = true;
 		this.targetRotation = 1;
 	}

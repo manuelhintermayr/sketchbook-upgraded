@@ -6,7 +6,6 @@ import { Utility } from './BaseScene'
 export class Example extends BaseScene {
 	constructor() {
 		super()
-		// function bind
 		this.makeWheel = this.makeWheel.bind(this)
 		this.makeSeat = this.makeSeat.bind(this)
 		this.makeCar = this.makeCar.bind(this)

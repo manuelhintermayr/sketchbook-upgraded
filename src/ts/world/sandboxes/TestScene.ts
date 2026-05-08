@@ -86,7 +86,6 @@ export class TestScene extends BaseScene {
 		mesh.add(bones[0])
 		mesh.bind(skeleton)
 		const skeletonHelper = new THREE.SkeletonHelper(mesh)
-		// skeletonHelper.material.linewidth = 2
 		this.scene.add(skeletonHelper)
 		return mesh
 	}

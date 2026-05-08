@@ -77,7 +77,7 @@ export class Scenario
 
 		if (!this.invisible) this.createLaunchLink();
 
-		// Find all scenario spawns and enitites
+		// Find all scenario spawns and entities
 		root.traverse((child) => {
 			if (child.hasOwnProperty('userData') && child.userData.hasOwnProperty('data'))
 			{

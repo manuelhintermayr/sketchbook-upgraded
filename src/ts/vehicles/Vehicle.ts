@@ -93,7 +93,6 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 		this.modelContainer = new THREE.Group();
 		this.add(this.modelContainer);
 		this.modelContainer.add(gltf.scene);
-		// this.setModel(gltf.scene);
 
 		// Raycast vehicle component
 		this.rayCastVehicle = new CANNON.RaycastVehicle({
@@ -405,7 +404,6 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			this.world = world;
 			world.vehicles.push(this);
 			world.graphicsWorld.add(this);
-			// world.physicsWorld.addBody(this.collision);
 			this.rayCastVehicle.addToWorld(world.physicsWorld);
 
 			this.wheels.forEach((wheel) =>
@@ -434,7 +432,6 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			this.world = undefined;
 			_.pull(world.vehicles, this);
 			world.graphicsWorld.remove(this);
-			// world.physicsWorld.remove(this.collision);
 			this.rayCastVehicle.removeFromWorld(world.physicsWorld);
 
 			this.wheels.forEach((wheel) =>

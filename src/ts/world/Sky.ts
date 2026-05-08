@@ -61,10 +61,6 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		// Create sky for material
 		const sky = new ThreeSky();
 		sky.scale.setScalar( 450000 );
-		//sky.material.uniforms['turbidity'].value = 10;
-		//sky.material.uniforms['rayleigh'].value = 5;
-		//sky.material.uniforms['mieCoefficient'].value = 0.08;
-		//sky.material.uniforms['mieDirectionalG'].value = 0.8;
 		sky.visible = true;
 		
 		// Sky material
@@ -207,8 +203,6 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		this.sunPosition.z = sunDistance * Math.cos(this._theta * Math.PI / 180) * Math.cos(this._phi * Math.PI / 180);
 
 		this.skyMaterial.uniforms.sunPosition.value.copy(this.sunPosition);
-		//this.skyMaterial.uniforms.cameraPos.value.copy(this.world.camera.position);
-		// Line above throws error. Also does not appear to be called again.
 	}
 
 	public refreshHemiIntensity(): void

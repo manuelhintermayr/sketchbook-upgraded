@@ -257,7 +257,6 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 	{
 		this.target.copy(this.camera.position);
 		this.setRadius(0, true);
-		// this.world.dirLight.target = this.world.camera;
 
 		this.world.updateControls([
 			{ keys: ['W', 'S', 'A', 'D'], desc: t('controls.moveAround') },

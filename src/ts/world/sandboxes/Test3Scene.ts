@@ -240,19 +240,6 @@ export class Test3Scene extends BaseScene {
 				}
 			}
 
-			/* {
-				let spawnCharAI = new THREE.Object3D()
-				spawnCharAI.userData = {
-					name: 'john',
-					data: 'spawn',
-					type: 'character_ai',
-					first_node: 'node1',
-				}
-				spawnCharAI.position.set(3, 15, 5)
-
-				scenario1.add(spawnCharAI)
-			} */
-
 			this.scene.add(scenario1)
 		}
 	}
