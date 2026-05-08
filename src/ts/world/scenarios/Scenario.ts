@@ -133,7 +133,16 @@ export class Scenario
 		{
 			this.world.launchScenario(this.id);
 		};
-		this.world.scenarioGUIFolder.add(this.world.params, this.name);
+		// Lazy-create the 'Scenarios' sub-folder on the first launch
+		// link so it sits below the map dropdown (which addMapSwitcher
+		// adds first). All later Scenario.createLaunchLink calls reuse
+		// this folder. Stays collapsed by default like every other
+		// folder in the debug panel.
+		if (this.world.scenarioListFolder === undefined)
+		{
+			this.world.scenarioListFolder = this.world.scenarioGUIFolder.addFolder('Scenarios');
+		}
+		this.world.scenarioListFolder.add(this.world.params, this.name);
 	}
 
 	public cancelRaceTimer(): void

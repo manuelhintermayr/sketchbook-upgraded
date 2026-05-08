@@ -63,7 +63,7 @@ export class NPCSpawnPoint implements ISpawnPoint
 			const tag = (typeof this.object.userData.name === 'string' && this.object.userData.name.length > 0)
 				? this.object.userData.name
 				: t('prompt.npcAnonymous', { n: String(anonymousNpcCounter++) });
-			attachNameLabel(npc, tag, false);
+			attachNameLabel(npc, tag, false, { feature: 'Labels' });
 
 			// ProximityPrompt anchored to the NPC - moves with them so a
 			// walking NPC's interaction zone keeps up. Reads the role

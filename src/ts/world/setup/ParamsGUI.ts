@@ -30,10 +30,10 @@ export function createParamsGUI(world: World): void
 		Shadows: true,
 		FXAA: true,
 		Debug_Physics: false,
-		Debug_FPS: false,
+		Debug_FPS: true,
 		Sun_Elevation: 50,
 		Sun_Rotation: 145,
-		Has_Day_Night_Cycle: false,
+		Sun_Cycle: false,
 		Has_Night_Time: false,
 		Gravity_Scale: 1,
 		Free_Cam_Speed: 25,
@@ -52,12 +52,21 @@ export function createParamsGUI(world: World): void
 		Music_Volume: 60,
 		SFX_Volume: 75,
 		Camera_Shake: true,
-		Engine_Sound: true,
-		Ambient_Sound: true,
+		// Master audio gate. When off, every audio system silences
+		// regardless of the sub-toggles below (it's the same flag the
+		// title-screen mute button writes via sketchbook.soundMuted).
+		// Sub-toggles are disabled in the UI while this is off.
+		Master_Audio: localStorage.getItem('sketchbook.soundMuted') !== 'true',
+		// Sub-toggles for the two audio buckets. Only meaningful while
+		// Master_Audio is on.
+		Sound_Effects: true,
 		Background_Music: true,
-		Sfx_Sounds: true,
+		// Outlines OFF by default - the Sobel pass is a depth pre-pass
+		// + fullscreen quad and costs ~10-15 FPS on integrated GPUs.
+		// The High preset turns it on; Low keeps it off. Players who
+		// want the toon look can flip it explicitly in the settings.
 		Outlines: false,
-		Animal_Labels: false,
+		Labels: true,
 		// Default off - light mode is the canonical look. The Title
 		// screen toggle and the Settings modal both flip this; lil-gui
 		// persists the value through `gui.save()` so the choice
@@ -83,11 +92,12 @@ export function createParamsGUI(world: World): void
 	const gui = debugStack !== undefined ? new GUI({ container: debugStack }) : new GUI();
 	world.gui = gui;
 
-	// Scenario + Map - one folder. The map dropdown is added by
-	// addMapSwitcher before the scenario buttons so the player picks
-	// the world first, then the scenario to launch on it.
+	// Scenario + Map - one outer folder. The map dropdown is added by
+	// addMapSwitcher first (lands at the top), the nested 'Scenarios'
+	// sub-folder is created lazily on the first scenario push so it
+	// always renders BELOW the map dropdown regardless of how lil-gui
+	// orders sibling controls.
 	world.scenarioGUIFolder = gui.addFolder('Map & Scenarios');
-	world.scenarioGUIFolder.open();
 
 	// World
 	const worldFolder = gui.addFolder('World');
@@ -106,16 +116,22 @@ export function createParamsGUI(world: World): void
 		{
 			world.sky.theta = value;
 		});
-	worldFolder.add(world.params, 'Has_Day_Night_Cycle').listen()
-		.onChange((value) =>
-		{
-			world.params.Has_Day_Night_Cycle = value;
-		});
-	worldFolder.add(world.params, 'Has_Night_Time').listen()
+	// Master toggle for automatic sun movement. Sun_Cycle on -> sun
+	// drifts (sky.phi += 0.01 * Time_Scale per tick); off -> sun stays
+	// where Sun_Elevation puts it. Has_Night_Time only matters when
+	// Sun_Cycle is on, so the sub-control is greyed out otherwise.
+	const sunCycleCtrl = worldFolder.add(world.params, 'Sun_Cycle').listen();
+	const nightTimeCtrl = worldFolder.add(world.params, 'Has_Night_Time').listen()
 		.onChange((value) =>
 		{
 			world.params.Has_Night_Time = value;
 		});
+	sunCycleCtrl.onChange((value) =>
+	{
+		world.params.Sun_Cycle = value;
+		nightTimeCtrl.enable(!!value);
+	});
+	nightTimeCtrl.enable(!!world.params.Sun_Cycle);
 	// Gravity_Scale 0..2 lets the player toggle between zero-g and
 	// double-g without rebuilding. updatePhysics reads
 	// params.Gravity_Scale every step so this takes effect immediately.
@@ -206,13 +222,36 @@ export function createParamsGUI(world: World): void
 		{
 			UIManager.setFPSVisible(enabled);
 		});
+	// Apply the initial state - onChange only fires on user input, but
+	// the FPS box's CSS hides it by default. Without this call the box
+	// stays hidden after boot even though the param is true.
+	UIManager.setFPSVisible(world.params.Debug_FPS);
 	settingsFolder.add(world.params, 'Camera_Shake');
-	settingsFolder.add(world.params, 'Engine_Sound');
-	settingsFolder.add(world.params, 'Ambient_Sound');
-	settingsFolder.add(world.params, 'Background_Music');
-	settingsFolder.add(world.params, 'Sfx_Sounds');
+	// Master audio gate first; the two sub-toggles disable themselves
+	// in the UI when it's off so the player can't fiddle with them
+	// while audio is globally muted.
+	const masterAudioCtrl = settingsFolder.add(world.params, 'Master_Audio').listen();
+	const sfxCtrl = settingsFolder.add(world.params, 'Sound_Effects');
+	const musicCtrl = settingsFolder.add(world.params, 'Background_Music');
+	const reflectMasterAudio = (on: boolean): void =>
+	{
+		sfxCtrl.enable(on);
+		musicCtrl.enable(on);
+	};
+	masterAudioCtrl.onChange((on: boolean) =>
+	{
+		reflectMasterAudio(on);
+		// Mirror to the title-screen mute key so the title screen
+		// reflects the current state on next boot.
+		localStorage.setItem('sketchbook.soundMuted', on ? 'false' : 'true');
+		// Push to the THREE.AudioListener so 3D-positional sources
+		// (BirdSound, CharacterSfx, Speaker) get muted alongside the
+		// continuous synths that already gate through getMasterVolume.
+		world.applyAudioListenerVolume();
+	});
+	reflectMasterAudio(world.params.Master_Audio);
 	settingsFolder.add(world.params, 'Outlines');
-	settingsFolder.add(world.params, 'Animal_Labels');
+	settingsFolder.add(world.params, 'Labels');
 	settingsFolder.add(world.params, 'Dark_Mode')
 		.onChange((enabled) =>
 		{
@@ -225,6 +264,14 @@ export function createParamsGUI(world: World): void
 	// fall back to them. lil-gui's controller.load() triggers onChange
 	// internally, so all side effects (sky.phi, shadows, sensitivity,
 	// ...) reapply automatically when the saved state is loaded.
+	//
+	// Override priority: localStorage values are the player's
+	// preferences and load FIRST (here). Scenarios and World code that
+	// run later (SceneLoader, scenario launch, RocketShip moon
+	// transfer, etc.) write directly into world.params and therefore
+	// always WIN against the persisted value - that's the intended
+	// behaviour. The persisted value only re-takes precedence the
+	// next time the player explicitly changes the slider.
 	const SETTINGS_KEY = 'sketchbook-settings';
 	const defaultWorldState = worldFolder.save();
 	const persist = () =>
@@ -256,5 +303,19 @@ export function createParamsGUI(world: World): void
 		},
 	}, 'Reset_World_Settings');
 
+	// Top-level gui stays open (the user can see all the section
+	// headers); every folder inside it ships collapsed so the debug
+	// panel doesn't dominate the screen on first paint. Click any
+	// header to expand it. We force-close after gui.load() so a
+	// previous session's open state doesn't override the default.
 	gui.open();
+	const closeRecursive = (g: any): void =>
+	{
+		if (typeof g.close === 'function' && g !== gui) g.close();
+		if (Array.isArray(g.folders)) for (const f of g.folders) closeRecursive(f);
+	};
+	if (Array.isArray((gui as any).folders))
+	{
+		for (const f of (gui as any).folders) closeRecursive(f);
+	}
 }

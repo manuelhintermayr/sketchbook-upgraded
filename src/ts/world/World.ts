@@ -81,6 +81,12 @@ export class World
 	public lapCounter: HTMLElement;
 	public onMoon: boolean = false;
 	public scenarioGUIFolder: any;
+	// Nested folder inside scenarioGUIFolder where the scenario launch
+	// buttons land. Keeping them in their own sub-folder gives the
+	// "Scenarios" group its own header (visually paired with "Map" -
+	// the dropdown) instead of all nine buttons floating below the map
+	// selector with no label.
+	public scenarioListFolder: any;
 	public updatables: IUpdatable[] = [];
 
 	public pauseMenu: PauseMenu;
@@ -237,7 +243,7 @@ export class World
 		// Sun_Elevation slider visibly tracks the sun while the cycle runs.
 		setInterval(() =>
 		{
-			if (scope.params.Has_Day_Night_Cycle)
+			if (scope.params.Sun_Cycle)
 			{
 				let phi = scope.sky.phi + 0.01 * scope.params.Time_Scale;
 				if (!scope.params.Has_Night_Time && phi >= 180) phi = 0;
@@ -498,7 +504,20 @@ export class World
 	{
 		const v = Math.max(0, Math.min(100, value));
 		this.params.Master_Volume = v;
-		if (this.audioListener) this.audioListener.setMasterVolume(v / 100);
+		this.applyAudioListenerVolume();
+	}
+
+	// Applies the effective listener volume - 0 when Master_Audio is
+	// off (mute), otherwise Master_Volume / 100. Called from both the
+	// Master_Volume setter and the Master_Audio toggle so 3D audio
+	// (PositionalAudio: BirdSound, CharacterSfx, Speaker) respects
+	// the master gate the same way the continuous synths do via
+	// getMasterVolume.
+	public applyAudioListenerVolume(): void
+	{
+		if (!this.audioListener) return;
+		const muted = this.params?.Master_Audio === false;
+		this.audioListener.setMasterVolume(muted ? 0 : this.params.Master_Volume / 100);
 	}
 
 	public add(worldEntity: IWorldEntity): void

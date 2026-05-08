@@ -30,7 +30,7 @@ export class CharacterSpawnPoint implements ISpawnPoint
 			
 			world.add(player);
 			player.takeControl();
-			attachNameLabel(player, 'Du', true);
+			attachNameLabel(player, 'Du', true, { feature: 'Labels' });
 		});
 	}
 }
