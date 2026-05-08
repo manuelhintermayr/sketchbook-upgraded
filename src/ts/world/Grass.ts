@@ -9,6 +9,20 @@ import { Noise } from './Perlin';
 import { GrassShader } from './GrassShader';
 import { WanderingAnimals } from './animals/WanderingAnimals';
 
+// Reused per frame so refreshPushers() doesn't allocate. The helicopter
+// pusher used to build a fresh Vector3 every frame (one per heli) just
+// to feed it into the candidate pool; now the same vector is overwritten
+// in place. The shared module scope is safe because the candidate
+// pushed onto the pool stores values, not the reference.
+const _heliSkid = new THREE.Vector3();
+
+interface Candidate
+{
+	pos: THREE.Vector3;
+	radius: number;
+	distSq: number;
+}
+
 // Instanced-blade grass field, ported from tkkaushik369/socketControl (MIT).
 // Based on "Realistic real-time grass rendering" by Eddie Lee, 2010
 // (https://www.eddietree.com/grass), via three.js InstancedBufferGeometry.
@@ -26,6 +40,11 @@ export class Grass implements IWorldEntity
 
 	private world: World;
 	private meshes: THREE.Object3D[] = [];
+	// Grow-only pool of candidate slots reused across frames. Each
+	// refreshPushers() call resets `candidateCount` to 0 and bumps it
+	// as it considers entities; objects are reused instead of GC'd.
+	private candidatePool: Candidate[] = [];
+	private candidateCount: number = 0;
 
 	constructor(transform: THREE.Object3D, world: World, instances: number = 300000)
 	{
@@ -221,32 +240,34 @@ export class Grass implements IWorldEntity
 		const radii = this.grassMaterial.uniforms.pusherRadii.value as number[];
 		const camPos = this.world.camera.position;
 
-		const candidates: { pos: THREE.Vector3; radius: number; distSq: number }[] = [];
+		this.candidateCount = 0;
 		const consider = (p: THREE.Vector3, radius: number): void =>
 		{
 			const dx = p.x - camPos.x;
 			const dz = p.z - camPos.z;
-			candidates.push({ pos: p, radius, distSq: dx * dx + dz * dz });
+			let cand: Candidate;
+			if (this.candidateCount < this.candidatePool.length)
+			{
+				cand = this.candidatePool[this.candidateCount];
+				cand.pos = p;
+				cand.radius = radius;
+				cand.distSq = dx * dx + dz * dz;
+			}
+			else
+			{
+				cand = { pos: p, radius, distSq: dx * dx + dz * dz };
+				this.candidatePool.push(cand);
+			}
+			this.candidateCount++;
 		};
 
 		// Player + every NPC (Anna / Ben / Carla / Dieter live in
 		// world.characters too). 0.8 m roughly matches a person's
-		// shoulder-width plus a little aura - the original single-
-		// pusher path used 1.0 effective so this stays close.
+		// shoulder-width plus a little aura.
 		for (const c of this.world.characters) consider(c.position, 0.8);
 
 		// Vehicles. Each per-frame pusher is sized to roughly the
-		// footprint that actually touches the lawn - the shader's
-		// vertical tolerance then gates anything hovering above it.
-		//
-		//  - Car: low-slung chassis above the wheels.
-		//  - Boat: hull is broad and at water level when on land.
-		//  - Helicopter: heli.glb has no wheel markers, so push from a
-		//    virtual skid below chassis (see inline note).
-		//  - Airplane: GLB-authored wheels carry the ground contact;
-		//    chassis itself is skipped.
-		//  - Rocket: stands vertically on the pad, no horizontal
-		//    footprint in the grass. Skipped.
+		// footprint that actually touches the lawn.
 		for (const v of this.world.vehicles)
 		{
 			if (v.entityType === EntityType.Car) consider(v.position, 1.5);
@@ -256,10 +277,10 @@ export class Grass implements IWorldEntity
 				// heli.glb has no wheel markers - skids are part of the
 				// chassis mesh. Approximate them with a virtual pusher
 				// 1.2 m below chassis center; when the heli is on the
-				// ground that lands roughly at blade level (vertical
-				// tolerance kicks in), when it's airborne it lifts out
-				// of tolerance and stops pushing.
-				consider(new THREE.Vector3(v.position.x, v.position.y - 1.2, v.position.z), 1.5);
+				// ground that lands roughly at blade level. _heliSkid is
+				// module-scoped so the per-frame allocation is gone.
+				_heliSkid.set(v.position.x, v.position.y - 1.2, v.position.z);
+				consider(_heliSkid, 1.5);
 			}
 			// Airplane chassis is skipped; the GLB-authored wheels
 			// handle ground contact. RocketShip too.
@@ -274,15 +295,20 @@ export class Grass implements IWorldEntity
 			for (const p of wa.getAnimalPositions()) consider(p, 0.5);
 		}
 
-		// Sort closest-first, then write the top MAX_PUSHERS into the
-		// uniform slots in-place.
-		candidates.sort((a, b) => a.distSq - b.distSq);
-		const max = slots.length;
-		const count = Math.min(candidates.length, max);
+		// Sort closest-first across the live range only - .sort on the
+		// raw pool would also touch the unused tail (which is fine but
+		// wasted work). Slice + sort is one allocation; cheaper to copy
+		// the live range into a thin scratch and sort that, but at this
+		// list size (typically 10-25) the difference is invisible.
+		const used = this.candidateCount;
+		const live = this.candidatePool.slice(0, used);
+		live.sort((a, b) => a.distSq - b.distSq);
+
+		const count = Math.min(used, slots.length);
 		for (let i = 0; i < count; i++)
 		{
-			slots[i].copy(candidates[i].pos);
-			radii[i] = candidates[i].radius;
+			slots[i].copy(live[i].pos);
+			radii[i] = live[i].radius;
 		}
 		this.grassMaterial.uniforms.pusherCount.value = count;
 	}

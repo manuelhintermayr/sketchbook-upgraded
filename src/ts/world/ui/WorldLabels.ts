@@ -41,6 +41,7 @@ interface RegisteredLabel
 	object: CSS2DObject;
 	target: THREE.Object3D;
 	maxDistance: number;
+	maxDistanceSq: number;
 	feature: string | undefined;
 }
 
@@ -80,10 +81,12 @@ export class WorldLabels implements IUpdatable
 		object.position.set(0, options.yOffset ?? DEFAULT_LABEL_Y, 0);
 		target.add(object);
 
+		const maxDistance = options.maxDistance ?? DEFAULT_MAX_DISTANCE;
 		this.labels.push({
 			object,
 			target,
-			maxDistance: options.maxDistance ?? DEFAULT_MAX_DISTANCE,
+			maxDistance,
+			maxDistanceSq: maxDistance * maxDistance,
 			feature: options.feature,
 		});
 
@@ -121,12 +124,13 @@ export class WorldLabels implements IUpdatable
 				continue;
 			}
 
-			// Distance cull. CSS2D anchors via the target's world
-			// position - fetch it through getWorldPosition so this works
-			// for animals whose target Object3D moves each frame.
+			// Distance cull in squared space - skips one Math.sqrt per
+			// label per frame. CSS2D anchors via the target's world
+			// position; getWorldPosition reads matrixWorld which three's
+			// render loop has already updated this frame.
 			entry.target.getWorldPosition(_temp);
-			const dist = _temp.distanceTo(camPos);
-			entry.object.visible = dist <= entry.maxDistance;
+			const distSq = _temp.distanceToSquared(camPos);
+			entry.object.visible = distSq <= entry.maxDistanceSq;
 		}
 	}
 }

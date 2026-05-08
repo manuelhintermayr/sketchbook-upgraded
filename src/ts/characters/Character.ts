@@ -45,6 +45,12 @@ const _m = new THREE.Matrix4();
 const _pointVel = new CANNON.Vec3();
 const _addCannon = new CANNON.Vec3();
 const _Y_AXIS = new THREE.Vector3(0, 1, 0);
+// Hot-path scratches reused per character per frame so feetRaycast
+// doesn't allocate. Cannon trimesh raycasts are expensive enough on
+// their own without GC pressure piled on top.
+const _rayStart = new CANNON.Vec3();
+const _rayEnd = new CANNON.Vec3();
+const _rayOpts = { collisionFilterMask: CollisionGroups.Default, skipBackfaces: true };
 
 export class Character extends THREE.Object3D implements IWorldEntity
 {
@@ -539,8 +545,11 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		}
 		else
 		{
-			// Look in camera's direction
-			this.viewVector = new THREE.Vector3().subVectors(this.position, this.world.camera.position);
+			// Look in camera's direction. viewVector is read by other
+			// systems each frame; we copy into the field-bound vector
+			// instead of replacing the reference + allocating.
+			if (this.viewVector === undefined) this.viewVector = new THREE.Vector3();
+			this.viewVector.copy(this.position).sub(this.world.camera.position);
 			this.getWorldPosition(this.world.cameraOperator.target);
 		}
 		
@@ -881,18 +890,13 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public feetRaycast(): void
 	{
-		// Player ray casting
-		// Create ray
-		let body = this.characterCapsule.body;
-		const start = new CANNON.Vec3(body.position.x, body.position.y, body.position.z);
-		const end = new CANNON.Vec3(body.position.x, body.position.y - this.rayCastLength - this.raySafeOffset, body.position.z);
-		// Raycast options
-		const rayCastOptions = {
-			collisionFilterMask: CollisionGroups.Default,
-			skipBackfaces: true      /* ignore back faces */
-		};
-		// Cast the ray
-		this.rayHasHit = this.world.physicsWorld.raycastClosest(start, end, rayCastOptions, this.rayResult);
+		// Reuses module-scoped scratches so this hot path (every character
+		// every frame) doesn't allocate. Cannon trimesh raycasts are
+		// expensive enough on their own without GC pressure on top.
+		const body = this.characterCapsule.body;
+		_rayStart.set(body.position.x, body.position.y, body.position.z);
+		_rayEnd.set(body.position.x, body.position.y - this.rayCastLength - this.raySafeOffset, body.position.z);
+		this.rayHasHit = this.world.physicsWorld.raycastClosest(_rayStart, _rayEnd, _rayOpts, this.rayResult);
 	}
 
 	public physicsPostStep(body: CANNON.Body, character: Character): void
