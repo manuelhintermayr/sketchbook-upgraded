@@ -167,6 +167,7 @@ export class RocketShip extends Vehicle implements IControllable, IWorldEntity
 	private startLiftoff(body: CANNON.Body): void
 	{
 		this.justBlasted = true;
+		if (this.world !== undefined) this.world.sfxBus.playRocketBoom();
 		const localUp = new THREE.Vector3(0, 1, 0);
 
 		let stage = 0;

@@ -78,6 +78,7 @@ export class ProximityPrompt implements IUpdatable
 			{
 				this.inside = true;
 				this.label.style.visibility = 'visible';
+				if (this.world !== null) this.world.sfxBus.playUiTick();
 				window.dispatchEvent(new CustomEvent('proximity-near', {
 					detail: { kind: this.kind },
 				}));

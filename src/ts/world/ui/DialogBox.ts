@@ -127,6 +127,13 @@ export class DialogBox
 		this.currentDialog = dialog;
 		this.onClose = options?.onClose ?? null;
 		this.participants = options?.participants ?? [];
+		// Whoosh-in. DialogBox has no direct world ref (singleton),
+		// but participants[0] is the player and carries one.
+		const player = this.participants[0];
+		if (player !== undefined && player.world !== undefined)
+		{
+			player.world.sfxBus.playDialogOpen();
+		}
 		// Freeze each participant - both player and NPC stop moving and
 		// drop their actions for the duration. See Character.dialogFreeze.
 		// resetControls() routes through triggerAction() so charState

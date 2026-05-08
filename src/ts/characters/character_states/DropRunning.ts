@@ -17,6 +17,12 @@ export class DropRunning extends CharacterStateBase implements ICharacterState
 
 		this.character.setArcadeVelocityTarget(0.8);
 		this.playAnimation('drop_running', 0.1);
+
+		if (this.character.world?.characters[0] === this.character)
+		{
+			const force = Math.min(3, Math.abs(this.character.groundImpactData.velocity.y) * 0.5);
+			this.character.world.sfxBus.playLand(force);
+		}
 	}
 
 	public update(timeStep: number): void

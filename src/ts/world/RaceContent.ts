@@ -137,6 +137,11 @@ export class RaceContent implements IUpdatable
 		{
 			this.lap++;
 			this.onLap?.(this.lap);
+			this.scenario.world.sfxBus.playLap();
+		}
+		else
+		{
+			this.scenario.world.sfxBus.playCheckpoint();
 		}
 	}
 

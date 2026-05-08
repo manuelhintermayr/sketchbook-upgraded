@@ -8,8 +8,17 @@ import
 } from './_stateLibrary';
 import { Character } from '../Character';
 
+// Walk-cycle footstep cadence (seconds between steps). 0.42 reads as
+// a casual stride; sprint shortens this further. Only the player
+// triggers steps - NPCs walking on FollowPath would otherwise create
+// a constant chorus of footsteps from every direction.
+const WALK_STEP_INTERVAL = 0.42;
+const WALK_STEP_SCALE = 0.75;
+
 export class Walk extends CharacterStateBase
 {
+	private stepTimer: number = WALK_STEP_INTERVAL * 0.5;
+
 	constructor(character: Character)
 	{
 		super(character);
@@ -24,6 +33,18 @@ export class Walk extends CharacterStateBase
 		super.update(timeStep);
 
 		this.character.setCameraRelativeOrientationTarget();
+
+		// Footstep tick - guarded on player so an NPC's walk path
+		// doesn't fill the soundscape with phantom steps.
+		if (this.character.world?.characters[0] === this.character)
+		{
+			this.stepTimer -= timeStep;
+			if (this.stepTimer <= 0)
+			{
+				this.character.world.sfxBus.playFootstep(WALK_STEP_SCALE);
+				this.stepTimer = WALK_STEP_INTERVAL;
+			}
+		}
 
 		this.fallInAir();
 	}

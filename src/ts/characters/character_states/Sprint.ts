@@ -7,8 +7,15 @@ import
 } from './_stateLibrary';
 import { Character } from '../Character';
 
+// Sprint cadence - faster + harder than walk. Only the player gets
+// steps; NPCs would chorus.
+const SPRINT_STEP_INTERVAL = 0.28;
+const SPRINT_STEP_SCALE = 1.15;
+
 export class Sprint extends CharacterStateBase
 {
+	private stepTimer: number = SPRINT_STEP_INTERVAL * 0.5;
+
 	constructor(character: Character)
 	{
 		super(character);
@@ -27,6 +34,17 @@ export class Sprint extends CharacterStateBase
 	{
 		super.update(timeStep);
 		this.character.setCameraRelativeOrientationTarget();
+
+		if (this.character.world?.characters[0] === this.character)
+		{
+			this.stepTimer -= timeStep;
+			if (this.stepTimer <= 0)
+			{
+				this.character.world.sfxBus.playFootstep(SPRINT_STEP_SCALE);
+				this.stepTimer = SPRINT_STEP_INTERVAL;
+			}
+		}
+
 		this.fallInAir();
 	}
 

@@ -35,6 +35,7 @@ import { IrisTransition } from './ui/IrisTransition';
 import { OutlineEffect } from './OutlineEffect';
 import { AmbientSound } from './audio/AmbientSound';
 import { BackgroundMusic } from './audio/BackgroundMusic';
+import { SfxBus } from './audio/SfxBus';
 import { bootstrapHTML } from './setup/HTMLBootstrap';
 import { setupRendererPipeline } from './setup/RendererPipeline';
 import { createParamsGUI } from './setup/ParamsGUI';
@@ -89,6 +90,7 @@ export class World
 	public outlineEffect: OutlineEffect;
 	public ambientSound: AmbientSound;
 	public backgroundMusic: BackgroundMusic;
+	public sfxBus: SfxBus;
 	public worldLabels: WorldLabels;
 
 	private lastScenarioID: string;
@@ -210,6 +212,12 @@ export class World
 		// params.Background_Music + scaled by Master_Volume * Music_Volume.
 		this.backgroundMusic = new BackgroundMusic(this);
 		this.registerUpdatable(this.backgroundMusic);
+
+		// Procedural SFX bus - footsteps / jumps / race pings / dialog
+		// whoosh / vehicle crash / water splash / iris transition.
+		// Stateless, no per-frame update; consumers call sfxBus.playX()
+		// directly from the relevant event hook.
+		this.sfxBus = new SfxBus(this);
 
 		// World labels - registry + distance culling for CSS2D tags.
 		// Constructed early so attachNameLabel calls from later spawn
@@ -558,6 +566,7 @@ export class World
 			// then re-open it once the new scenario's spawn points have
 			// run. clearEntities + scenario.launch are synchronous so the
 			// open() comes immediately after launchScenario returns.
+			this.sfxBus.playIrisWhoosh();
 			const iris = IrisTransition.getInstance();
 			iris.close().then(() =>
 			{

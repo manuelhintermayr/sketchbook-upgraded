@@ -47,6 +47,7 @@ export class PauseMenu
 		this.savedTimeScale = this.world.timeScaleTarget;
 		this.world.setTimeScale(0);
 		this.overlay.classList.add('visible');
+		this.world.sfxBus.playUiTick();
 		const first = this.overlay.querySelector<HTMLButtonElement>('.pause-btn');
 		first?.focus();
 	}
@@ -55,6 +56,7 @@ export class PauseMenu
 	{
 		if (!this.isOpen) return;
 		this.isOpen = false;
+		this.world.sfxBus.playUiTick();
 		this.world.setTimeScale(this.savedTimeScale || 1);
 		this.overlay.classList.remove('visible');
 	}
@@ -134,6 +136,7 @@ export class PauseMenu
 				this.world.restartScenario();
 				break;
 			case 'reload':
+				this.world.sfxBus.playIrisWhoosh();
 				IrisTransition.getInstance().close().then(() => location.reload());
 				break;
 		}

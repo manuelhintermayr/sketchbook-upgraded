@@ -41,6 +41,13 @@ export class EnteringVehicle extends CharacterStateBase
 		this.animData = this.getEntryAnimations(seat.vehicle.entityType);
 		this.playAnimation(this.animData[side], 0.1);
 
+		// Door clunk - open at the start of the entry animation, close
+		// later when physics is re-enabled (see the sit branch below).
+		if (seat.door !== undefined && this.character.world?.characters[0] === this.character)
+		{
+			this.character.world.sfxBus.playDoor();
+		}
+
 		this.character.resetVelocity();
 		this.character.tiltContainer.rotation.z = 0;
 		this.character.setPhysicsEnabled(false);
@@ -70,7 +77,14 @@ export class EnteringVehicle extends CharacterStateBase
 
 			if (this.seat.type === SeatType.Driver)
 			{
-				if (this.seat.door) this.seat.door.physicsEnabled = true;
+				if (this.seat.door)
+				{
+					this.seat.door.physicsEnabled = true;
+					if (this.character.world?.characters[0] === this.character)
+					{
+						this.character.world.sfxBus.playDoor();
+					}
+				}
 				this.character.setState(new Driving(this.character, this.seat));
 			}
 			else if (this.seat.type === SeatType.Passenger)

@@ -33,6 +33,7 @@ export function addMapSwitcher(world: World): void
 		.onChange((value: string) =>
 		{
 			localStorage.setItem('sketchbook.map', value);
+			world.sfxBus.playIrisWhoosh();
 			// Cover the canvas before reloading so the page-reload flash
 			// happens behind a black iris instead of a white flicker.
 			IrisTransition.getInstance().close().then(() => location.reload());

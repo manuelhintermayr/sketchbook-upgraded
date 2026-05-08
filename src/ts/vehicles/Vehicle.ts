@@ -445,6 +445,21 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 				this.engineSound = new EngineSound(this, world, this.engineSoundProfile);
 				world.registerUpdatable(this.engineSound);
 			}
+
+			// Crash audio - cannon fires 'collide' for every contact, so
+			// we throttle to ~3/sec and only play when the relative
+			// impact velocity is significant. Otherwise resting on a
+			// kerb produces a constant rumble.
+			let lastCrashAt = 0;
+			this.collision.addEventListener('collide', (e: any) =>
+			{
+				const now = performance.now();
+				if (now - lastCrashAt < 350) return;
+				const impact = Math.abs(e.contact?.getImpactVelocityAlongNormal?.() ?? 0);
+				if (impact < 4) return;
+				lastCrashAt = now;
+				world.sfxBus.playCrash(Math.min(2, impact * 0.15));
+			});
 		}
 	}
 

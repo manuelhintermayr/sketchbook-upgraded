@@ -55,6 +55,7 @@ export function createParamsGUI(world: World): void
 		Engine_Sound: true,
 		Ambient_Sound: true,
 		Background_Music: true,
+		Sfx_Sounds: true,
 		Outlines: false,
 		Animal_Labels: false,
 		// Default off - light mode is the canonical look. The Title
@@ -209,6 +210,7 @@ export function createParamsGUI(world: World): void
 	settingsFolder.add(world.params, 'Engine_Sound');
 	settingsFolder.add(world.params, 'Ambient_Sound');
 	settingsFolder.add(world.params, 'Background_Music');
+	settingsFolder.add(world.params, 'Sfx_Sounds');
 	settingsFolder.add(world.params, 'Outlines');
 	settingsFolder.add(world.params, 'Animal_Labels');
 	settingsFolder.add(world.params, 'Dark_Mode')
