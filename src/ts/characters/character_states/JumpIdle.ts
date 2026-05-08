@@ -37,10 +37,7 @@ export class JumpIdle extends CharacterStateBase implements ICharacterState
 		{
 			this.character.jump();
 			this.alreadyJumped = true;
-			if (this.character.world?.characters[0] === this.character)
-			{
-				this.character.world.sfxBus.playJump();
-			}
+			this.character.sfx?.playJump();
 
 			this.character.velocitySimulator.mass = 100;
 			this.character.rotationSimulator.damping = 0.3;

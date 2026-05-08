@@ -56,99 +56,10 @@ export class SfxBus
 		return buf;
 	}
 
-	// ---- Player actions ----
-
-	// Footstep - short noise burst with lowpass + slight pitch jitter.
-	// scale = 0.6 (walk) ... 1.2 (sprint) modulates volume + cutoff so
-	// running steps land harder than a casual walk.
-	public playFootstep(scale: number = 1): void
-	{
-		if (!this.ensureContext()) return;
-		const ctx = this.ctx!;
-		const now = ctx.currentTime;
-		const dur = 0.08;
-
-		const noise = ctx.createBufferSource();
-		noise.buffer = this.makeNoise(dur);
-
-		const filter = ctx.createBiquadFilter();
-		filter.type = 'lowpass';
-		filter.frequency.value = 500 + Math.random() * 250 * scale;
-		filter.Q.value = 1.5;
-
-		const gain = ctx.createGain();
-		const peak = 0.12 * scale;
-		gain.gain.setValueAtTime(0, now);
-		gain.gain.linearRampToValueAtTime(peak, now + 0.005);
-		gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-		noise.connect(filter);
-		filter.connect(gain);
-		gain.connect(this.masterGain!);
-		noise.start(now);
-		noise.stop(now + dur);
-	}
-
-	// Jump kickoff - upward sine sweep so the launch reads as effort.
-	public playJump(): void
-	{
-		if (!this.ensureContext()) return;
-		const ctx = this.ctx!;
-		const now = ctx.currentTime;
-		const dur = 0.22;
-
-		const osc = ctx.createOscillator();
-		osc.type = 'sine';
-		osc.frequency.setValueAtTime(180, now);
-		osc.frequency.exponentialRampToValueAtTime(420, now + dur);
-
-		const gain = ctx.createGain();
-		gain.gain.setValueAtTime(0, now);
-		gain.gain.linearRampToValueAtTime(0.14, now + 0.02);
-		gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-		osc.connect(gain);
-		gain.connect(this.masterGain!);
-		osc.start(now);
-		osc.stop(now + dur);
-	}
-
-	// Landing thump - heavy lowpass noise + sub-bass kick. force ~ 1
-	// for a normal jump, higher (clamped) when dropping from height.
-	public playLand(force: number = 1): void
-	{
-		if (!this.ensureContext()) return;
-		const ctx = this.ctx!;
-		const now = ctx.currentTime;
-		const dur = 0.18;
-		const peak = Math.min(0.35, 0.12 * force);
-
-		const noise = ctx.createBufferSource();
-		noise.buffer = this.makeNoise(dur);
-		const filter = ctx.createBiquadFilter();
-		filter.type = 'lowpass';
-		filter.frequency.value = 220;
-		const gain = ctx.createGain();
-		gain.gain.setValueAtTime(peak, now);
-		gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-		noise.connect(filter);
-		filter.connect(gain);
-		gain.connect(this.masterGain!);
-		noise.start(now);
-		noise.stop(now + dur);
-
-		const osc = ctx.createOscillator();
-		osc.type = 'sine';
-		osc.frequency.setValueAtTime(85, now);
-		osc.frequency.exponentialRampToValueAtTime(45, now + 0.1);
-		const oscGain = ctx.createGain();
-		oscGain.gain.setValueAtTime(peak * 0.5, now);
-		oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-		osc.connect(oscGain);
-		oscGain.connect(this.masterGain!);
-		osc.start(now);
-		osc.stop(now + 0.1);
-	}
+	// Footstep / jump / land / door moved to per-character CharacterSfx
+	// (PositionalAudio, attenuated by the listener-on-camera) so every
+	// character - player and NPCs - emits its own sounds rather than
+	// the player getting a flat global thud.
 
 	// ---- Race ----
 
@@ -315,31 +226,6 @@ export class SfxBus
 		oscGain.connect(this.masterGain!);
 		osc.start(now);
 		osc.stop(now + 0.2);
-	}
-
-	// Vehicle door open/close - short clunk (filtered square sweep).
-	public playDoor(): void
-	{
-		if (!this.ensureContext()) return;
-		const ctx = this.ctx!;
-		const now = ctx.currentTime;
-		const dur = 0.12;
-
-		const osc = ctx.createOscillator();
-		osc.type = 'square';
-		osc.frequency.setValueAtTime(220, now);
-		osc.frequency.exponentialRampToValueAtTime(80, now + dur);
-		const filter = ctx.createBiquadFilter();
-		filter.type = 'lowpass';
-		filter.frequency.value = 600;
-		const gain = ctx.createGain();
-		gain.gain.setValueAtTime(0.1, now);
-		gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-		osc.connect(filter);
-		filter.connect(gain);
-		gain.connect(this.masterGain!);
-		osc.start(now);
-		osc.stop(now + dur);
 	}
 
 	// Rocket liftoff - 1.5 s sub-bass roar + lowpass noise rumble.

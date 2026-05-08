@@ -7,6 +7,7 @@ import { KeyBinding } from '../core/KeyBinding';
 import { VectorSpringSimulator } from '../physics/spring_simulation/VectorSpringSimulator';
 import { RelativeSpringSimulator } from '../physics/spring_simulation/RelativeSpringSimulator';
 import { Idle } from './character_states/Idle';
+import { CharacterSfx } from '../world/audio/CharacterSfx';
 import { EnteringVehicle } from './character_states/vehicles/EnteringVehicle';
 import { ExitingVehicle } from './character_states/vehicles/ExitingVehicle';
 import { OpenVehicleDoor as OpenVehicleDoor } from './character_states/vehicles/OpenVehicleDoor';
@@ -91,6 +92,10 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	public world: World;
 	public charState: ICharacterState;
 	public behaviour: ICharacterAI;
+	// Per-character positional audio for footsteps / jump / land / door.
+	// Same role EngineSound has for vehicles. Initialised in addToWorld
+	// once world is set; disposed in removeFromWorld.
+	public sfx: CharacterSfx | undefined;
 
 	// True while a DialogBox is open with this character as a participant
 	// (player AND the NPC they're talking to). Movement / behaviour /
@@ -1013,6 +1018,11 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			// Register character
 			world.characters.push(this);
 
+			// Per-character positional SFX (footsteps / jump / land /
+			// door). Lazy nodes inside, so this is just attaching the
+			// listener parent.
+			this.sfx = new CharacterSfx(this, world);
+
 			// Register physics
 			world.physicsWorld.addBody(this.characterCapsule.body);
 
@@ -1039,6 +1049,12 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			if (world.inputManager.inputReceiver === this)
 			{
 				world.inputManager.inputReceiver = undefined;
+			}
+
+			if (this.sfx !== undefined)
+			{
+				this.sfx.dispose();
+				this.sfx = undefined;
 			}
 
 			this.world = undefined;

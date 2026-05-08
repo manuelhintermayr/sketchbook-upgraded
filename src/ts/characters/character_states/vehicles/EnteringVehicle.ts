@@ -43,10 +43,9 @@ export class EnteringVehicle extends CharacterStateBase
 
 		// Door clunk - open at the start of the entry animation, close
 		// later when physics is re-enabled (see the sit branch below).
-		if (seat.door !== undefined && this.character.world?.characters[0] === this.character)
-		{
-			this.character.world.sfxBus.playDoor();
-		}
+		// Per-character positional - the AI driver entering its vehicle
+		// also gets a clunk at its position, not the player's.
+		if (seat.door !== undefined) this.character.sfx?.playDoor();
 
 		this.character.resetVelocity();
 		this.character.tiltContainer.rotation.z = 0;
@@ -80,10 +79,7 @@ export class EnteringVehicle extends CharacterStateBase
 				if (this.seat.door)
 				{
 					this.seat.door.physicsEnabled = true;
-					if (this.character.world?.characters[0] === this.character)
-					{
-						this.character.world.sfxBus.playDoor();
-					}
+					this.character.sfx?.playDoor();
 				}
 				this.character.setState(new Driving(this.character, this.seat));
 			}

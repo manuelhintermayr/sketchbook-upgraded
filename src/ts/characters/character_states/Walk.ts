@@ -17,7 +17,11 @@ const WALK_STEP_SCALE = 0.75;
 
 export class Walk extends CharacterStateBase
 {
-	private stepTimer: number = WALK_STEP_INTERVAL * 0.5;
+	// Start at 0 so the first step lands the moment the player enters
+	// Walk - the StartWalk* states that lead in here don't emit steps,
+	// and waiting half an interval after that produced an awkward
+	// "running silently for a beat" feel.
+	private stepTimer: number = 0;
 
 	constructor(character: Character)
 	{
@@ -34,16 +38,15 @@ export class Walk extends CharacterStateBase
 
 		this.character.setCameraRelativeOrientationTarget();
 
-		// Footstep tick - guarded on player so an NPC's walk path
-		// doesn't fill the soundscape with phantom steps.
-		if (this.character.world?.characters[0] === this.character)
+		// Footstep tick - every character (player + NPCs) plays its own
+		// PositionalAudio steps via CharacterSfx, attenuated by the
+		// listener-on-camera. Anna / Ben walking the loop fade with
+		// distance instead of needing a behaviour gate.
+		this.stepTimer -= timeStep;
+		if (this.stepTimer <= 0)
 		{
-			this.stepTimer -= timeStep;
-			if (this.stepTimer <= 0)
-			{
-				this.character.world.sfxBus.playFootstep(WALK_STEP_SCALE);
-				this.stepTimer = WALK_STEP_INTERVAL;
-			}
+			this.character.sfx?.playFootstep(WALK_STEP_SCALE);
+			this.stepTimer = WALK_STEP_INTERVAL;
 		}
 
 		this.fallInAir();

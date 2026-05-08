@@ -19,12 +19,9 @@ export class DropRolling extends CharacterStateBase implements ICharacterState
 		this.character.setArcadeVelocityTarget(0.8);
 		this.playAnimation('drop_running_roll', 0.03);
 
-		if (this.character.world?.characters[0] === this.character)
-		{
-			// Hard drops use a bigger force (rolling impact sounds heavier).
-			const force = Math.min(4, Math.abs(this.character.groundImpactData.velocity.y) * 0.6);
-			this.character.world.sfxBus.playLand(force);
-		}
+		// Hard drops use a bigger force (rolling impact sounds heavier).
+		const force = Math.min(4, Math.abs(this.character.groundImpactData.velocity.y) * 0.6);
+		this.character.sfx?.playLand(force);
 	}
 
 	public update(timeStep: number): void
