@@ -1,12 +1,9 @@
 import * as THREE from 'three';
 
-// Hierarchical low-poly cat / dog models with animatable parts. Pattern
-// adapted from manuelhintermayr-portfolio/low-poly-cat-game (HTML demo)
-// reshaped to a TS module that returns a typed model record. Each
-// model exposes the references the per-frame animator needs (body,
-// head, legs, tail segments, ears) so WanderingAnimals can drive idle
-// breath / walk-cycle / run-cycle / jump pose poses without poking
-// into nested Three.Object3D children at random.
+// Shared types + colour schemes + low-level mesh helpers used by the
+// per-species builders (CatBuilder, DogBuilder) and the per-frame
+// animator (AnimalAnimator). The types stay here so any consumer can
+// type-hint on `AnimalModel` without pulling a builder transitively.
 
 export interface ColorScheme
 {
@@ -64,15 +61,29 @@ export interface AnimalLeg
 	shin: THREE.Object3D;
 }
 
-function mat(color: number): THREE.MeshStandardMaterial
+// Y-shift inside the species group so the lowest paw sits at the
+// root group's origin (= ground level). With makeLeg's chain (thigh
+// y=0.65, shin y=-0.5, paw y=-0.5, paw geometry half-height 0.07)
+// the lowest visible point is -0.42 in species-local space; lifting
+// the species group by +0.42 cancels that out so the manager can
+// just plant the root at ground without manual offsets per kind.
+export const FOOT_OFFSET = 0.42;
+
+// Shared standard-material factory. Builders + the animator use this
+// instead of constructing materials inline so flatShading + roughness
+// stay consistent across cat, dog, eye-shine, mouth-open meshes.
+export function mat(color: number): THREE.MeshStandardMaterial
 {
 	return new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true });
 }
 
-const _blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, flatShading: true });
-const _eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, flatShading: true });
+// Pre-built materials reused for every animal: the pupil black and
+// the eye-shine white. Constructing once and sharing avoids GPU
+// material churn across N cats × M dogs.
+export const BLACK_MAT = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, flatShading: true });
+export const EYE_WHITE_MAT = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, flatShading: true });
 
-function applyShadow(obj: THREE.Object3D): void
+export function applyShadow(obj: THREE.Object3D): void
 {
 	obj.traverse((child) =>
 	{
@@ -84,7 +95,7 @@ function applyShadow(obj: THREE.Object3D): void
 	});
 }
 
-function makeLeg(furMat: THREE.MeshStandardMaterial, lightMat: THREE.MeshStandardMaterial, x: number, z: number): AnimalLeg
+export function makeLeg(furMat: THREE.MeshStandardMaterial, lightMat: THREE.MeshStandardMaterial, x: number, z: number): AnimalLeg
 {
 	const thigh = new THREE.Group();
 	thigh.position.set(x, 0.65, z);
@@ -109,7 +120,7 @@ function makeLeg(furMat: THREE.MeshStandardMaterial, lightMat: THREE.MeshStandar
 // Each segment is the child of the previous one, so a rotation on
 // segment N propagates to N+1..N+last - same chain the cat-game
 // animator uses for the slow tail sway.
-function makeTail(parent: THREE.Object3D, segCount: number, rootY: number, rootZ: number, baseSize: number,
+export function makeTail(parent: THREE.Object3D, segCount: number, rootY: number, rootZ: number, baseSize: number,
 	furMat: THREE.MeshStandardMaterial, darkMat: THREE.MeshStandardMaterial, tipMat: THREE.MeshStandardMaterial): THREE.Object3D[]
 {
 	const root = new THREE.Group();
@@ -134,399 +145,4 @@ function makeTail(parent: THREE.Object3D, segCount: number, rootY: number, rootZ
 		p = seg;
 	}
 	return segs;
-}
-
-// Y-shift inside the species group so the lowest paw sits at the
-// root group's origin (= ground level). With makeLeg's chain (thigh
-// y=0.65, shin y=-0.5, paw y=-0.5, paw geometry half-height 0.07)
-// the lowest visible point is -0.42 in species-local space; lifting
-// the species group by +0.42 cancels that out so the manager can
-// just plant the root at ground without manual offsets per kind.
-const FOOT_OFFSET = 0.42;
-
-export function buildCatModel(scheme: ColorScheme): AnimalModel
-{
-	const root = new THREE.Group();
-	const cat = new THREE.Group();
-	cat.position.y = FOOT_OFFSET;
-	root.add(cat);
-
-	const furMat = mat(scheme.main);
-	const darkMat = mat(scheme.dark);
-	const whiteMat = mat(scheme.light);
-	const noseMat = mat(scheme.nose);
-	const eyeMat = mat(scheme.eye);
-
-	// Body
-	const body = new THREE.Group();
-	const torso = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.95, 2.1), furMat);
-	body.add(torso);
-	const belly = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.4, 1.7), whiteMat);
-	belly.position.y = -0.3;
-	body.add(belly);
-	const restY = 1.05;
-	body.position.y = restY;
-	cat.add(body);
-
-	// Head
-	const head = new THREE.Group();
-	head.position.set(0, 1.35, 1.25);
-	cat.add(head);
-	const headBox = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.95, 0.95), furMat);
-	head.add(headBox);
-	const snout = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.45, 0.45), whiteMat);
-	snout.position.set(0, -0.18, 0.5);
-	head.add(snout);
-	const nose = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.14, 4), noseMat);
-	nose.position.set(0, 0.0, 0.76);
-	nose.rotation.x = Math.PI / 2;
-	nose.rotation.y = Math.PI / 4;
-	head.add(nose);
-
-	// Mouth-open block - hidden by default, scaled up while meowing
-	// to show an open mouth. Sits flat against the snout's underside.
-	const mouthOpen = new THREE.Mesh(
-		new THREE.BoxGeometry(0.22, 0.18, 0.07),
-		mat(0x2a0d10),
-	);
-	mouthOpen.position.set(0, -0.27, 0.72);
-	mouthOpen.scale.y = 0.001;
-	head.add(mouthOpen);
-
-	// Eyes (simple - no pupil tracking in v1)
-	const makeEye = (x: number): THREE.Object3D =>
-	{
-		const g = new THREE.Group();
-		const eye = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), eyeMat);
-		eye.scale.z = 0.55;
-		g.add(eye);
-		const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.22, 0.04), _blackMat);
-		pupil.position.z = 0.09;
-		g.add(pupil);
-		const shine = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 4), _eyeWhiteMat);
-		shine.position.set(0.05, 0.07, 0.11);
-		g.add(shine);
-		g.position.set(x, 0.15, 0.4);
-		head.add(g);
-		return g;
-	};
-	makeEye(-0.27);
-	makeEye(0.27);
-
-	// Ears
-	const makeEar = (x: number, side: number): THREE.Object3D =>
-	{
-		const eg = new THREE.Group();
-		eg.position.set(x, 0.55, -0.05);
-		const outer = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.55, 4), furMat);
-		eg.add(outer);
-		const inner = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.4, 4), mat(scheme.nose));
-		inner.position.set(0, -0.05, 0.05);
-		eg.add(inner);
-		eg.rotation.z = side * 0.18;
-		eg.rotation.x = -0.08;
-		head.add(eg);
-		return eg;
-	};
-	const leftEar = makeEar(-0.34, 1);
-	const rightEar = makeEar(0.34, -1);
-
-	// Legs
-	const legs = {
-		fl: makeLeg(furMat, whiteMat, -0.45, 0.7),
-		fr: makeLeg(furMat, whiteMat, 0.45, 0.7),
-		bl: makeLeg(furMat, whiteMat, -0.45, -0.75),
-		br: makeLeg(furMat, whiteMat, 0.45, -0.75),
-	};
-	cat.add(legs.fl.thigh, legs.fr.thigh, legs.bl.thigh, legs.br.thigh);
-
-	// Tail - 7 segments for the iconic flowing cat tail
-	const tail = makeTail(cat, 7, 1.15, -1.0, 0.22, furMat, darkMat, whiteMat);
-
-	applyShadow(root);
-	return { group: root, body, head, tail, legs, ears: { left: leftEar, right: rightEar }, mouthOpen, restY };
-}
-
-export function buildDogModel(scheme: ColorScheme): AnimalModel
-{
-	const root = new THREE.Group();
-	const dog = new THREE.Group();
-	dog.position.y = FOOT_OFFSET;
-	root.add(dog);
-
-	const furMat = mat(scheme.main);
-	const darkMat = mat(scheme.dark);
-	const lightMat = mat(scheme.light);
-	const noseMat = mat(scheme.nose);
-	const eyeMat = mat(scheme.eye);
-
-	// Body - chunkier than the cat
-	const body = new THREE.Group();
-	const torso = new THREE.Mesh(new THREE.BoxGeometry(1.45, 1.05, 2.3), furMat);
-	body.add(torso);
-	const belly = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.45, 1.85), lightMat);
-	belly.position.y = -0.32;
-	body.add(belly);
-	const restY = 1.15;
-	body.position.y = restY;
-	dog.add(body);
-
-	// Head - longer snout than cat
-	const head = new THREE.Group();
-	head.position.set(0, 1.45, 1.4);
-	dog.add(head);
-	const headBox = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.95, 1.0), furMat);
-	head.add(headBox);
-	const snout = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.55, 0.7), furMat);
-	snout.position.set(0, -0.2, 0.62);
-	head.add(snout);
-	const nose = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.18), noseMat);
-	nose.position.set(0, -0.05, 0.96);
-	head.add(nose);
-
-	// Mouth-open block under the snout - shown while barking.
-	const mouthOpen = new THREE.Mesh(
-		new THREE.BoxGeometry(0.32, 0.18, 0.1),
-		mat(0x2a0d10),
-	);
-	mouthOpen.position.set(0, -0.32, 0.86);
-	mouthOpen.scale.y = 0.001;
-	head.add(mouthOpen);
-
-	// Eyes
-	const makeEye = (x: number): THREE.Object3D =>
-	{
-		const g = new THREE.Group();
-		const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), eyeMat);
-		eye.scale.z = 0.6;
-		g.add(eye);
-		const shine = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 4), _eyeWhiteMat);
-		shine.position.set(0.04, 0.05, 0.09);
-		g.add(shine);
-		g.position.set(x, 0.2, 0.42);
-		head.add(g);
-		return g;
-	};
-	makeEye(-0.27);
-	makeEye(0.27);
-
-	// Floppy ears (rotated outward, hanging forward)
-	const makeEar = (x: number, side: number): THREE.Object3D =>
-	{
-		const eg = new THREE.Group();
-		eg.position.set(x, 0.4, 0.0);
-		const ear = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.55, 0.18), darkMat);
-		ear.position.y = -0.25;
-		eg.add(ear);
-		eg.rotation.z = side * 0.32;
-		head.add(eg);
-		return eg;
-	};
-	const leftEar = makeEar(-0.45, 1);
-	const rightEar = makeEar(0.45, -1);
-
-	// Legs - same shape as cat but stockier
-	const legs = {
-		fl: makeLeg(furMat, lightMat, -0.5, 0.78),
-		fr: makeLeg(furMat, lightMat, 0.5, 0.78),
-		bl: makeLeg(furMat, lightMat, -0.5, -0.85),
-		br: makeLeg(furMat, lightMat, 0.5, -0.85),
-	};
-	dog.add(legs.fl.thigh, legs.fr.thigh, legs.bl.thigh, legs.br.thigh);
-
-	// Shorter perky tail (4 segs)
-	const tail = makeTail(dog, 4, 1.3, -1.05, 0.24, furMat, darkMat, lightMat);
-	// Default carry the dog tail upward
-	if (tail.length > 0) tail[0].rotation.x = -0.6;
-
-	applyShadow(root);
-	return { group: root, body, head, tail, legs, ears: { left: leftEar, right: rightEar }, mouthOpen, restY };
-}
-
-// Per-frame animation driver. Picks idle / walk / run pose from the
-// motion state + speed. Mutates the model handles in-place. Same
-// shape the cat-game's animation block uses but as a pure function
-// the manager calls once per animal per frame.
-export function applyAnimalAnimation(model: AnimalModel, opts:
-{
-	t: number;
-	speed: number;
-	isDog: boolean;
-	moving: boolean;
-	running: boolean;
-	// 0..1, lifecycle of the active voice (1 = just started, 0 = done).
-	// Drives mouth-open scale and the dog's bark head-shake.
-	voiceFraction: number;
-	// True while the body is in mid-air (cannon hasn't reported the
-	// landing collision yet). Picks the jump pose ahead of any other
-	// animation branch.
-	jumping: boolean;
-	// Body's vertical velocity in m/s; positive ascending, negative
-	// descending. Drives body lean + leg pose during jumping.
-	velocityY: number;
-}): void
-{
-	const { t, speed, isDog, moving, running, voiceFraction, jumping, velocityY } = opts;
-	const restY = model.restY;
-
-	// Mid-jump pose. Takes priority over walk/idle/run so the silhouette
-	// reads as airborne instead of an awkward walking-in-mid-air.
-	if (jumping)
-	{
-		model.body.position.y = restY;
-		model.body.scale.set(1, 1, 1);
-		model.body.rotation.x = velocityY > 0 ? -0.12 : 0.18;
-		const tuck = velocityY > 0;
-		for (const k in model.legs)
-		{
-			const leg = model.legs[k as 'fl' | 'fr' | 'bl' | 'br'];
-			leg.thigh.rotation.x = tuck ? -0.5 : 0.35;
-			leg.shin.rotation.x = tuck ? 1.0 : 0.0;
-		}
-		model.head.rotation.x = velocityY > 0 ? -0.18 : 0.12;
-		model.head.rotation.y *= 0.85;
-		model.mouthOpen.scale.y = 0.001;
-		for (const seg of model.tail) seg.rotation.y *= 0.85;
-		return;
-	}
-
-	// Mouth opens during voices. Smooth-step in/out so the open isn't
-	// a hard pop. Cats hold mouth open for the full meow; dogs jaw-
-	// snap on each bark - here we approximate with the same fade
-	// (synth duration is ~0.45 s, voiceFraction handles the timing).
-	const mouthScale = voiceFraction > 0
-		? Math.max(0.001, voiceFraction)
-		: 0.001;
-	model.mouthOpen.scale.y = mouthScale;
-
-	if (!moving)
-	{
-		// Idle: breath pulse, gentle tail sway, settle legs.
-		const breath = Math.sin(t * 1.6) * (isDog ? 0.03 : 0.025);
-		model.body.scale.set(1 + breath, 1 + breath, 1 + breath * 0.5);
-		model.body.position.y = restY;
-		model.body.rotation.x *= 0.85;
-
-		if (isDog)
-		{
-			model.tail.forEach((seg, i) =>
-			{
-				const phase = t * 7 - i * 0.35;
-				seg.rotation.y = Math.sin(phase) * (0.3 + i * 0.05);
-				if (i === 0) seg.rotation.x = -0.6 + Math.cos(phase * 0.5) * 0.05;
-				else seg.rotation.x = Math.cos(phase) * 0.05;
-			});
-			model.ears.left.rotation.z = 0.32;
-			model.ears.right.rotation.z = -0.32;
-		}
-		else
-		{
-			model.tail.forEach((seg, i) =>
-			{
-				const phase = t * 1.4 - i * 0.45;
-				seg.rotation.y = Math.sin(phase) * (0.18 + i * 0.04);
-				const lift = i === 0 ? -0.35 : 0;
-				seg.rotation.x = lift + Math.cos(phase * 0.8) * 0.04;
-			});
-			model.ears.left.rotation.z = 0.18;
-			model.ears.right.rotation.z = -0.18;
-			model.ears.left.rotation.x = -0.08;
-			model.ears.right.rotation.x = -0.08;
-		}
-
-		// Dogs barking jerk their head down on each woof; idle cats
-		// just sway their head gently. voiceFraction > 0 overrides
-		// the lazy idle motion with the bark snap.
-		if (isDog && voiceFraction > 0)
-		{
-			model.head.rotation.x = -0.18 + voiceFraction * 0.25;
-			model.head.rotation.y = Math.sin(t * 18) * 0.06;
-		}
-		else
-		{
-			model.head.rotation.y = Math.sin(t * 0.5) * 0.12;
-			model.head.rotation.x = Math.sin(t * 0.7) * 0.04;
-		}
-
-		for (const k in model.legs)
-		{
-			const leg = model.legs[k as 'fl' | 'fr' | 'bl' | 'br'];
-			leg.thigh.rotation.x *= 0.85;
-			leg.shin.rotation.x *= 0.85;
-		}
-		return;
-	}
-
-	// Walk / run: leg cycle. Cat-game pattern - diagonal pair (FL+BR
-	// vs FR+BL) for walk, near-synced front/back pair for run gallop.
-	const cycleSpeed = running ? 13 : 8;
-	const amp = running ? 0.75 : 0.5;
-	const c = t * cycleSpeed;
-
-	if (!running)
-	{
-		model.legs.fl.thigh.rotation.x = Math.sin(c) * amp;
-		model.legs.br.thigh.rotation.x = Math.sin(c) * amp;
-		model.legs.fr.thigh.rotation.x = Math.sin(c + Math.PI) * amp;
-		model.legs.bl.thigh.rotation.x = Math.sin(c + Math.PI) * amp;
-		model.legs.fl.shin.rotation.x = Math.max(0, Math.sin(c - 0.7)) * 0.5;
-		model.legs.br.shin.rotation.x = Math.max(0, Math.sin(c - 0.7)) * 0.5;
-		model.legs.fr.shin.rotation.x = Math.max(0, Math.sin(c + Math.PI - 0.7)) * 0.5;
-		model.legs.bl.shin.rotation.x = Math.max(0, Math.sin(c + Math.PI - 0.7)) * 0.5;
-		model.body.position.y = restY + Math.abs(Math.sin(c * 2)) * 0.04;
-		model.body.rotation.x = Math.sin(c * 2) * 0.025;
-	}
-	else
-	{
-		const front = Math.sin(c) * amp;
-		const back = Math.sin(c + Math.PI * 0.6) * amp;
-		model.legs.fl.thigh.rotation.x = front;
-		model.legs.fr.thigh.rotation.x = front - 0.08;
-		model.legs.bl.thigh.rotation.x = back;
-		model.legs.br.thigh.rotation.x = back - 0.08;
-		model.legs.fl.shin.rotation.x = Math.max(0, Math.sin(c - 0.6)) * 0.65;
-		model.legs.fr.shin.rotation.x = Math.max(0, Math.sin(c - 0.7)) * 0.65;
-		model.legs.bl.shin.rotation.x = Math.max(0, Math.sin(c + Math.PI * 0.6 - 0.6)) * 0.65;
-		model.legs.br.shin.rotation.x = Math.max(0, Math.sin(c + Math.PI * 0.6 - 0.7)) * 0.65;
-		model.body.position.y = restY + Math.abs(Math.sin(c)) * 0.18;
-		model.body.rotation.x = Math.sin(c) * 0.09;
-	}
-
-	if (isDog)
-	{
-		model.tail.forEach((seg, i) =>
-		{
-			const phase = t * 8 - i * 0.35;
-			seg.rotation.y = Math.sin(phase) * 0.28;
-			if (i === 0) seg.rotation.x = -0.6 + Math.sin(c) * 0.08;
-			else seg.rotation.x = Math.sin(c) * 0.04;
-		});
-		const bounce = Math.sin(c * 2) * 0.22;
-		model.ears.left.rotation.x = bounce;
-		model.ears.right.rotation.x = bounce;
-		model.ears.left.rotation.z = 0.32 + Math.sin(c) * 0.08;
-		model.ears.right.rotation.z = -0.32 - Math.sin(c) * 0.08;
-	}
-	else
-	{
-		model.tail.forEach((seg, i) =>
-		{
-			const phase = c * 0.5 - i * 0.35;
-			seg.rotation.y = Math.sin(phase) * 0.12;
-			seg.rotation.x = (i === 0 ? -0.55 : 0) + Math.sin(phase) * 0.08;
-		});
-		const earBack = running ? -0.35 : -0.12;
-		model.ears.left.rotation.x = earBack;
-		model.ears.right.rotation.x = earBack;
-		model.ears.left.rotation.z = 0.18;
-		model.ears.right.rotation.z = -0.18;
-	}
-
-	model.head.rotation.y *= 0.85;
-	model.head.rotation.x = Math.sin(c) * 0.03;
-	model.body.scale.set(1, 1, 1);
-
-	// `speed` arg unused right now but kept on the signature: future
-	// tweaks (paw-step audio, anim-blend factor) will read it.
-	void speed;
 }

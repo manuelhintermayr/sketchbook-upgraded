@@ -37,7 +37,7 @@ export const DOG_NOTICE = 15;
 export const DOG_BARK_DIST = 3;
 // Approach / chase speed. Matches the low-poly-cat-game reference's
 // player-run speed (8.5), which is the value the leg-cycle anim
-// (cycleSpeed=13 in AnimalModels) was tuned against.
+// (cycleSpeed=13 in AnimalAnimator) was tuned against.
 export const DOG_PURSUE_SPEED = 8.5;
 // Player has to walk this far past DOG_NOTICE before the dog gives up.
 export const DOG_GIVEUP = 10;

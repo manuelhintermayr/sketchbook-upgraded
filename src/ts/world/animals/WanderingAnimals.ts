@@ -13,7 +13,10 @@ import { t } from '../../i18n';
 import { Animal, AnimalKind, MEOW_DURATION, TAME_FOLLOW_DIST, TAME_THRESHOLD, targetSpeedFor } from './AnimalBehavior';
 import { DOG_BEHAVIOR } from './DogBehavior';
 import { CAT_BEHAVIOR } from './CatBehavior';
-import { applyAnimalAnimation, buildCatModel, buildDogModel, CAT_SCHEMES, DOG_SCHEMES } from './AnimalModels';
+import { CAT_SCHEMES, DOG_SCHEMES } from './AnimalModels';
+import { buildCatModel } from './CatBuilder';
+import { buildDogModel } from './DogBuilder';
+import { applyAnimalAnimation } from './AnimalAnimator';
 import { AnimalVoiceBus } from '../audio/AnimalVoices';
 
 // Voice fade in seconds. 0.45 covers the bark; cat meow runs longer
@@ -25,7 +28,8 @@ const BARK_VOICE_DURATION = 0.45;
 // spawn placement, the cannon dynamic body for each animal, the
 // off-map raycasts, and the CSS2D label anchors. All per-animal
 // state-machine decisions live in DogBehavior / CatBehavior; the
-// visual model + per-limb animation lives in AnimalModels.ts.
+// visual model lives in CatBuilder / DogBuilder, and the per-limb
+// animation lives in AnimalAnimator.
 //
 // Each animal carries a small DYNAMIC cannon body (sphere) so the
 // physics world resolves three things automatically:
@@ -158,9 +162,8 @@ export class WanderingAnimals implements IWorldEntity
 		}
 
 		// Attach label anchors + CSS2D tags. WorldLabels distance-culls
-		// at 10 units and feature-gates on params.Animal_Labels (off by
-		// default - opt-in via the Settings panel, otherwise the spawn
-		// looks busy with 18 tags floating).
+		// at 10 units and feature-gates on the unified params.Labels
+		// toggle (on by default; same gate as Player + NPC tags).
 		for (const animal of this.animals)
 		{
 			world.graphicsWorld.add(animal.labelAnchor);
@@ -169,7 +172,7 @@ export class WanderingAnimals implements IWorldEntity
 			attachNameLabel(animal.labelAnchor, text, false, {
 				className,
 				maxDistance: 10,
-				feature: 'Animal_Labels',
+				feature: 'Labels',
 			});
 		}
 	}
