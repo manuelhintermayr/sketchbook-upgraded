@@ -3,7 +3,7 @@ import { World } from '../World';
 import { IWorldEntity } from '../../interfaces/IWorldEntity';
 import { EntityType } from '../../enums/EntityType';
 import { UpdateOrder } from '../../enums/UpdateOrder';
-import { ensureAudioListener } from './AudioHelpers';
+import { createMediaAudioElement, ensureAudioListener } from './AudioHelpers';
 
 // 3D positional audio source, simplified port of tkkaushik369/socketControl's
 // Speaker. The original spawned an HTMLMesh with a play/pause checkbox;
@@ -47,17 +47,7 @@ export class Speaker extends THREE.Object3D implements IWorldEntity
 	private attachAudio(audioUrl: string, world: World): void
 	{
 		const listener = ensureAudioListener(world);
-
-		const audioDom = document.createElement('audio');
-		audioDom.preload = 'auto';
-		audioDom.loop = true;
-		audioDom.crossOrigin = 'anonymous';
-		audioDom.style.display = 'none';
-
-		const sourceDom = document.createElement('source');
-		sourceDom.src = audioUrl;
-		audioDom.appendChild(sourceDom);
-		document.body.appendChild(audioDom);
+		const { dom: audioDom, source: sourceDom } = createMediaAudioElement(audioUrl);
 
 		const posAudio = new THREE.PositionalAudio(listener);
 		posAudio.setMediaElementSource(audioDom);

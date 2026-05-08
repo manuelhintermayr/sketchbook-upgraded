@@ -30,3 +30,28 @@ export function ensureAudioListener(world: World): THREE.AudioListener
 	}
 	return listener;
 }
+
+// Web-platform helper: build the <audio> + <source> DOM pair Speaker
+// uses for sample-based positional sources, attach to body. Lifted out
+// of Speaker so the domain class stops touching DOM directly.
+export interface MediaAudioElements
+{
+	dom: HTMLAudioElement;
+	source: HTMLSourceElement;
+}
+
+export function createMediaAudioElement(audioUrl: string): MediaAudioElements
+{
+	const dom = document.createElement('audio');
+	dom.preload = 'auto';
+	dom.loop = true;
+	dom.crossOrigin = 'anonymous';
+	dom.style.display = 'none';
+
+	const source = document.createElement('source');
+	source.src = audioUrl;
+	dom.appendChild(source);
+	document.body.appendChild(dom);
+
+	return { dom, source };
+}
