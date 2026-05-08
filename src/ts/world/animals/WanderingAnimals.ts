@@ -5,18 +5,12 @@ import { World } from '../World';
 import { IWorldEntity } from '../../interfaces/IWorldEntity';
 import { EntityType } from '../../enums/EntityType';
 import { UpdateOrder } from '../../enums/UpdateOrder';
-import { CollisionGroups } from '../../enums/CollisionGroups';
-import { mulberry32 } from '../../core/FunctionLibrary';
 import { attachNameLabel } from '../ui/NameLabel';
 import { t } from '../../i18n';
 
-import { Animal, AnimalKind, MEOW_DURATION, TAME_FOLLOW_DIST, TAME_THRESHOLD, targetSpeedFor } from './AnimalBehavior';
-import { DOG_BEHAVIOR } from './DogBehavior';
-import { CAT_BEHAVIOR } from './CatBehavior';
-import { CAT_SCHEMES, DOG_SCHEMES } from './AnimalModels';
-import { buildCatModel } from './CatBuilder';
-import { buildDogModel } from './DogBuilder';
+import { Animal, MEOW_DURATION, TAME_FOLLOW_DIST, TAME_THRESHOLD, targetSpeedFor } from './AnimalBehavior';
 import { applyAnimalAnimation } from './AnimalAnimator';
+import { spawnAnimals, queryGroundHeight, GROUND_QUERY_INTERVAL_S } from './AnimalSpawner';
 import { AnimalVoiceBus } from '../audio/AnimalVoices';
 
 // Voice fade in seconds. 0.45 covers the bark; cat meow runs longer
@@ -51,47 +45,9 @@ const BARK_VOICE_DURATION = 0.45;
 // because the cat-game-style animations (idle breath, walk-cycle,
 // run-cycle, jump pose) need independent per-limb transforms.
 
-const DOG_COUNT = 1;
-const CAT_COUNT = 2;
-const SPAWN_INNER = 18;   // keep clear of the spawn pad
-const SPAWN_OUTER = 80;   // Inthenew map's playable area is ~200 wide
-
-// Off-map detection re-samples the trimesh every 100ms per animal. Y
-// is no longer lerped (cannon owns position now); the raycast only
-// catches animals that have walked off the terrain so they can be
-// redirected home.
-const GROUND_QUERY_INTERVAL_S = 0.1;
-
 const _toPlayer = new THREE.Vector3();
 const _toTarget = new THREE.Vector3();
 const _dir = new THREE.Vector3();
-const _rayStart = new CANNON.Vec3();
-const _rayEnd = new CANNON.Vec3();
-const _rayResult = new CANNON.RaycastResult();
-
-// Cat-game models are authored at "real" scale (cat ≈ 2 units long,
-// dog ≈ 2.3 units long). Sketchbook needs them lawn-mower sized so
-// the lawn isn't dwarfed - shrink the whole top group uniformly. Per-
-// animal `scale` (set in spawn()) multiplies on top for population
-// variation. Halved from the first-pass values (was 0.45 / 0.55) so
-// the herd looks like wildlife instead of like livestock.
-const CAT_BASE_SCALE = 0.225;
-const DOG_BASE_SCALE = 0.275;
-
-// Cannon body radius per kind. Sphere collider sized to the visible
-// model footprint - cats slimmer, dogs stockier. Kept conservative
-// so animals don't visibly clip into the player capsule on contact.
-const CAT_BODY_RADIUS = 0.28;
-const DOG_BODY_RADIUS = 0.38;
-// Body mass - light enough that the player capsule (mass 1) shoves
-// them out of the way easily, heavy enough that animal-vs-animal
-// nudges read as actual contact instead of vanishing through.
-const ANIMAL_MASS = 0.25;
-// Linear damping on the dynamic body. Light - we drive velocity each
-// frame from the AI (so cannon's damping isn't the speed control),
-// but a tiny non-zero damping kills the residual sideways drift from
-// collision response.
-const ANIMAL_DAMPING = 0.1;
 
 export class WanderingAnimals implements IWorldEntity
 {
@@ -124,7 +80,7 @@ export class WanderingAnimals implements IWorldEntity
 		// Spawn animals only after the trimesh terrain has been added to
 		// the physics world (otherwise the height raycasts come back
 		// empty and everything spawns at y=0 inside the ocean).
-		this.spawn();
+		this.animals = spawnAnimals(world);
 
 		// Each animal owns its own Three.Group + cannon body. Add both
 		// to the world here. Models hook into CSM for shadows; bodies
@@ -265,7 +221,7 @@ export class WanderingAnimals implements IWorldEntity
 			if (animal.groundQueryTimer <= 0)
 			{
 				animal.groundQueryTimer = GROUND_QUERY_INTERVAL_S;
-				const queryY = this.queryGroundHeight(animal.position.x, animal.position.z);
+				const queryY = queryGroundHeight(this.world, animal.position.x, animal.position.z);
 				if (queryY === null || queryY < 0.5)
 				{
 					animal.target.copy(animal.homePosition);
@@ -357,101 +313,6 @@ export class WanderingAnimals implements IWorldEntity
 		}
 	}
 
-	private spawn(): void
-	{
-		if (this.world === null) return;
-
-		const rng = mulberry32(456);
-		this.animals.length = 0;
-
-		const place = (kind: AnimalKind, count: number): void =>
-		{
-			let placed = 0;
-			let attempts = 0;
-			while (placed < count && attempts < count * 50)
-			{
-				attempts++;
-				const angle = rng() * Math.PI * 2;
-				const spawnRadius = SPAWN_INNER + rng() * (SPAWN_OUTER - SPAWN_INNER);
-				const x = Math.cos(angle) * spawnRadius;
-				const z = Math.sin(angle) * spawnRadius;
-
-				const y = this.queryGroundHeight(x, z);
-				if (y === null || y < 1) continue;
-
-				// Per-population variation on top of the species base
-				// scale (CAT_BASE_SCALE / DOG_BASE_SCALE in module
-				// scope) so dogs and cats look like a real population
-				// instead of clones.
-				const scale = kind === 'dog' ? 0.85 + rng() * 0.3 : 0.7 + rng() * 0.35;
-				const pos = new THREE.Vector3(x, y, z);
-
-				const labelAnchor = new THREE.Object3D();
-				labelAnchor.position.copy(pos);
-
-				// Pick a random colour scheme from the species palette.
-				const schemes = kind === 'dog' ? DOG_SCHEMES : CAT_SCHEMES;
-				const scheme = schemes[Math.floor(rng() * schemes.length)];
-				const model = kind === 'dog' ? buildDogModel(scheme) : buildCatModel(scheme);
-				const baseScale = kind === 'dog' ? DOG_BASE_SCALE : CAT_BASE_SCALE;
-				model.group.scale.setScalar(baseScale * scale);
-				model.group.position.copy(pos);
-
-				// Sphere body, sized to the visible footprint. Spawn it
-				// half a body-radius above the terrain so it doesn't
-				// start interpenetrating and shoot upward on the first
-				// physics step.
-				const radius = kind === 'dog' ? DOG_BODY_RADIUS : CAT_BODY_RADIUS;
-				const body = new CANNON.Body({
-					mass: ANIMAL_MASS,
-					shape: new CANNON.Sphere(radius),
-					position: new CANNON.Vec3(x, y + radius + 0.05, z),
-					collisionFilterGroup: CollisionGroups.Animals,
-					// Collide with terrain (Default + TrimeshColliders for
-					// the actual ground), the player capsule (Characters),
-					// and other animal bodies. Ocean / iris / etc. live on
-					// other groups and we don't want to bump them.
-					collisionFilterMask: CollisionGroups.Default | CollisionGroups.Characters
-						| CollisionGroups.TrimeshColliders | CollisionGroups.Animals,
-					linearDamping: ANIMAL_DAMPING,
-					fixedRotation: true,  // sphere shouldn't roll about
-				});
-				body.allowSleep = false;
-
-				this.animals.push(
-				{
-					kind,
-					position: pos.clone(),
-					velocity: new THREE.Vector3(),
-					heading: rng() * Math.PI * 2,
-					state: 'idle',
-					stateTimer: rng() * 5,
-					target: pos.clone(),
-					animPhase: rng() * Math.PI * 2,
-					scale,
-					interactionCount: 0,
-					homePosition: pos.clone(),
-					labelAnchor,
-					// Stagger first raycast across the interval so all 18
-					// animals don't sample on the same frame and tank it.
-					groundQueryTimer: rng() * GROUND_QUERY_INTERVAL_S,
-					behavior: kind === 'dog' ? DOG_BEHAVIOR : CAT_BEHAVIOR,
-					model,
-					pendingVoice: null,
-					voiceTimer: 0,
-					body,
-					airborne: false,
-					bodyRadius: radius,
-					collideListener: undefined,
-				});
-				placed++;
-			}
-		};
-
-		place('dog', DOG_COUNT);
-		place('cat', CAT_COUNT);
-	}
-
 	// Per-frame transform sync for one animal: world position from
 	// physics-light integrator above, heading-driven yaw, then the
 	// model-internal limb / tail / ear animation in AnimalModels.
@@ -495,24 +356,6 @@ export class WanderingAnimals implements IWorldEntity
 			jumping: animal.airborne,
 			velocityY: animal.body.velocity.y,
 		});
-	}
-
-	// Cast a ray straight down from y=100 into the cannon physics world.
-	// The trimesh ground is on Default group so the default mask catches
-	// it. Returns null if no hit, which signals the caller to bail out
-	// (animal probably wandered off the map).
-	private queryGroundHeight(x: number, z: number): number | null
-	{
-		if (this.world === null) return null;
-		_rayStart.set(x, 100, z);
-		_rayEnd.set(x, -10, z);
-		_rayResult.reset();
-		const hit = this.world.physicsWorld.raycastClosest(
-			_rayStart, _rayEnd,
-			{ collisionFilterMask: CollisionGroups.Default, skipBackfaces: true },
-			_rayResult,
-		);
-		return hit ? _rayResult.hitPointWorld.y : null;
 	}
 
 }
