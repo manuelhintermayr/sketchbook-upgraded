@@ -424,6 +424,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			{ keys: ['Shift'],              desc: t('controls.sprint') },
 			{ keys: ['Space'],              desc: t('controls.jump') },
 			{ keys: ['F', 'or', 'G'],       desc: t('controls.enterVehicle') },
+			{ keys: ['V'],                  desc: t('controls.viewDistance') },
 			...commonGlobalControls(),
 		]);
 	}

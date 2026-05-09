@@ -39,6 +39,7 @@ import { SfxBus } from './audio/SfxBus';
 import { bootstrapHTML } from './setup/HTMLBootstrap';
 import { setupRendererPipeline, tickRenderPipeline, tickCannonDebug } from './setup/RendererPipeline';
 import { createParamsGUI } from './setup/ParamsGUI';
+import { wireV02GameMode } from './setup/v02GameMode';
 import { loadScene } from './loading/SceneLoader';
 import { WorldLabels } from './ui/WorldLabels';
 import { TouchControls } from '../core/TouchControls';
@@ -195,6 +196,11 @@ export class World
 		this.inputManager = new InputManager(this, this.renderer.domElement);
 		this.cameraOperator = new CameraOperator(this, this.camera, this.params.Mouse_Sensitivity);
 		this.sky = new Sky(this);
+
+		// swift502 v0.2 GameMode keys (B ball spawn, T slow-mo, V view
+		// distance cycle). Available on every map, not just sw-v02 -
+		// they're engine-wide free-roam features.
+		wireV02GameMode(this);
 
 		// Camera shake runs in the PostCamera slot (after CameraOperator)
 		// and adds transient position offsets when vehicles slam down or

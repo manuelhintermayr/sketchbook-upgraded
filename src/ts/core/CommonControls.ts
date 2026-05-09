@@ -7,10 +7,15 @@ import { t } from '../i18n';
 // them in whatever locale was active first.
 
 // Always-available shortcuts the world hands to every input receiver
-// (player on foot AND every vehicle). Respawn + free-camera entry.
+// (player on foot AND every vehicle). B + T are the swift502 v0.2
+// GameMode keys (ball spawn / slow-mo); V (view-distance cycle) is
+// on-foot only because vehicles already use V for first-person
+// toggle - it lives in Character.displayControls instead.
 export function commonGlobalControls()
 {
 	return [
+		{ keys: ['B'],               desc: t('controls.spawnBall') },
+		{ keys: ['T'],               desc: t('controls.slowMotion') },
 		{ keys: ['Shift', '+', 'R'], desc: t('controls.respawn') },
 		{ keys: ['Shift', '+', 'C'], desc: t('controls.freeCamera') },
 	];
