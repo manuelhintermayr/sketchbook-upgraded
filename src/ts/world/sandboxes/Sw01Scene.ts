@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
 import { BaseScene } from './BaseScene';
+import { applySignMaterials, loadSignFbx } from './creditsSign';
 
 // Faithful 1:1 port of swift502 v0.1.0 (October 2018) demo scene -
 // see `docs/js/index.js` in the upstream tag. The reference scene is:
@@ -23,22 +23,12 @@ import { BaseScene } from './BaseScene';
 // static createAsync() factory and index.html dispatches through
 // the helper for sw-v01.
 
-const SIGN_DIR = 'build/assets/credits_sign/';
-
 export class Sw01Scene extends BaseScene
 {
-	public static createAsync(): Promise<Sw01Scene>
+	public static async createAsync(): Promise<Sw01Scene>
 	{
-		return new Promise((resolve, reject) =>
-		{
-			const loader = new FBXLoader();
-			loader.load(
-				SIGN_DIR + 'sign.fbx',
-				(sign) => resolve(new Sw01Scene(sign)),
-				undefined,
-				(err) => reject(err),
-			);
-		});
+		const sign = await loadSignFbx();
+		return new Sw01Scene(sign);
 	}
 
 	constructor(signFbx: THREE.Group)
@@ -203,59 +193,3 @@ function addStaticCollider(
 	target.add(phy);
 }
 
-// Apply the textured Lambert materials the v0.1 demo wired onto each
-// FBX sub-mesh. `bigCredits=true` selects credits.png (the larger
-// clone) instead of credits2.png (the small first sign), and nudges
-// the sign + credits panels back along local Z to inset them slightly
-// - same offsets the upstream traverse() applied.
-function applySignMaterials(root: THREE.Object3D, bigCredits: boolean): void
-{
-	const tex = (file: string): THREE.Texture =>
-	{
-		const t = new THREE.TextureLoader().load(SIGN_DIR + file);
-		t.colorSpace = THREE.SRGBColorSpace;
-		return t;
-	};
-
-	root.traverse((child) =>
-	{
-		const mesh = child as THREE.Mesh;
-		if ((mesh as any).isMesh)
-		{
-			mesh.castShadow = true;
-			mesh.receiveShadow = true;
-		}
-		switch (child.name)
-		{
-			case 'grass':
-				mesh.material = new THREE.MeshLambertMaterial({
-					map: tex('grass.png'),
-					transparent: true,
-					depthWrite: false,
-					side: THREE.DoubleSide,
-				});
-				mesh.castShadow = false;
-				break;
-			case 'sign':
-				mesh.material = new THREE.MeshLambertMaterial({
-					map: tex('sign.png'),
-				});
-				if (bigCredits) mesh.translateZ(-0.2);
-				break;
-			case 'sign_shadow':
-				mesh.material = new THREE.MeshLambertMaterial({
-					map: tex('sign_shadow.png'),
-					transparent: true,
-				});
-				mesh.renderOrder = -1;
-				break;
-			case 'credits':
-				mesh.material = new THREE.MeshLambertMaterial({
-					map: tex(bigCredits ? 'credits.png' : 'credits2.png'),
-					transparent: true,
-				});
-				if (bigCredits) mesh.translateZ(-0.2);
-				break;
-		}
-	});
-}
