@@ -8,151 +8,100 @@ with the same level of detail the README timeline used to carry.
 The format follows [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.8.0] - 2026-05
 
-A second wave on the `claude/external-features` branch: animals got a
-full overhaul (hierarchical models, voices, real cannon physics, jump),
-two new ambient creature managers (birds, butterflies), a procedural
-SFX bus that finally fills the silence around player actions, a touch-
-controls rewrite, dialog UX fixes for mobile, and a handful of numeric
-bug fixes that were hiding behind defensive layers in the audio bus.
-
-### Animals (5-phase pass)
-
-- **Hierarchical models with per-limb animation** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e995195)) - dogs and cats now build as Three.Groups with body / head / tail / leg / ear handles, replacing the previous InstancedMesh. Per-frame animator drives idle-breathe, walk-cycle, run-cycle and jump pose independently. 18 draw calls instead of 2; modern GPUs eat the trade for the silhouette + motion gain.
-- **Procedural voices** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e63d2e2)) - per-state Web Audio synth: dog bark on approach (square saw + bandpass burst), cat meow when threatened (FM sine sweep), cat purr-loop near tamed cats (LFO-modulated sawtooth). Mouth animation timed off the same voiceTimer the synth ramps. Plus smaller-scale rebalancing + orientation fix.
-- **Real cannon physics + collision + jump** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/33e9df2)) - each animal gets a dynamic cannon sphere on the new `Animals` collision group. Cannon resolves terrain, player capsule, and animal-vs-animal contact instead of the manual ground-snap path. Jump is a real arc: kick `body.velocity.y`, gravity pulls back, the body's `collide` event flips airborne off on landing. `airborne` flag decoupled from state so a behaviour transition mid-jump can't strand the vertical physics. Speeds re-tuned to the cat-game reference (walk 3.8, run 8.5), animation driver moved to pure time so the leg-cycle doesn't double-couple to velocity.
-- **Tame behaviour: closer follow + face-tracking** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/fec5c1a) / Phase 3) - tamed pets close to 3 m (was 5), face the player every frame even while idle, and the dog pins position + heading inside bark range so it visibly tracks the player while barking.
-- **Counts trimmed to a calm baseline** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/6bd1ca6)) - 1 dog, 2 cats, 2 birds, 2 butterflies. The default scene was reading as a busy zoo with the original counts (8 / 10 / 7 / 8).
-
-### New ambient entities
-
-- **Flying birds as positional audio** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/896eec2)) - new `Birds.ts` manager + `BirdSound.ts`: each bird orbits a re-anchored centre on a circular path, flaps wings on a sin-cycle, banks into turns. Per-bird `THREE.PositionalAudio` with FM-chirp synth (sine carrier + sine modulator + bandpass) replaces the old global bird-chirp synth in `AmbientSound`. Chirps fall off with distance instead of playing flat across the world. Each bird carries a kinematic cannon sphere so contact with the player capsule resolves cleanly.
-- **Ambient butterflies** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/f4486d5)) - new `Butterflies.ts`: 2 butterflies drift around the player on a Lissajous-style path (cos + sin with co-prime frequency multipliers so motion never loops cleanly). Player-anchored on first update, `HEIGHT_MIN` 0.4 over body-centre + `Y_DRIFT_AMP` 0.25 + a hard floor of 0.2 m so they can't sink below the terrain. Distance-culled at 30 m, DoubleSide wing material, kinematic cannon sphere on the Animals collision group.
-
-### Audio
-
-- **Procedural SFX bus** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/8e2d304)) - new `SfxBus.ts`. Centralises every UI / player-action / race / vehicle / iris SFX so the rest of the codebase only sees `world.sfxBus.playX()`. Each play* method builds its tiny synth on demand and lets the browser GC the nodes once the burst finishes. Hooked into Walk + Sprint footsteps (player only, 0.42 s walk cadence / 0.28 s sprint), Jump kickoff, Drop landing (force-scaled), race checkpoint + lap fanfare, Dialog open whoosh, ProximityPrompt + PauseMenu UI ticks, IrisTransition whoosh, Vehicle crash (350 ms throttle, impact > 4), door clunk, RocketShip liftoff boom. New `Sfx_Sounds` toggle in the Settings folder.
-- **Bundled background music** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/30fdb40)) - new `BackgroundMusic.ts`. Looped shuffle through bundled tracks, gated by `params.Background_Music` and scaled by `Master_Volume * Music_Volume`.
-- **AmbientSound trimmed** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/896eec2)) - bird-chirp synth, BIRD_GAIN, modulator/carrier/filter/gain and the chirpTimeout scheduler all removed. Wind + water only now; bird audio moved to per-bird PositionalAudio.
+The biggest release on this fork. Front-of-screen UI overhaul, a wave
+of new gameplay features, ambient creatures, a procedural audio system,
+and a long performance + architecture pass. ~50% of `World.ts` deleted
+from the upstream baseline, four god-classes (Character, Vehicle, World,
+AnimalModels) extracted into focused helpers, ~3500 per-second
+allocations eliminated from hot paths.
 
 ### UI
 
-- **Touch controls rewrite** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/2d50e7d)) - virtual joystick now appears anywhere on the canvas (drag-to-spawn) instead of a fixed corner, and the action button cluster is fully context-aware: foot-near-NPC shows E/F, in-vehicle shows brake + vehicle-specific extras (V/X for car/boat, ascend/descend + Q/E yaw for aircraft, ascend/descend for rocket), passenger shows seat-switch only, dialog hides everything. ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/9c29da2)) adds the Q/E aircraft yaw buttons. ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/2be850c)) localises the labels and adds touch-aware prompt strings ("Touch the icon to talk to Anna" instead of "Press E"). ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b68a94c)) reformats the cluster as a 2-column staircase so the primary action sits over the joystick thumb.
-- **NPC dialog overhaul** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/70ec0ad)) - participants are dialogFreeze'd (both player and NPC stop moving and drop their actions), every other on-screen UI surface is hidden via `html.dialog-active`, the NPC rotates to face the player. Esc hint dropped (every dialog has an `end` choice).
-- **Mobile dialog layout** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/c86397c)) - on `@media (max-width: 600px)` the dialog splits into two free-standing cards: speech bubble pinned to the top (avatar + speaker + scrollable text band, max-height 28vh), choices float at the bottom of the viewport via `position: fixed`. The list itself becomes a mini-card so the per-button bg tokens (only ~4% alpha) stay readable against the game render. World stays visible in the gap between them. `backdrop-filter` dropped from `.dialog-box` on mobile - it makes the box the containing block for any position:fixed descendant and was pinning the choices to the bubble's bottom.
-- **"Map & Scenarios" folder rename + map on top** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/47012ae)) - `Scenarios` folder renamed; `addMapSwitcher` now runs at the start of `loadScene` so the map dropdown lands above the scenario buttons (logical flow: pick world → start scenario).
-- **Dark mode toggle in title screen + Settings** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/27eb7f7)).
-- **Dark mode reaches the rest of the UI** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/329806b)) - dialog, SweetAlert, lil-gui follow the toggle.
-- **Pointer-lock dropped** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/594cb4a)) - drag-to-look only. Pointer-lock was inconsistent across browsers and broke iframe embeds.
-- **Shared `#debug-stack` column** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/940b16f)) - FPS box + lil-gui live in the same flex column instead of overlapping.
-- **Name labels: 10 m cull + lower y-offset** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/ce77fb8)) - WorldLabels uses Three's `visible` flag now instead of toggling DOM display, cheaper for the CSS2D pass.
-- **Welcome dialog mentions recently added features** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/53e048c)).
-
-### Performance / cleanup
-
-- **Drop Bloom + Depth-of-Field** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/ae39cc3)) - the post-FX cost wasn't justifying the visual gain on integrated GPUs. The composer pipeline now ends at FXAA.
-- **Outline pass fades at distance** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b68fa85)) - moon outlines no longer bleed through the earth-side scene.
-- **Livelier ocean shader** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/3f59e8b)) - deeper trough, brighter crest, faster scroll.
-- **Lawn responds to all entities** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/23ce1cf)) - grass pushers extend to vehicles + animals, lighter base Lambert material so the meadow doesn't go black past the LOD cut.
-
-### Audit follow-ups (post-`989fa06`)
-
-- **Hot-path allocations dropped** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/add8e1e)) - Character.feetRaycast no longer allocates two CANNON.Vec3 + a rayCastOptions object every physics step (module-scoped scratches reused across characters); Character.inputReceiverUpdate's viewVector copies into the existing field-bound vector instead of replacing it; Grass.refreshPushers pools its candidate objects in a grow-only field array; WorldLabels switches to squared-distance to drop one Math.sqrt per label per frame.
-- **Audio helpers extracted** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/49e4d75) + [commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/82e24b3)) - new `audio/AudioHelpers.ts` exports `getMasterVolume(world)` (replaces 6 inline copies) and `ensureAudioListener(world)` (replaces 4 lazy-create-and-attach blocks). Speaker's `<audio>` + `<source>` DOM construction also moved here as `createMediaAudioElement(audioUrl)`, so the Speaker class no longer touches DOM directly.
-- **mulberry32 PRNG dedupe + audio file moves** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/cf00079)) - mulberry32 lifted from three duplicate copies (Birds / Butterflies / WanderingAnimals) into core/FunctionLibrary; BirdSound + AnimalVoices moved from `world/animals/` to `world/audio/` (they're audio classes, not tier-specific). Plus three quick-wins: Character moveVector strict `=== 0` -> `lengthSq() < 1e-6` epsilon, Ocean.getWaveHeightAt's per-call lambda + Math.PI/180 inline -> module-scoped DEG2RAD constant, Butterflies distance cull moved BEFORE the body.position write so far-away butterflies stop hitting cannon's broadphase.
-- **Master_Audio master mute switch** - new `params.Master_Audio` flag, default reads `localStorage['sketchbook.soundMuted']` (so the title-screen mute button persists). When off, every audio source goes silent: `getMasterVolume` returns 0 for the continuous synths, and `World.applyAudioListenerVolume()` zeroes the THREE.AudioListener for the 3D-positional path (BirdSound / CharacterSfx / Speaker). Sub-toggles in the settings UI grey out while master is off; toggling either side (title, settings, debug panel) mirrors the `sketchbook.soundMuted` key so all three views stay in sync.
-- **Sound_Effects unified flag** - the three internal toggles (Engine_Sound / Ambient_Sound / Sfx_Sounds) collapsed into one player-facing `Sound_Effects` flag. EngineSound, AmbientSound, BirdSound, SfxBus, CharacterSfx and AnimalVoices all gate on this single flag; Background_Music keeps its own toggle.
-- **Sun_Cycle rename + dependent toggle** - `Has_Day_Night_Cycle` renamed to `Sun_Cycle` in params + UI (the old name only described half of what it does - "automatic sun movement"). `Has_Night_Time` now greys out via lil-gui's `enable(false)` while Sun_Cycle is off, since it has no effect there.
-- **Map & Scenarios folder reorder** - the lil-gui scenario folder now nests a `Scenarios` sub-folder lazily on first launch link, so the layout is `Map dropdown` first (top), `Scenarios` collapsible second. Plus all top-level folders (Map & Scenarios, World, Vehicles, Settings) ship collapsed by default; only the root gui is open. Force-close after gui.load so a previous session's open state doesn't leak through.
-- **Title screen + Settings UX** - title-screen has a sound mute icon next to the dark-mode toggle (writes `sketchbook.soundMuted`); Settings modal grew a `General` card on top with language picker (en / de / es, reload via iris-wipe) + Dark mode + Reset-settings button (wipes every persisted key + reload). i18n's `formatPrompt` keycap regex extended for German / Spanish key names.
-- **Settings persistence on every change** - SettingsModal.write now calls `gui.save()` directly after `controller.setValue`. Lil-gui only fires `onFinishChange` on slider drag-end, not on toggle clicks, so a modal toggle would otherwise not persist until the player touched a slider too.
-- **Bidirectional sync between Settings + lil-gui debug panel** - SettingsModal hooks `gui.onChange` (gui-wide event); when the modal is open, any value change in the debug panel re-fires the matching modal toggle / range so both views always show the same state.
-- **ProximityPrompt safety net** - per-frame `update()` now does a redundant distance check (throttled to every 10th frame) and force-hides the prompt label if the player has drifted past 2x the configured radius. Catches stale labels left behind by a desynced TriggerCube enter/exit pair (player teleport, dialogFreeze yanking velocity, NPC moving past at speed).
-- **Bird + Butterfly fixed-Y band** - the swarms used to anchor on the player's spawn-time y, leaving them stranded in the sky on maps where the player drops to ground after spawn. Both managers now use absolute world-Y bands (Butterflies 1.0..1.5 m, Birds 5..14 m) for height; X/Z stay player-relative so the swarm stays in view horizontally.
-- **Labels unified gate** - the old `Animal_Labels` flag renamed to `Labels` and now gates the player tag ("Du") and NPC name tags too (the player + NPC labels were always-on previously). Default `true` so all tags ship visible; one toggle hides the lot.
-- **Outlines default off** - the depth-Sobel toon outline costs ~10-15 FPS on integrated GPUs. Default flipped back to off (was off in 0.8.0 too); the High preset still flips it on, players who want the look can enable it explicitly.
-- **FPS counter actually starts shown** - `Debug_FPS` default `true` was set on the params object but `UIManager.setFPSVisible` wasn't called at boot (only on the lil-gui onChange), so the counter stayed hidden until the player toggled it twice. Apply the initial state once after the controller is registered.
-- **Per-character PositionalAudio** - footsteps / jump / land / door clunk moved from the global SfxBus to per-Character `CharacterSfx` instances, each with their own THREE.PositionalAudio attached to the body (refDistance 4, rolloff 1.5, maxDistance 35). NPCs get their own audio too - Anna walking the loop now fades with distance, AI driver's door clunk lands at the vehicle, not the player.
-- **AmbientSound water gate tightened** - cam.y < 25 (matches almost any spawn) -> `Math.abs(cam.y - 12) < 10` (only when the player is within 10 m of the ocean's y-level). Spawn-pad players no longer hear surf they aren't near.
-
-### Fixed
-
-- **RocketShip liftoff stage NaN** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/4cd340c)) - root cause: `LIFTOFF_STAGES` has 4 entries, but `stage` was incremented without a bound check. If the player drops `enginePower` mid-ascent the climb slows below the targetY cutoff, `stage` hits 4, `LIFTOFF_STAGES[4]` is undefined, undefined * enginePower = NaN, and that NaN seeps into `body.velocity` → EngineSound throws `'AudioParam.value: non-finite'`. Fix clamps the index with `Math.min`; EngineSound also got a defensive layer (frame-skip on non-finite speedSq + reset `this.rpm` to IDLE_RPM if it has accumulated NaN).
-- **Critical numeric + leak bugs from the audit pass** - three independent guards: (1) Car / Boat gear off-by-one - `gearsMaxSpeeds[gear-1]` returned undefined at gear 0, divisor went NaN, engine force wrote NaN into cannon's body.velocity; clamp gear to `[1..maxGears]` before the lookup. (2) `SimulatorBase` `1 / fps` with fps = 0 yielded Infinity; clamp `Math.max(1, value)` in constructor + `setFPS`. (3) Cannon body 'collide' listeners on WanderingAnimals + Vehicle were anonymous functions that pinned the entity in memory across scenario switches; stash the listener as a field, removeEventListener in `removeFromWorld`. Verified via heap snapshot diff: Body count grows ~+13 over 10 scenario switches now (was ~+250).
-- **Per-character positional SFX** - footsteps / jump / land / door clunk moved out of the global `SfxBus` into a new `CharacterSfx` attached per Character (player + NPCs alike), modelled exactly like `EngineSound` per Vehicle. Each character emits its own sounds through a `THREE.PositionalAudio` with `refDistance: 4`, `rolloff: 1.5`, `maxDistance: 35`, attenuated by the listener-on-camera. Anna walking the loop now fades with distance instead of needing a behaviour gate; an AI driver entering its vehicle gets the door clunk at the vehicle, not at the player. The earlier "is player" guards (`world.characters[0] === this.character` and the later `behaviour === undefined` fallback) are gone - every character has audio. Initial step timer in Walk / Sprint dropped to 0 so the first step lands the moment the state is entered instead of waiting half an interval. `SfxBus` keeps the player-UI sounds: race checkpoint + lap, dialog whoosh, ProximityPrompt + PauseMenu ticks, IrisTransition, vehicle crash and rocket boom.
-- **Camera no longer clips through floor on steep down-look** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/5cf4610)).
-- **Wheels locked to chassis at speed** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/6cd2387)) - cannon-es interpolation timing matched.
-- **Tamed pets stop spinning when player wanders off** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/fec5c1a)).
-- **Em-dashes replaced repo-wide with hyphens** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/3030b3f)).
-
-## [0.8.0] - 2026-05-02
-
-The first big release of the `claude/external-features` branch:
-front-of-screen UI overhaul, a wave of new gameplay features, and a
-long performance + architecture pass. ~50 commits, ~50% of `World.ts`
-deleted, three new `world/` subfolders, ~3500 per-second allocations
-eliminated from hot paths.
-
-### UI
-
-- **Design tokens** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) - central `tokens.css` (~50 colour / typography / spacing / shadow / motion custom properties; `class="dark"` on `<html>` flips the surface palette to dark mode). All existing CSS modules refactored to reference the tokens - no more scattered magic numbers.
-- **Title screen** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) - bouncing cube + "press any key" gate that doubles as the audio-autoplay user gesture.
-- **Loading screen** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) - live percentage + bar driven by `LoadingManager`.
-- **Pause menu** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) - opens on Esc and actually pauses (timeScale=0, exits pointer lock, restores prior state on Resume) with Resume / Settings / Restart Scenario / Reload.
-- **Settings modal** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) - Graphics / Audio / Controls cards that write through lil-gui controllers so every existing `onChange` handler (CSM, pointer-lock, mouse sensitivity) keeps firing.
-- **Quality presets in Settings** - graphics card opens with a Low / High preset row that flips Shadows + Outlines + Bloom + Depth of Field together. The individual toggles still work for fine-tuning; the presets are shortcuts for the four settings that matter most for FPS on integrated GPUs and mobile.
-- **Branching NPC dialog** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) - layered on top of `ProximityPrompt` (portrait, speaker line, numbered choices, mouse + 1–9 keys, auto-closes when the player walks away - Anna / Ben / Carla / Dieter all got hand-written 3-node trees explaining the world).
-- **Dialog typewriter** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/08f05dc281dfe962df47acc0faa353e327fcfe6c)) - NPC dialog text reveals one character at a time (28ms cadence). Choices stay hidden until the line finishes. Click the bar or press E / Enter / Space to skip.
-- **Error overlay** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) - catches `window.onerror` + `unhandledrejection` into a frosted card with stack + Reload + Copy details.
-- **Floating CSS2D name tags** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/e0970713087556920b1ce28d259923068035cbfb)) - player tagged "Du" in blue, NPCs in their own names.
-- **Iris transition** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/4c887795129adefc4a9adb82577ef65bea37c0d9)) - singleton CSS clip-path overlay (700ms cubic-bezier circle wipe). Wired into the map switcher, scenario restart, and pause-menu reload - replaces the earlier white-flash `location.reload()` look with a clean black iris.
-- **Centralised world labels** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/cc03c9d3333de6dc261c3b453d1537bf7195b539)) - `WorldLabels` registry on top of the existing CSS2DRenderer that adds distance culling and feature-flag gating. `attachNameLabel` keeps its old signature (back-compat) and gains options for `maxDistance`/`feature`. Wandering animals use it for opt-in "Hund" / "Katze" tags.
-- **Touch controls** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/3dd1be5548ec0cc77cafd45141b0bb04498d2bba)) - virtual joystick + jump / action / sprint buttons + drag-to-look camera area, auto-mounted on touch devices. Synthesises KeyboardEvent / MouseEvent pairs so InputManager handles them as if from a hardware keyboard / mouse.
-- **i18n + language picker** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/dbbe34030fe6384fd22953899fecb31d730fef3f)) - flat translation table (en / de / es), `t(key, vars)` lookup, persisted to `localStorage`. Title screen shows a language picker at the bottom; pause menu, settings modal, and error overlay are translated.
-- **HUD controls list fixes** - two related bugs: X (Switch seats) now shows in the driving HUD whenever the vehicle's GLB authored connectedSeats (Car / Helicopter), and the HUD no longer freezes on the AI-driver vehicle's controls list at scenario start. Previously `Character.startControllingVehicle` ran `vehicle.inputReceiverInit()` for AI-driven vehicles too, overwriting the player's WASD list before the player had moved.
-- **Common controls helper** - extract the duplicated on-screen-help rows shared across Character + 5 vehicles (V / F / Shift+R / Shift+C) into `commonGlobalControls()` + `commonVehicleControls()` in `core/CommonControls.ts`. Cuts 18 duplicated bullet rows down to 5 central definitions; future tweaks to a global shortcut now touch one file instead of six.
+- **Design tokens** - central `tokens.css` (~50 colour / typography / spacing / shadow / motion custom properties; `class="dark"` on `<html>` flips the surface palette to dark mode). All CSS modules reference the tokens - no scattered magic numbers.
+- **Title screen** - bouncing-cube card + "click or press any key" gate that doubles as the audio-autoplay user gesture. Top-right icon buttons for dark mode and sound mute (the latter writes `localStorage['sketchbook.soundMuted']`, seeded into `Master_Audio` on next boot). Language picker (en / de / es) at the bottom.
+- **Loading screen** - live percentage + bar driven by `LoadingManager`.
+- **Pause menu** - opens on Esc and actually pauses (timeScale=0, restores prior state on Resume) with Resume / Settings / Restart Scenario / Reload.
+- **Settings modal** - four cards (General / Graphics / Audio / Controls) that write through lil-gui controllers so every existing `onChange` handler (CSM, mouse sensitivity) keeps firing. The General card carries the language picker (reload via iris-wipe), Dark mode toggle, and Reset settings (wipes every persisted `sketchbook.*` localStorage key + reload). Audio card carries Master_Audio with visual disable for Sound_Effects + Background_Music sub-toggles while master is off. Graphics card opens with Low / High preset shortcuts that flip Shadows + Outlines together. `gui.save()` runs after every modal write so toggle clicks persist immediately. Bidirectional sync via `gui.onChange` so debug-panel changes re-render the modal toggles when both views are open.
+- **Branching NPC dialog** - layered on top of `ProximityPrompt` (portrait, speaker line, numbered choices, mouse + 1-9 keys). Anna / Ben / Carla / Dieter all got hand-written 3-node trees explaining the world. Participants are `dialogFreeze`'d (player + NPC stop moving and drop their actions), every other on-screen UI surface is hidden via `html.dialog-active`, the NPC rotates to face the player. Players exit only by picking a closing choice (every dialog has one); Esc + walk-away dropped so the typewriter can't be yanked mid-sentence.
+- **Dialog typewriter** - NPC dialog text reveals one character at a time (28 ms cadence). Choices stay hidden until the line finishes. Click the bar or press E / Enter / Space to skip.
+- **Mobile dialog layout** - `@media (max-width: 600px)` splits the dialog into two free-standing cards: speech bubble pinned to the top (avatar + speaker + scrollable text band, max-height 28vh), choices float at the bottom of the viewport via `position: fixed`. World stays visible in the gap. `backdrop-filter` dropped on mobile because it was making the box the containing block for any `position: fixed` descendant.
+- **Error overlay** - catches `window.onerror` + `unhandledrejection` into a frosted card with stack + Reload + Copy details.
+- **Iris transition** - singleton CSS clip-path overlay (700 ms cubic-bezier circle wipe). Wired into the map switcher, scenario restart, pause-menu reload, and the Settings reset/locale-change paths.
+- **Floating CSS2D world labels** - `WorldLabels` registry on top of the existing CSS2DRenderer with distance culling (10 m) and a single `Labels` feature gate that covers the player tag (`label.player` translated to "You" / "Du" / "Tú"), NPC names (from `userData.name`), and dog/cat tags (`animal.dog` / `animal.cat`). Uses Three's `visible` flag instead of toggling DOM display - cheaper for the CSS2D pass.
+- **Touch controls** - virtual joystick spawns anywhere on the canvas (drag-to-spawn) instead of a fixed corner. Action button cluster is fully context-aware: foot-near-NPC shows E/F, in-vehicle shows brake + vehicle-specific extras (V/X for car/boat, ascend/descend + Q/E yaw for aircraft, ascend/descend for rocket), passenger shows seat-switch only, dialog hides everything. 2-column staircase layout so the primary action sits over the joystick thumb. Localised labels with touch-aware prompt strings ("Toca E para hablar con Anna" instead of "Press E"). Synthesises KeyboardEvent / MouseEvent pairs so InputManager handles them as if from a hardware keyboard / mouse.
+- **i18n + language picker** - flat translation table (en / de / es), `t(key, vars)` lookup, persisted to `localStorage['sketchbook.locale']`. Title screen, pause menu, settings modal, error overlay, dialogs, and world labels all translated. Title-screen language picker triggers a reload via the iris-wipe.
+- **HUD controls list fixes** - X (Switch seats) now shows in the driving HUD whenever the vehicle's GLB authored connectedSeats; the HUD no longer freezes on the AI-driver vehicle's controls list at scenario start.
+- **Common controls helper** - duplicated on-screen-help rows (V / F / Shift+R / Shift+C) extracted into `commonGlobalControls()` + `commonVehicleControls()` in `core/CommonControls.ts`. 18 duplicated rows → 5 central definitions.
+- **"Map & Scenarios" lil-gui panel** - the Scenarios folder was renamed; `addMapSwitcher` runs at the start of `loadScene` so the map dropdown lands on top, scenario buttons collapse into a `Scenarios` sub-folder lazily on first launch link. All top-level folders ship collapsed by default.
+- **Dark mode reaches the rest of the UI** - dialog, SweetAlert, lil-gui all follow the toggle.
+- **Pointer-lock dropped** - drag-to-look only. Pointer-lock was inconsistent across browsers and broke iframe embeds.
+- **Shared `#debug-stack` column** - FPS box + lil-gui live in the same flex column instead of overlapping.
+- **`ProximityPrompt` safety + orphan-detection** - a throttled (every 10th frame) distance check force-hides the prompt label if the player drifts past 2x the configured radius (catches stale labels from a desynced TriggerCube enter/exit). Per-frame orphan-detection tears the prompt down when its `targetCharacter` leaves `world.characters[]` (catches stale prompts after a scenario switch).
+- **Welcome dialog** mentions recently added features.
 
 ### New Features
 
-- **Camera Shake** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b9dd34c550f8da366970f9a0009558fa77af45f7)) - sineNoise-based per-frame camera offset triggered by vehicle hard landings; static fire-and-forget API, three presets (collision / land / boost), quadratic decay envelope, toggle in Settings.
-- **Stuck / flip auto-recovery** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/cf9cb1060d441713e23e4e8630a817a46bf12c72)) - Vehicle base method that watches a per-frame distance-traveled window and an upside-down timer; lifts and yaw-resets when either threshold trips, fires a `collision` camera shake on recovery. Per-subclass opt-out (boats / rockets fully off, air vehicles flip-only).
-- **Auto-recovery threshold widened: 100° → 80°** - `UPSIDE_DOWN_THRESHOLD` was inherited from Inthenew at `cos(100°)`, which means a vehicle had to be tilted past 100° from vertical (i.e. genuinely upside-down) before flip-recovery would even start counting. A heli or car that landed cleanly on its side at 90° was below the threshold and just stayed there. Drop to `cos(80°)` so anything past horizontal counts; a 45° hill still reads upY ≈ 0.7 so non-flipped parked vehicles aren't caught.
-- **Procedural engine sound** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/181e92140fa35381ea41f6ba234175943d8dbf6e)) - per-vehicle Web Audio synthesiser (2-layer exhaust + intake), RPM modulated by chassis speed, five timbre profiles (car / heli / airplane / boat / rocket). Master_Volume routes through the same slider that already drives THREE.AudioListener for positional audio.
-- **Outline effect** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/32449e442e2a3080c8fd540ca3a3b6b307017889)) - depth-Sobel pass: pre-renders the scene's linear depth to a render target, then blends a Sobel kernel over the framebuffer via a fullscreen quad. Plays well with the existing FXAA composer, no shader rewrite needed; toggle in Settings.
-- **Ambient soundscape** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1573870e6fff3b17e4e5c04e38dc40eb876cd839)) - procedural wind / bird-chirp / water Web Audio synthesis with proximity-gated water gain (only audible near the ocean). Same Master_Volume bus as engine + positional audio.
-- **Wandering animals** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/4c5a13e8c121fa5c4d1663de764b4526f375e1e5)) - 8 dogs + 10 cats spawned deterministically around the Inthenew spawn, each running a small state machine (idle / wander / approach / bark / flee / tame). Geometry merges primitive shapes - no GLTF asset; ground height is queried via cannon raycast so the animals adapt to any map.
-- **Star field at night** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/5037501e5807a68853d608bf735ad90802bd4f33)) - 2000 points on the upper hemisphere of a camera-anchored shell with a twinkle shader. nightFactor is derived from sun position, so they fade in at dusk and stay full in space.
-- **Bloom + Depth-of-Field** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/34920c47808b0b1d560fc9893e2b79222311d688)) - three's `UnrealBloomPass` + `BokehPass` added to the existing composer pipeline; bloom strength ramps at night, DoF focus tightens while driving. Toggles per pass - no new dependency.
+- **Camera Shake** - sineNoise-based per-frame camera offset triggered by vehicle hard landings. Static fire-and-forget API, three presets (collision / land / boost), quadratic decay envelope, toggle in Settings.
+- **Stuck / flip auto-recovery** - Vehicle base method that watches a per-frame distance-traveled window and an upside-down timer (chassis upY < cos(80°) - anything past horizontal counts as flipped, leaving 45° hills uncaught at upY ≈ 0.7). Lifts and yaw-resets when either threshold trips; fires a `collision` camera shake on recovery. Per-subclass opt-out: boats / rockets fully off, air vehicles flip-only.
+- **Procedural engine sound** - per-vehicle Web Audio synthesiser (2-layer sawtooth + square exhaust through a lowpass + bandpass-filtered noise intake). RPM modulated by chassis speed. Five timbre profiles: car / heli / airplane / boat / rocket.
+- **Outline effect** - depth-Sobel toon pass: pre-renders scene linear depth into a `HalfFloatType` render target via a `THREE.MeshDepthMaterial` override (which wires three's standard skinning + morph-target chunks so animated NPCs render in their actual pose, not bind pose), then blends a Sobel kernel over the framebuffer via a fullscreen quad. Sky / Stars / Earth / Moon / Grass / Ocean opt onto a new `RenderLayer.OutlineSkip` layer so the depth pre-pass skips them. Threshold is ratio-based (`edge / max(avgDepth, 1e-6)` against `relativeThreshold`); a `depthFalloff` term suppresses far-terrain flicker. Plays alongside the FXAA composer; toggle in Settings, default off (the High preset flips it on).
+- **Star field at night** - 2000 points on the upper hemisphere of a camera-anchored shell with a twinkle shader. nightFactor is derived from sun position, so they fade in at dusk and stay full in space.
+- **Procedural ambient soundscape** - wind (filtered noise) + water (LFO-swept bandpass). Water gain gated by `Math.abs(cam.y - 12) < 10` so only audible while the camera is within 10 m of the ocean's y-level. Bird chirps live in per-bird `BirdSound` (see Audio system).
+- **Bundled background music** - looped shuffle through three tracks generated with [Suno AI](https://suno.com/). Reuses the shared THREE AudioContext through `ProceduralAudio`. Gated by `params.Background_Music`, scaled by `Master_Volume * Music_Volume`.
+- **Per-character `CharacterSfx`** - footsteps / jump / land / door clunk emit through a per-Character `THREE.PositionalAudio` (refDistance 4, rolloff 1.5, maxDistance 35) attached to the character body. Same role EngineSound has for vehicles. Every character (player + NPCs) emits its own sounds: Anna walking the loop fades with distance; an AI driver entering its vehicle gets the door clunk at the vehicle, not at the player.
+- **Procedural SfxBus** - player-UI events that aren't tied to a character or vehicle: race checkpoint + lap fanfare, dialog whoosh, ProximityPrompt + PauseMenu UI ticks, IrisTransition whoosh, Vehicle crash (350 ms throttle, impact > 4) and RocketShip liftoff boom. Each play* method builds its tiny synth on demand and lets the browser GC the nodes once the burst finishes.
+- **`Master_Audio` mute switch** - master gate that mutes every audio source in one click. `getMasterVolume` returns 0 for the continuous synths; `World.applyAudioListenerVolume()` zeroes the THREE.AudioListener for the 3D-positional path. Sub-toggles in the settings UI grey out while master is off. Default reads `localStorage['sketchbook.soundMuted']` so the title-screen mute button persists; toggling either side (title screen, settings modal, debug panel) mirrors `sketchbook.soundMuted` so all three views stay in sync.
+- **`Sound_Effects` flag** - one player-facing toggle gating EngineSound, AmbientSound, BirdSound, SfxBus, CharacterSfx and AnimalVoices. `Background_Music` keeps its own toggle so the player can mute speech / explosions while leaving music on (or vice versa).
+- **Wandering animals** - 1 dog + 2 cats (deliberately calm count) spawned deterministically around the spawn pad. Each animal builds as a Three.Group with named handles for body / head / tail / legs / ears so a per-frame animator drives idle-breath, walk-cycle, run-cycle and jump pose independently. Each carries a dynamic cannon sphere on a new `Animals` collision group - cannon resolves terrain, player capsule and animal-vs-animal contact (the manual ground-snap path is gone). Jump is a real physics arc kicked by `body.velocity.y`; the body's `collide` event flips an `airborne` flag back off on landing. Procedural voices: dog bark on approach (square + bandpass), cat meow when threatened (FM sweep), cat purr-loop near tamed cats (LFO-modulated sawtooth) - mouth animation timed off the same `voiceTimer` the synth ramps. Per-species AI in `DogBehavior` / `CatBehavior` Strategy classes (singletons); shared idle/wander/tame logic in an `AnimalBehavior` base. Tamed pets close to 3 m, face the player every frame even while idle, and the dog pins position + heading inside bark range.
+- **Flying birds** - 2 birds orbiting on circular paths with sin-flap wings and banking turns. Per-bird `THREE.PositionalAudio` with FM-chirp synth (sine carrier + sine modulator + bandpass) attached to each bird's group; chirps fall off with distance. Each bird has a kinematic cannon sphere on the Animals collision group. Altitude band 5..14 m above the player's spawn-Y (captured once on first frame, never re-read so jumps + falls don't drag the swarm); X/Z stay player-relative so the flock stays in view. Frustum cull past 80 m skips wing flap + body sync; group position keeps updating so chirps still come from the bird's actual position.
+- **Ambient butterflies** - 2 butterflies drifting on a Lissajous path (cos + sin with co-prime frequency multipliers so motion never loops). Altitude band 1.0..1.5 m above the player's spawn-Y so they read as chest-height regardless of whether the spawn pad sits at y=0 or on Inthenew's elevated helipad. Distance-culled at 30 m, DoubleSide wing material, kinematic cannon sphere on the Animals collision group.
+
+### Maps
+
+The swift502 v0.1 + v0.2 original demo scenes vendored alongside the v0.3 + v0.4 socketControl maps that 0.7.0 brought in - all four released-tag-era maps now selectable from the dropdown.
+
+- **swift502 v0.1 (foundation)** - the v0.1 build had no `.glb` level; the demo was constructed inline in JS (`docs/js/index.js`). Recreated as a procedural sandbox (`Sw01Scene.ts`) that builds the v0.1 silhouette from primitives - tiled platform, dynamic spheres, static cubes, credit sign with grass tuft, plus the v0.1 roster of player + Bob (FollowCharacter) + John (Random).
+- **swift502 v0.2 (test world)** - `build/models/test_world/scene.glb` from the v0.2.0 tag vendored verbatim as `build/assets/world_v02.glb`. Loaded async at runtime by `Sw02Scene` which translates the v0.2-era `extras.physics='convex'/'trimesh'` + `extras.mass='1'` userData into Sketchbook's current `userData.data='physics'/'spawn'` dispatch format (the v0.2 GLB pre-dates the format Sketchbook 0.3+ uses). Player at the v0.2 demo's hand-picked `(1.13, 3, -2.2)` spawn; John (Random) at `(5, 2, 1)`; Bob (FollowCharacter) at `(-5, 2, 3)` - the original `examples/characters.html` roster.
+- The v0.3 + v0.4 maps (vendored as `world_sc_v03.glb` + `world_sc_v04.glb` from the [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl) flavour) were already brought in by 0.7.0; this release just labels them consistently in the dropdown.
+- `NPCSpawnPoint` grew a `userData.behaviour: 'random' | 'follow'` switch so the v0.1 / v0.2 AI characters can drive the existing `RandomBehaviour` / `FollowTarget` AI modules without needing a path graph.
+
+### Renames + defaults
+
+- `Has_Day_Night_Cycle` → `Sun_Cycle` (the old name only described half of what it does). `Has_Night_Time` greys out via lil-gui's `enable(false)` while Sun_Cycle is off.
+- Em-dashes replaced repo-wide with hyphens.
 
 ### Performance
 
-- **Pool Vector3 / Quaternion scratches in physics paths** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/3c03ef3ce2dc5af26779994ad155535991295583)) - `physicsPreStep` / `physicsPostStep` / wheel-update / springRotation across Helicopter, Airplane, Car, Vehicle and Character ran at 60 Hz per instance and allocated ~3500 throwaway objects per second. Move them to module-scoped scratches that get `.set()` / `.copy()` into each call. Pure GC pressure relief.
-- **Clamp renderer pixelRatio** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/0b4734efed746ae72507d97e5678b7662f43a1cd)) - cap `setPixelRatio` at 2. Phones and tablets often report DPR 3–4 which forces the GPU to render 9–16× the pixels per frame for sharpness gains the eye barely registers past 2×. Desktop displays unaffected.
-- **Halve CSM shadow map size** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/efb5dd48d8bbc819e3442b788a96168bb506d09b)) - `shadowMapSize` 2048 → 1024 across the 3 cascades. Drops shadow-pass work from ~12.6 MP/frame to ~3.15 MP and saves ~37 MB VRAM, with barely visible quality loss on an organic sandbox scene.
-- **GPU shader pre-compile** - `LoadingManager.doneLoading` now awaits `renderer.compileAsync(scene, camera)` before lifting the loading screen. Three.js otherwise compiles each unique material+light permutation lazily on first sight, which causes a 20–200 ms frame stall the first time the player turns toward an as-yet-unrendered car / NPC / ocean tile. compileAsync walks the scene up front and yields between programs so the loading screen stays responsive.
-- **Outline pass - layer skip + distance-aware threshold** - the depth pre-pass that drives the toon outline shader used to render the entire scene under an override material, including 300k grass-blade instances, 2000 star points, the sky shell, both celestial bodies, and the wave tiles. New `RenderLayer.OutlineSkip` layer (in `enums/RenderLayers.ts`); Sky/Stars/Earth/Moon/Grass/Ocean opt onto it; `OutlineEffect.renderPass` strips that bit on the camera before the depth pre-pass and re-enables it after. Sobel shader gains a `depthFalloff` term so distant pixels need a bigger depth gap to register as an edge, killing the flicker that linear-depth precision used to produce on far terrain. Net: depth pre-pass goes from "everything in the scene" to "Character + Vehicles + NPCs + buildings only".
-- **Outline depth RT: HalfFloat instead of Float** - the depth pre-pass writes a normalised value in [0..1] that the Sobel kernel only ever compares against a 0.003 threshold, so 32-bit float per channel was overkill. Switching the render-target to `HalfFloatType` halves its VRAM and write/read bandwidth (~16 MB → 8 MB at 1080p, more on Retina) with no visible quality change.
-- **Outline pass: scale-invariant threshold + skinned-mesh fix** - the custom DEPTH_VERTEX shader sampled `position` directly, so SkinnedMesh characters and animated NPCs rendered into the depth RT in *bind pose* - the Sobel kernel then drew the outline of the rest-position skeleton offset from the actually-animated body on screen. Switch the override to `THREE.MeshDepthMaterial`, which wires the skinning + morph-target chunks via three's standard pipeline. Depth threshold becomes ratio-based (`edge / max(avgDepth, 1e-6)` against a tunable `relativeThreshold`); a clean object-vs-background silhouette gives ratio ≈ 8 at every distance, smooth interior surfaces stay near 0.
-- **Animal raycast throttle** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/60daa7d24bde7dab4e6d274848e409096c0d4b8a)) - ground-height ray for each wandering animal now fires every 100 ms instead of every frame, with a per-animal stagger so they don't all sample the same tick. Y-position lerps between samples so motion stays smooth. Cuts ~1080 raycasts/sec on the default spawn down to ~180.
-- **Animal frustum culling** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b9e1f60d0cf327138c1716bbb2ed3f8995088473)) - per-animal AABB check skips updates for off-screen instances.
-- **SettingsModal lil-gui controller cache** - `SettingsModal.findController` walked `gui.controllersRecursive()` and linear-searched the result on every settings change. With ~40 controllers across the lil-gui folder tree, that's a fresh tree-walk and ~40 string compares for *every* `input` event a slider drag fires (30–50 per drag). Build the index once on the first lookup and cache it as a `Map<string, controller>` - drag now resolves through O(1) `Map.get`. Lazy-built so the cache catches the gui after World finishes wiring it up.
-- **defaultDialogs locale-keyed cache** - `getDefaultDialogs()` is called once per scenario launch but the same tree was rebuilt from scratch on every Shift+R / map-switch even when the player hadn't touched the language. Add a module-level cache keyed on the current locale so a stable language reuses the previous tree; the moment the title-screen language picker fires it invalidates and the next launch rebuilds in the new locale.
-- **Hoist defaultDialogs out of NPC spawn loop** - `getDefaultDialogs()` builds the full Anna/Ben/Carla/Dieter dialog tree (≈ 36 i18n lookups + four nested object literals). It was being called *inside* the NPC spawn loop in `injectDefaultSceneNPCs`, so each scenario launch reconstructed the entire tree once per NPC (4×). Hoist the call ahead of the loop - single build per launch.
-- **MapSwitcher: drop redundant validValues array** - `addMapSwitcher` was building a fresh `string[]` of all valid map ids just to call `.indexOf(stored)` on it once. Replace with a direct `for ... in` lookup against the existing `choices` map - same logic, no intermediate allocation.
+- **Pool Vector3 / Quaternion scratches in upstream physics paths** - `physicsPreStep` / `physicsPostStep` / wheel-update / springRotation across Helicopter, Airplane, Car, Vehicle and Character ran at 60 Hz per instance and allocated ~3500 throwaway objects per second through the upstream code. Module-scoped scratches that get `.set()` / `.copy()` into each call. Pure GC pressure relief.
+- **Hot-path allocations dropped on upstream code** - `Character.feetRaycast` no longer allocates two CANNON.Vec3 + a rayCastOptions object per physics step (module-scoped scratches reused across characters). `Character.inputReceiverUpdate`'s viewVector copies into the existing field-bound vector instead of replacing it. `Grass.refreshPushers` pools its candidate objects in a grow-only field array. `Character.moveVector` strict `=== 0` → `lengthSq() < 1e-6` epsilon. Ocean's per-call lambda + `Math.PI/180` → module-scoped `DEG2RAD` constant.
+- **Clamp renderer pixelRatio** - cap `setPixelRatio` at 2. Phones and tablets often report DPR 3-4 which forces the GPU to render 9-16× the pixels for sharpness gains the eye barely registers past 2×. Desktop displays unaffected.
+- **Halve CSM shadow map size** - `shadowMapSize` 2048 → 1024 across the 3 cascades. Drops shadow-pass work from ~12.6 MP/frame to ~3.15 MP and saves ~37 MB VRAM.
+- **GPU shader pre-compile** - `LoadingManager.doneLoading` awaits `renderer.compileAsync(scene, camera)` before lifting the loading screen. Three.js otherwise compiles each unique material+light permutation lazily on first sight, causing 20-200 ms frame stalls. compileAsync walks the scene up front and yields between programs so the loading screen stays responsive.
+- **Livelier ocean shader** - deeper trough, brighter crest, faster scroll on the upstream Inthenew ocean (from 0.6.0).
+- **Lawn responds to vehicles** - upstream grass (from 0.7.0) only deformed under the player; pushers now extend to vehicles too. Plus a lighter base Lambert material so the meadow doesn't go black past the LOD cut.
+- **`MapSwitcher`: drop redundant validValues array** - upstream `addMapSwitcher` (from 0.7.0) was building a fresh `string[]` of all valid map ids just to call `.indexOf(stored)` on it once. Replaced with a direct `for ... in` lookup against the existing `choices` map.
 
 ### Refactoring / Internals
 
-- **world/ folder reorganisation + World god-class split** - `src/ts/world/` had ~26 files at root (spawn points, UI overlays, scenarios, render entities, postprocess) and a 1306-LOC `World` class doing renderer setup, HTML scaffolding, lil-gui wiring, scene loading, NPC injection, and orchestration all at once. Group cohesive feature domains into subfolders (`world/spawn/`, `world/ui/`, `world/scenarios/`) and pull six setup-shaped responsibilities out of World into single-function helpers under `world/setup/` and `world/loading/`: `bootstrapHTML`, `setupRendererPipeline`, `addMapSwitcher`, `injectDefaultSceneNPCs`, `injectWanderingAnimals`, `createParamsGUI`, plus `loadScene` for the GLTF userData dispatcher. World.ts: 1306 → 636 LOC (-51%); root of `world/` dropped from 26 files to 14, with the rest grouped by domain. Pure relocation - public surface (`world.renderer`, `world.composer`, etc.) preserved so the four external consumers (LoadingManager, OutlineEffect) still work unchanged.
-- **Vehicle.ts: extract StuckRecovery helper** - the stuck/flip auto-recovery logic (sample window, flip timer, cooldown, lift+yaw-only reset) was ~110 LOC inline on the Vehicle base - three concerns mixed into one class. Pull it into `vehicles/StuckRecovery.ts` as a self-contained helper that takes a `(body, noDirectionPressed)` pair in its constructor. Vehicle holds an instance, calls `update(timeStep)` while a driver is in the seat and `reset()` otherwise. Subclasses that opt out (Helicopter / Airplane stuck-only, Boat / Rocket both gates) flip the public flags on the helper instead of on Vehicle itself. Vehicle.ts: 685 → ~575 LOC, behaviour preserved 1:1.
-- **Audio base class extraction** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/53bd1ac34d1fa8042c2a222c998bd7a55554d5e5)) - pull the shared Web Audio plumbing (shared `THREE.AudioListener` context, master gain, lifecycle) out of `EngineSound` / `AmbientSound` into a `ProceduralAudio` base. All four audio modules moved under `world/audio/`. Stops every audio source from spinning up its own `AudioContext` (browsers cap around 6 per tab).
-- **Animal Dog/Cat strategy split** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/b9e1f60d0cf327138c1716bbb2ed3f8995088473)) - the per-species AI lives in `DogBehavior` / `CatBehavior` strategy classes, while the shared idle/wander/tame logic stays in an `AnimalBehavior` base. Each behaviour is exported as a singleton - stateless, one instance shared across every animal.
-- **Semantic UpdateOrder enum** ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/01ebcb68c8a7b7e0257b873692c0df42b00d847c)) - replace 17 hand-picked `updateOrder` magic numbers (`1`, `2`, `3`, `4`, `5`, `6`, `10`, `11`, `12`, `13`, `14`, `15`) with named slots (`CharacterPhysics → VehiclePhysics → Input → Camera → Environment → Scenarios → World → Audio → Triggers → Prompts → Labels → PostCamera`), spaced by 10 so a new slot can squeeze between two existing ones without renumbering. Relative order preserved 1:1 - pure naming/documentation. Also fixes two stale comments that cited the old wrong values.
+- **`world/` folder reorganisation + World god-class split** - `src/ts/world/` had ~26 files at root and a 1306-LOC `World` class doing renderer setup, HTML scaffolding, lil-gui wiring, scene loading, NPC injection, and orchestration all at once. Cohesive feature domains grouped into subfolders (`world/spawn/`, `world/ui/`, `world/scenarios/`, `world/setup/`, `world/loading/`, `world/audio/`, `world/animals/`); single-function helpers under `setup/` and `loading/` (`bootstrapHTML`, `setupRendererPipeline`, `addMapSwitcher`, `injectDefaultSceneNPCs`, `injectWanderingAnimals`, `injectFlyingBirds`, `injectButterflies`, `createParamsGUI`, plus `loadScene`). The per-frame GPU dispatch (composer / renderer FXAA branch + outline overlay + CSS2D label projection + cannon debug) moved out of `World.render` into `tickRenderPipeline(world)` / `tickCannonDebug(world)` siblings of `setupRendererPipeline`. World.ts: 1306 → ~650 LOC. Public surface (`world.renderer`, `world.composer`, `world.audioListener`, etc.) preserved so external consumers (LoadingManager, OutlineEffect) work unchanged.
+- **Vehicle helpers** - three concerns extracted from the Vehicle base: `StuckRecovery` (sample window, flip timer, cooldown, lift+yaw-only reset; subclasses opt out by flipping public flags on the helper), `VehicleAudioBridge` (engine sound updatable + crash collide listener; `attach()` / `detach()` ensure the closure doesn't pin the vehicle in memory across scenario switches), `WheelManager` (free `syncWheelTransforms()` and `updateWheelProps()` against `rayCastVehicle.wheelInfos`). Vehicle.ts: 685 → 559 LOC.
+- **Character bridges** - two extractions from the 1081-LOC Character class: `CharacterPhysicsBridge` (`physicsPreStep` / `feetRaycast` / `physicsPostStep` ~130 LOC of cannon math + ground-stick velocity write + jump kickoff + their hot-path scratches) and `CharacterInputBridge` (`handleKeyboardEvent` / `handleMouseButton` / `handleMouseMove` / `handleMouseWheel` / `triggerAction` ~80 LOC of input routing). Public API unchanged: state files keep calling `this.character.feetRaycast()`, World keeps calling `char.physicsPreStep(body, char)`. Character.ts: 1081 → 856 LOC.
+- **Audio package** - shared Web Audio plumbing (THREE.AudioListener context, master gain, lifecycle) lives in a `ProceduralAudio` base; subclasses provide `shouldPlay()`, `buildSynth()`, `teardownSynth()`, `updateSynth()`. Cross-cutting helpers in `AudioHelpers.ts`: `getMasterVolume(world)`, `ensureAudioListener(world)`, `createMediaAudioElement(audioUrl)` - replace what used to be 6 + 4 + 1 inline copies. The audio package types against a slim `AudioWorldContext` interface (params + camera + audioListener + ocean) instead of the full `World` class - 8 audio classes decoupled. World still satisfies the contract structurally so no callsite changes needed; Speaker stays on `World` because `IWorldEntity.addToWorld(world: World)` forces the full type.
+- **`AnimalModels` split** - the 532-LOC file mixed types, palettes, low-level mesh helpers, two species builders, and a 180-line per-frame animator. Final layout: `AnimalModels.ts` (types + colour palettes + low-level mesh helpers `mat`/`makeLeg`/`makeTail`/`applyShadow`/`FOOT_OFFSET`), `CatBuilder.ts` (`buildCatModel`), `DogBuilder.ts` (`buildDogModel`), `AnimalAnimator.ts` (`applyAnimalAnimation` broken into 4 pose-specific helpers). Spawn placement + the shared `queryGroundHeight` raycast moved into `AnimalSpawner.ts`. WanderingAnimals.ts: 518 → 361 LOC. `BirdSound` + `AnimalVoices` moved from `world/animals/` to `world/audio/` since they're audio classes. `mulberry32` PRNG lifted from three duplicate copies into `core/FunctionLibrary`.
+- **Semantic UpdateOrder enum** - replace 17 hand-picked `updateOrder` magic numbers with named slots (`CharacterPhysics → VehiclePhysics → Input → Camera → Environment → Scenarios → World → Audio → Triggers → Prompts → Labels → PostCamera`), spaced by 10 so a new slot can squeeze between two existing ones without renumbering.
 
 ### Fixed
 
-- **RocketShip flight-timer cleanup on world removal** - `RocketShip` keeps five `setInterval` handles for the liftoff staging, the cruise velocity push, and the descent velocity push. A scenario switch (Shift+R, map change) mid-flight removed the rocket from the world but left the timers ticking - they kept writing into a detached cannon body's `velocity` / `position` until eventually a stale `clear` from the next scenario landed. Override `removeFromWorld` to call the existing `stopLiftoff` / `cancelTravelTimers` / `cancelDropTimers` and hide the planet menu so dangling listeners can't fire either.
-- **Speaker pendingResume queue cleanup** - `Speaker.pendingResume` is a static array that parks audio elements waiting for the first user gesture (browser autoplay policy). Once a click or keypress lands the queue plays everything and clears. If a scenario switch happens *before* that first gesture though, the Speaker's `removeFromWorld` only paused and detached the dom element - the static array still held a reference, blocking GC, and the eventual gesture would call `.play()` on a removed dom node. `removeFromWorld` now splices the element out of the queue so the static state stays in sync with what's actually live.
+- **RocketShip liftoff stage NaN** - upstream RocketShip (from 0.6.0) had no bound check on `LIFTOFF_STAGES[stage]`; if the player dropped `enginePower` mid-ascent, `stage` could overshoot and `LIFTOFF_STAGES[4]` was undefined → undefined * enginePower = NaN → NaN in `body.velocity` → EngineSound throws `'AudioParam.value: non-finite'`. Fix clamps the index with `Math.min`. EngineSound also got a defensive layer (frame-skip on non-finite speedSq + reset rpm to idle).
+- **RocketShip flight-timer cleanup on world removal** - upstream `RocketShip` kept five `setInterval` handles for liftoff staging + cruise/descent velocity push, leaked across scenario switches. `removeFromWorld` now cancels them and hides the planet menu.
+- **Speaker pendingResume queue cleanup** - upstream `Speaker` (from 0.7.0) parked audio elements on a static queue waiting for the first user gesture; `removeFromWorld` only paused the dom element but didn't splice the static reference, blocking GC and eventually firing `.play()` on a removed dom node. Splice the element out of the queue.
+- **Car / Boat gear off-by-one** - upstream `gearsMaxSpeeds[gear-1]` returned undefined at gear 0, divisor went NaN, engine force wrote NaN into cannon's body.velocity. Clamp gear to `[1..maxGears]` before the lookup.
+- **`SimulatorBase` divide-by-zero** - upstream `1 / fps` with fps = 0 yielded Infinity. Clamp `Math.max(1, value)` in constructor + `setFPS`.
+- **Vehicle cannon-body collide-listener leak** - upstream `Vehicle` registered the 'collide' listener as an anonymous function, so removing the vehicle on scenario switch couldn't detach it - the closure pinned the vehicle in memory. Stash the listener as a field, `removeEventListener` in `removeFromWorld`. Heap snapshot diff verified: Body count grows ~+13 over 10 scenario switches now (was ~+250).
+- **Camera no longer clips through floor on steep down-look** - upstream camera-orbit raycast didn't clamp polar angle hard enough.
+- **Wheels locked to chassis at speed** - cannon-es interpolation timing on the wheel transforms didn't match the chassis interpolation, so wheels visibly lagged at high speed. Fix samples both at the same `interpolatedPosition` step.
 
 ## [0.7.5] - 2026-03
 
@@ -261,11 +210,140 @@ The controller layer only synthesises keyboard/mouse events, so the
 engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js`
 was vendored under `vendor/joycon/`.
 
-## [0.4.0] - 2023-02
+## [0.4.0] - 2020-09
 
-Final update from the original author
-[swift502](https://github.com/swift502).
+Final tagged release from the original author
+[swift502](https://github.com/swift502). Tagged 4 September 2020;
+swift502's "no more interest" public farewell came in February 2023
+(quoted below) but no further code changes shipped after the v0.4.0
+tag.
+
+### Added / Polish
+
+- npm package published as [`sketchbook`](https://www.npmjs.com/package/sketchbook).
+- README polish: thumbnail switched to repo-vendored `src/img/thumbnail.png` (the v0.3 README had pulled the screenshot from imgur), Discord + travis-CI badges added.
+- Air-vehicle exit rotation fix - exiting an airplane mid-flight no longer left the character spinning.
+- Vehicle seat-improvement merge (PR #31): cleaner driver / passenger seat differentiation.
+- Final refinement passes on character + vehicle handling; no new gameplay surface beyond v0.3.
+
+### Map (`build/assets/world.glb`)
+
+The same world.glb that 0.3 used, lightly tweaked. Vendored in this
+fork as `world_sc_v04.glb` (taken from the [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl)
+flavour, which carried similar tweaks). Selectable from the Map
+dropdown as **sketchbook v0.4 (socketControl)**.
+
+### Final farewell (February 2023)
 
 > As I have no more interest in developing this project, it comes to
 > a conclusion. […] If you wish to modify Sketchbook feel free to
-> fork it.
+> fork it. The [NPM package](https://www.npmjs.com/package/sketchbook)
+> name is available, and I'll give it away to anyone who asks for it.
+> The package has never worked properly.
+
+## [0.3.0] - 2020-01
+
+[swift502](https://github.com/swift502) — the version that introduced
+**vehicles** to Sketchbook.
+
+### Added
+
+- **Cars** - third-person driveable vehicle with cannon.js raycast suspension, four wheels, drive / steer / brake controls.
+- **Airplanes** - flight model with throttle / pitch / yaw / roll, lift derived from forward velocity, take-off + landing on runways.
+- **Helicopters** - ascend / descend on Shift / Space, pitch + yaw + roll on WASD/QE.
+- **Vehicle entry / exit state** - walk-up animation, door-open animation, sit transition.
+- **GLB-driven map authoring** - level + vehicles + spawn points all loaded from a single `world.glb` with `userData` markers (`data: 'physics'`, `data: 'spawn'`, etc.) the engine dispatches on. Replaces the v0.2 hand-coded scene-construction in `examples/characters.html`.
+- **Scenarios** in dat.GUI - launch a chosen spawn / scenario from the right-hand panel.
+- **Cascaded shadow maps (CSM)** - replaces the single shadow camera with a 3-cascade rig that follows the camera; sharper shadows near the player without dropping detail across the whole map.
+- **Sleeping bodies** - cannon physics bodies sleep when stationary so the broadphase doesn't tick them every frame.
+- **Path system** - `userData.data='pathNode'` graph for AI vehicle drivers and walking NPCs. Underpins the Car AI driver.
+- **Car AI** - example AI driver follows a path, stops at signs, recovers from collisions.
+
+### Map (`build/assets/world.glb`)
+
+A complete sandbox map with race tracks, ramps, parking, runways and
+a helipad - the level Sketchbook is best known for. Vendored in this
+fork as `world_sc_v03.glb` (the [tkkaushik369/socketControl](https://github.com/tkkaushik369/socketControl)
+flavour, which is materially the same level with later socketControl
+tweaks). Selectable from the Map dropdown as **sketchbook v0.3
+(socketControl)**.
+
+## [0.2.0] - 2018-11
+
+[swift502](https://github.com/swift502) — **first GLB-loadable scene**
+and a more flexible state system.
+
+### Added
+
+- **`build/models/test_world/scene.glb`** - a small GLB-driven test
+  level. Replaces the v0.1 hand-coded geometry construction. The
+  level has a few static colliders, a couple of ramps, and a flat
+  ground surface for character + AI testing.
+- **Frame skipping** - logic update is decoupled from render frame so
+  the game runs at consistent simulation speed even when the GPU
+  drops below 60 fps.
+- **Generalised state system** - character animation state machine
+  abstracted out of the previous v0.1 inline implementation; new
+  states can be authored by extending a base class.
+- **Multi-character AI demo** - `examples/characters.html` spawns one
+  player + multiple AI characters (`Random` behaviour) walking around
+  the test world.
+- **Settings overlay**: F to spawn a ball, T to toggle slow motion,
+  V to change view distance, Shift+C for the free camera (the same
+  free-cam shortcut Sketchbook still uses today).
+
+### Map (vendored from upstream)
+
+The v0.2 `build/models/test_world/scene.glb` is vendored verbatim in
+this fork as `build/assets/world_v02.glb` and loaded at runtime by
+`Sw02Scene` (under `src/ts/world/sandboxes/`). The sandbox class
+translates the v0.2-era `extras.physics` / `extras.mass` userData
+into Sketchbook's current `userData.data='physics'/'spawn'` dispatch
+format - the v0.2 GLB pre-dates that pattern. Player spawn at the v0.2
+demo's hand-picked `(1.13, 3, -2.2)` plus the original `examples/characters.html`
+roster (John with Random behaviour, Bob with FollowCharacter).
+Selectable from the Map dropdown as **swift502 v0.2 (test world)**.
+
+## [0.1.0] - 2018-10
+
+[swift502](https://github.com/swift502) — **the first tagged release**
+of Sketchbook, the foundation everything since builds on.
+
+### Added
+
+- **Three.js scene + Cannon.js physics** - the core engine pairing
+  that defines Sketchbook to this day.
+- **Variable, FPS-independent time scale** - logic clock decoupled
+  from render clock, so a slow-motion / fast-forward toggle doesn't
+  warp physics integration step.
+- **FXAA anti-aliasing** - cheap fullscreen-quad antialiasing,
+  no MSAA dependency.
+- **Custom damped-spring simulation** - the spring solver that
+  drives character orientation lerp + velocity smoothing
+  (`SpringSimulator` / `RelativeSpringSimulator` lived under this
+  name from day one).
+- **Third-person camera** - orbit around the player with mouse drag,
+  spring-damped target follow.
+- **Raycast character controller with capsule collisions** - a
+  cannon.js capsule body for the player, raycasts down each frame
+  to detect ground for "stick to ground" velocity smoothing instead
+  of relying on contact normals (which fluctuate on rough trimesh).
+- **State-based animation system** - explicit state classes (Idle,
+  Walk, Sprint, Falling, JumpIdle, etc.) drive both the animation
+  blend and the physics behaviour. The state-machine pattern that
+  the entire character codebase still rides on.
+- **Character AI** - `Random` and `FollowTarget` behaviours that mutate
+  the character's `viewVector` etc. without bypassing the state
+  machine.
+
+### Map (procedural recreation)
+
+v0.1 didn't ship a `.glb` level - the build only carried character +
+sign FBX source models, and the demo scene was constructed inline in
+JS. The 0.1 vibe is recreated as a procedural sandbox in this fork
+(`src/ts/world/sandboxes/Sw01Scene.ts`) - a small flat ground with a
+single reference column, one player spawn at origin, and one AI
+character. Selectable from the Map dropdown as **swift502 v0.1
+(foundation)**. Demonstrates the foundational character physics +
+state-based animation that everything since builds on, with the
+simplest possible AI alongside.

@@ -1,7 +1,9 @@
 <p align="center">
-	<a href="https://jblaha.art/sketchbook/latest"><img src="./src/img/thumbnail.png"></a>
+	<a href="https://projects.manuelhintermayr.com/sketchbook-upgraded/"><img src="./src/img/thumbnail.png"></a>
 	<br>
-	<a href="https://jblaha.art/sketchbook/latest">Live demo (original by swift502)</a>
+	<a href="https://projects.manuelhintermayr.com/sketchbook-upgraded/">Live demo (v0.8.0)</a>
+	<br>
+	<a href="https://jblaha.art/sketchbook/latest">Original demo by swift502</a>
 	<br>
 </p>
 
@@ -25,24 +27,24 @@ This fork pulls in the features from later community forks that I felt were wort
 - Procedural ambient soundscape - wind (filtered noise) and water (LFO-swept bandpass), water gated to camera proximity (only audible within 10 m of the ocean's y-level).
 - Per-character positional SFX: footsteps (walk + sprint cadence), jump kickoff, landing thump (force-scaled), door clunk - each character (player + NPCs) carries its own THREE.PositionalAudio so steps fade with distance instead of playing flat.
 - Procedural sound-effects bus for the player-UI events: race checkpoint ping + lap fanfare, dialog whoosh, prompt + pause UI ticks, iris-transition whoosh, vehicle crash (impact-throttled), rocket-liftoff boom. All signal-generated, no asset files.
+- Bundled background music - looped shuffle through three tracks generated with [Suno AI](https://suno.com/), gated by `Background_Music` and scaled by `Master_Volume * Music_Volume`.
 - One **Master Audio** mute switch (toggleable from the title screen, the Settings modal, and the debug panel - all three mirror through localStorage). When off every audio source goes silent: continuous synths via the master-volume helper, 3D-positional sources via the THREE listener gain. Music + sound-effects can each be muted independently when master is on.
 - Variable timescale, FXAA, cascaded shadow maps, adjustable gravity (0–2×).
 - Camera shake on vehicle hard landings (sineNoise-based, three presets: collision / land / boost).
 - All settings persist to `localStorage` with a one-click reset.
 - Iris-wipe transition (CSS clip-path circle, 700ms) when switching maps, restarting a scenario, or reloading from the pause menu.
 - Optional depth-Sobel outline overlay (toon look) - toggle in Settings.
-- Optional Bloom (strength ramps at night) and Depth-of-Field (tighter focus while driving) - both off by default, toggles in Settings.
 
 ### Characters & NPCs
 
 - Third-person camera, raycast capsule controller, full state machine (Sprint, Walk, Idle, Jump, Falling, Drop variants…).
 - AI path-following - same convention used by both the AI vehicle drivers and standing/wandering NPCs.
-- Name labels float above every character via a CSS2D pass; the player is tagged "Du" and stands out in blue.
+- Name labels float above every character via a CSS2D pass; the player is tagged "You" / "Du" / "Tú" depending on the locale and stands out in blue.
 - Two example NPCs walk a small loop at the default spawn, two more flank the player on idle.
-- Wandering dogs & cats around the spawn area, with hierarchical low-poly models (per-limb walk / run / jump / idle-breathe animation), procedural voices (bark / meow / purr-loop near tamed cats), and dynamic cannon-sphere bodies so they collide with the player and each other. Dogs notice and bark, cats flee, both can be tamed; tame pets follow the player and turn to track them.
+- Wandering dogs & cats around the spawn area (1 dog + 2 cats, kept calm by design), with hierarchical low-poly models (per-limb walk / run / jump / idle-breathe animation), procedural voices (bark / meow / purr-loop near tamed cats), and dynamic cannon-sphere bodies so they collide with the player and each other. Dogs notice and bark, cats flee, both can be tamed; tame pets follow the player and turn to track them.
 - Flying birds with per-bird positional FM-chirp audio (cat-game-style orbit motion, sin-flap wings, kinematic cannon body) - chirps fade with distance from each bird, replacing the old global ambient bird-chirp.
 - Ambient butterflies on a Lissajous drift around the player, distance-culled at 30 m, kinematic cannon body so debug-physics shows them.
-- Distance-culled CSS2D world labels via a central registry - one **Labels** toggle controls every floating tag (player "Du", NPC names, Hund / Katze); hides past 10 m to keep the UI quiet at distance.
+- Distance-culled CSS2D world labels via a central registry - one **Labels** toggle controls every floating tag (player, NPC names, dogs and cats - all translated through i18n); hides past 10 m to keep the UI quiet at distance.
 
 ### Vehicles
 
@@ -57,7 +59,7 @@ This fork pulls in the features from later community forks that I felt were wort
 - Title screen with bouncing-cube animation + language picker (gates audio autoplay).
 - Loading screen with live percentage and progress bar driven by `LoadingManager`.
 - Pause menu on Esc (timeScale=0, exits pointer lock) - Resume / Settings / Restart Scenario / Reload.
-- Settings modal with Graphics / Audio / Controls cards - writes through lil-gui controllers so existing `onChange` handlers fire.
+- Settings modal with General / Graphics / Audio / Controls cards (language picker, dark mode and a settings reset live in General) - writes through lil-gui controllers so existing `onChange` handlers fire.
 - Branching NPC dialog with typewriter reveal (28ms cadence) - click bar or press E / Enter / Space to skip, choices appear after typing finishes.
 - Error overlay catches `window.onerror` + `unhandledrejection` into a frosted card with stack + Reload + Copy details.
 - Centralised design tokens (`tokens.css`) with `class="dark"` dark mode toggle on `<html>`.
@@ -66,10 +68,12 @@ This fork pulls in the features from later community forks that I felt were wort
 
 - Free-roam (default and aviation), Oval / Tunnel / Figure-8 car races, Boat Race, stunt ramps.
 - Curve-based race-checkpoint system with a HUD lap counter.
-- Switchable maps from the **Scenarios** GUI panel (persists across reloads):
-	- `Inthenew (v0.6, default)` - the bundled extended map
-	- `sketchbook v0.3 (socketControl)` - original Sketchbook map with the grass material
-	- `sketchbook v0.4 (socketControl)` - original Sketchbook map, full scenario set
+- Switchable maps from the **Map & Scenarios** GUI panel (persists across reloads):
+	- `Inthenew (v0.6, default)` - the bundled extended map (helipad spawn, races, marina, rocket island, day-night skybox)
+	- `swift502 v0.1 (foundation)` - procedural recreation of the original 2018 demo (the v0.1 build pre-dated the GLB+userData map authoring, so the inline-JS scene from `docs/js/index.js` is rebuilt here from primitives); tiled platform + dynamic spheres + cubes + credit sign with grass + player + Bob (FollowCharacter) + John (Random).
+	- `swift502 v0.2 (test world)` - the actual `build/models/test_world/scene.glb` from the v0.2.0 tag, vendored as `build/assets/world_v02.glb` and loaded at runtime; v0.2-era `extras.physics` / `extras.mass` userData translated on the fly into Sketchbook's current dispatch format. Player at the v0.2 demo's `(1.13, 3, -2.2)` spawn + John + Bob at the original coordinates.
+	- `sketchbook v0.3 (socketControl)` - the swift502 v0.3 sandbox map (race tracks, ramps, runways, helipad), with later socketControl tweaks layered on
+	- `sketchbook v0.4 (socketControl)` - the swift502 v0.4 final map, again with socketControl additions
 	- Four code-built sandboxes from socketControl: `test`, `test2`, `test3`, `example` (TypeScript, editable directly)
 - Compatibility with the [official three.js editor](https://threejs.org/editor/) - the sandbox project file is vendored under `ThreejsEditor/`.
 
@@ -136,11 +140,13 @@ Beyond this README, the repo carries a handful of complementary docs - pick the 
 
 The biggest release on this fork - three concurrent strands of work landed across ~50 commits. Per-commit detail (every bullet that used to live here) is now in [`CHANGELOG.md`](./CHANGELOG.md); this entry summarises the three strands.
 
-**UI**: a front-of-screen overhaul. A central CSS-tokens system now drives every module's colours / typography / spacing, with light + dark surfaces. New top-level screens cover what was missing: a bouncing-cube title screen that doubles as the audio-autoplay gate, a percentage-driven loading bar, an Esc pause menu (Resume / Settings / Restart / Reload), a Settings modal with three cards and Low / High quality presets, branching NPC dialog with typewriter reveal, an iris-wipe map-switch transition, distance-culled CSS2D world labels (player tagged "Du"), an `onerror` / `unhandledrejection` overlay, touch controls auto-mounted on mobile, and a flat-table i18n layer (en / de / es) with a title-screen language picker.
+**UI**: a front-of-screen overhaul. A central CSS-tokens system now drives every module's colours / typography / spacing, with light + dark surfaces. New top-level screens cover what was missing: a bouncing-cube title screen that doubles as the audio-autoplay gate (with sound-mute + dark-mode + language toggles), a percentage-driven loading bar, an Esc pause menu (Resume / Settings / Restart / Reload), a Settings modal with four cards (General / Graphics / Audio / Controls) and Low / High quality presets, branching NPC dialog with typewriter reveal, an iris-wipe map-switch transition, distance-culled CSS2D world labels (player tagged "You" / "Du" / "Tú"), an `onerror` / `unhandledrejection` overlay, touch controls auto-mounted on mobile, and a flat-table i18n layer (en / de / es) with a title-screen language picker.
 
-**New features**: gameplay additions and visual polish - camera shake on vehicle hard landings (three presets), stuck/flip auto-recovery on the Vehicle base, per-vehicle procedural Web Audio engine sounds (5 timbre profiles), a depth-Sobel toon outline pass, a procedural ambient soundscape (wind / birds / ocean-gated water), 18 wandering dogs and cats with a small state-machine AI, a 2000-star camera-anchored night sky, and optional Bloom + Depth-of-Field on the existing composer. Plus small visible HUD fixes (X seat-switch surfaces during driving, AI-driver vehicles no longer hijack the controls list at startup).
+**New features**: gameplay additions and visual polish - camera shake on vehicle hard landings (three presets), stuck/flip auto-recovery on the Vehicle base, per-vehicle procedural Web Audio engine sounds (5 timbre profiles), a depth-Sobel toon outline pass with skinned-mesh-aware MeshDepthMaterial + scale-invariant ratio threshold, per-character positional SFX (footsteps / jump / land / door clunk via THREE.PositionalAudio per character), a procedural ambient soundscape (wind + ocean-gated water; bird chirps moved to per-bird PositionalAudio), 1 dog + 2 cats wandering with hierarchical models + procedural voices + real cannon physics + jump arcs, 2 flying birds with per-bird FM-chirp + frustum cull at 80 m, 2 ambient butterflies on a Lissajous drift (altitude anchored to spawn-Y), a 2000-star camera-anchored night sky, bundled background music shuffled through three Suno-AI-generated tracks, and a Master_Audio mute switch that mirrors through localStorage between title screen, Settings modal and the lil-gui debug panel. Plus HUD fixes (X seat-switch surfaces during driving, AI-driver vehicles no longer hijack the controls list at startup).
 
-**Refactoring + performance**: a long internals pass with no user-visible behaviour change. `World.ts` split from a 1306-LOC god class into a 636-LOC orchestrator with seven setup helpers and three new `world/` subfolders (`spawn/`, `ui/`, `scenarios/`). Vehicle's stuck-recovery state machine moved into its own helper; the audio system collapsed onto a shared `ProceduralAudio` base + single `AudioContext`; animal AI moved into Strategy classes with frustum culling. Hot paths got module-scoped scratch pools (~3500 allocations/sec eliminated), the depth-Sobel outline switched to a scale-invariant ratio threshold and skinned-mesh-aware `MeshDepthMaterial`, magic-number `updateOrder` slots became a semantic enum, and a handful of perf knobs were tightened (pixelRatio capped at 2, shadow-map size halved, GPU shaders pre-compiled, outline RT to half-float). Two real-bug fixes shipped alongside: RocketShip cancels its `setInterval` handles on world removal, and Speaker drops its dom element from the gesture-pending queue on scenario switch.
+**Refactoring + performance**: a long internals pass with no user-visible behaviour change. `World.ts` split from a 1306-LOC god class into a ~650-LOC orchestrator with eight setup helpers and three new `world/` subfolders (`spawn/`, `ui/`, `scenarios/`). Vehicle gained `StuckRecovery` + `VehicleAudioBridge` + `WheelManager` helpers; Character grew `CharacterPhysicsBridge` + `CharacterInputBridge` so the orchestrator only handles state-machine coordination. The audio system collapsed onto a shared `ProceduralAudio` base + single `AudioContext` and now types against a slim `AudioWorldContext` interface instead of the full World class. Animal AI moved into Strategy classes; `AnimalModels` was split into `CatBuilder` / `DogBuilder` / `AnimalAnimator` / `AnimalSpawner`. Hot paths got module-scoped scratch pools (~3500 allocations/sec eliminated), magic-number `updateOrder` slots became a semantic enum, and a handful of perf knobs were tightened (pixelRatio capped at 2, shadow-map size halved, GPU shaders pre-compiled, outline RT to half-float, Birds frustum-culled past 80 m).
+
+**Maps**: the swift502 v0.1 + v0.2 original demo scenes were vendored alongside the v0.3 + v0.4 maps that the v0.7.0 socketControl port already brought in - so every released-tag-era map up to v0.4 is now selectable from the Map dropdown. v0.2's `build/models/test_world/scene.glb` ships verbatim as `build/assets/world_v02.glb` and is loaded at runtime by a small sandbox class that translates v0.2-era `extras.physics` / `extras.mass` userData into Sketchbook's current dispatch format. v0.1 had no GLB level (the demo was constructed inline in JS), so it's recreated procedurally from primitives - same player + Bob + John roster + `(1.13, 3, -2.2)` player spawn the v0.1 / v0.2 demos used.
 
 ## March 2026 - version 0.7.5 - Notblox features port ([iErcann](https://github.com/iErcann)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/31c51c472c3c908cdb2c28b75e973aa7ec565c9f))
 
@@ -174,16 +180,23 @@ A second pass on top of cjmott's work: dependencies updated to current versions 
 
 Adds Joy-Con / gamepad support originally written by [Bar Hatsor](https://github.com/barhatsor) in [benhatsor/Joycon-Sketchbook](https://github.com/benhatsor/Joycon-Sketchbook). Original commits preserved via `format-patch` / `am`. The controller layer only synthesises keyboard/mouse events, so the engine itself is untouched. The unpinned `cdn.cde.run/Joycon.min.js` was vendored under `vendor/joycon/`.
 
-## February 2023 - version 0.4.0 - [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook-upgraded/commit/62f4b7986fd1ce1e4f91daba89ef032c20a6ce55)), final update from the original author
+## September 2020 - version 0.4.0 - [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook/commit/e23d2eabd1808478119dc633d836b5d8057a6010)) - final tagged release
 
-> As I have no more interest in developing this project, it comes to a conclusion. […] If you wish to modify Sketchbook feel free to fork it. The [NPM package](https://www.npmjs.com/package/sketchbook) name is available, and I'll give it away to anyone who asks for it. The package has never worked properly.
+NPM publish + last polish before swift502 stepped away from the project: thumbnail moved into the repo, Discord + travis-CI badges, airplane-exit rotation fix, vehicle-seat refinements (PR #31). No new gameplay surface beyond v0.3. The map is the same `world.glb` v0.3 introduced; this fork vendors the socketControl-tweaked variant as `world_sc_v04.glb`.
 
----
+> February 2023 farewell: *As I have no more interest in developing this project, it comes to a conclusion. […] If you wish to modify Sketchbook feel free to fork it. The [NPM package](https://www.npmjs.com/package/sketchbook) name is available, and I'll give it away to anyone who asks for it. The package has never worked properly.*
 
-## TODO
+## January 2020 - version 0.3.0 - [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook/commit/2ee27b2608d8f2427e8a3ae16dfd0a8e3c4011fd)) - vehicles arrive
 
-- Bring over remaining features from [iErcann/Notblox](https://github.com/iErcann/Notblox) (excluding multiplayer), with priority on moving from cannon to rapier.
-	- Evaluate controller integration from [pmndrs/ecctrl](https://github.com/pmndrs/ecctrl) or [pmndrs/BVHEcctrl](https://github.com/pmndrs/BVHEcctrl).
+The version that turned Sketchbook from "character-physics demo" into a game-ready sandbox. **Cars, airplanes, and helicopters** all land in this release with vehicle-entry / exit animation states, raycast suspension, and full flight controls. Maps switch from hand-coded JS construction to **GLB-driven authoring** with `userData` markers (`data: 'physics'` / `data: 'spawn'` / `data: 'pathNode'`) - the same dispatcher pattern Sketchbook still uses today. **Cascaded shadow maps**, **dat.GUI scenarios panel**, **path-following AI** (vehicle drivers), **sleeping cannon bodies**, and the **`world.glb` sandbox map** with race tracks, ramps, runways and a helipad. This fork vendors the socketControl-tweaked variant of that map as `world_sc_v03.glb`.
+
+## November 2018 - version 0.2.0 - [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook/commit/2aeeafe259e9d66904dd83216118245080d0ca05)) - first GLB scene
+
+First release with a **GLB-loadable level** (`build/models/test_world/scene.glb`, vendored here as `world_v02.glb` and selectable from the Map dropdown). Frame-skipping decouples the physics tick from the GPU frame so simulation speed stays stable below 60 fps. The character animation state machine gets generalised into a base class + state subclasses that v0.8 still extends. The example HTML spawns one player + multiple AI characters running the `Random` behaviour; controls overlay debuts (F to spawn a ball, T slow-mo, V view distance, Shift+C free camera).
+
+## October 2018 - version 0.1.0 - [swift502](https://github.com/swift502) ([commit](https://github.com/swift502/Sketchbook/commit/b5387b47f1ff7611b0d970bc81576636e27e35af)) - the foundation
+
+The first tagged release. Three.js scene + cannon.js physics with **variable, FPS-independent time scale**, **FXAA**, a **custom damped-spring simulation** (the `SpringSimulator` driving character orientation lerp + velocity smoothing), a **third-person camera** with mouse-drag orbit, a **raycast capsule character controller** with stick-to-ground velocity smoothing, an **explicit state-based animation system** (Idle / Walk / Sprint / Falling / JumpIdle / etc.), and **Random + FollowTarget character AI** behaviours. No vehicles, no GLB level - just the engine framework with character models + sign FBXs.
 
 ---
 
