@@ -343,8 +343,11 @@ export class TouchControls
 		else if (this.mode === 'rocket')
 		{
 			visible.add('touch-btn-action'); // Exit (F)
-			visible.add('touch-btn-up');     // ShiftLeft
-			visible.add('touch-btn-down');   // Space
+			// touch-btn-up (ShiftLeft "ascend") deliberately omitted -
+			// the rocket inherits the keybinding from the helicopter
+			// vehicle base but the liftoff sequence is fully scripted,
+			// so manual ascend has no observable effect.
+			visible.add('touch-btn-down');   // Space - triggers blast-off
 			primary = 'touch-btn-action';
 		}
 		else if (this.mode === 'passenger')
@@ -364,6 +367,18 @@ export class TouchControls
 			btn.classList.toggle('touch-action-btn--primary', show && id === primary);
 			btn.classList.toggle('touch-action-btn--secondary', show && id !== primary);
 			delete btn.dataset.slot;
+		}
+
+		// Swap touch-btn-down's glyph to a rocket emoji in rocket mode -
+		// the same button is "descend" in aircraft / vehicles and
+		// "blast off" in the rocket, and the keycap should reflect what
+		// it does. Restore the down-arrow text in every other mode.
+		const downBtn = this.buttons.get('touch-btn-down');
+		if (downBtn !== undefined)
+		{
+			const wantRocket = this.mode === 'rocket';
+			const desired = wantRocket ? '🚀' : t('touch.down');
+			if (downBtn.textContent !== desired) downBtn.textContent = desired;
 		}
 
 		// Assign slot indices in priority order: primary is slot 0
