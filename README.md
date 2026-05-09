@@ -134,9 +134,11 @@ Beyond this README, the repo carries a handful of complementary docs - pick the 
 
 > **Attribution policy:** every port below tries to preserve the original commits or at least the original authors via `git format-patch` / `git am` or `git commit --author="…" --date="…"`. The intent is to honour each upstream author's work - and only their work - in `git log`.
 >
+> **Versions + dates:** the dates on each entry are the dates the work originally landed in its upstream fork. The version numbers (`v0.5.0`, `v0.6.0`, `v0.7.0` …) were assigned **here** when the corresponding port was completed in `manuelhintermayr/sketchbook-upgraded` - the upstream forks didn't tag releases the same way, so the numbering is this fork's timeline overlay on top of the upstream history.
+>
 > **Detailed release notes** (per-commit Keep-a-Changelog entries) live in [`CHANGELOG.md`](./CHANGELOG.md). The timeline below is the narrative summary; the changelog has the granular detail.
 
-## May 2026 - version 0.8.0 - UI overhaul, new features, refactoring pass ([manuelhintermayr](https://github.com/manuelhintermayr))
+## May 2026 - version 0.8.0 - UI overhaul, new features, refactoring pass ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/cecd8c2))
 
 The biggest release on this fork - three concurrent strands of work landed across ~50 commits. Per-commit detail (every bullet that used to live here) is now in [`CHANGELOG.md`](./CHANGELOG.md); this entry summarises the three strands.
 
@@ -172,7 +174,7 @@ Inthenew squashes upstream commits, so each feature was re-ported individually w
 
 > I plan to use Sketchbook as a basis to develop another project, so I have updated the code to run on the latest version of all the packages and switched from cannon.js, which is no longer maintained, to cannon-es.js. […] The biggest change has involved updating to the new version of THREE.js, which no longer supports the object types `Geometry` and `Face3`, replacing both with `BufferGeometry`. Note that I have also updated the sky shaders to use an example provided on the THREE.js website.
 
-### April 2026 follow-up - version 0.4.1.2 - toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1a99803b366f49385dfac80c76ab86371f154915))
+### April 2026 follow-up - version 0.5.1.2 - toolchain re-modernisation ([manuelhintermayr](https://github.com/manuelhintermayr)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1a99803b366f49385dfac80c76ab86371f154915))
 
 A second pass on top of cjmott's work: dependencies updated to current versions (TypeScript 6, ESLint, three.js r183, webpack 5), legacy in-repo utility copies replaced with maintained npm packages (lil-gui, stats.js, cannon-es-debugger), unused legacy files dropped. Behaviour and architecture preserved - gameplay changes start in May.
 
