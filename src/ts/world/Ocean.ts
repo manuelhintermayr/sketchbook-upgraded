@@ -20,9 +20,9 @@ export class Ocean implements IUpdatable
 {
 	public updateOrder = UpdateOrder.World;
 	public material: THREE.MeshBasicMaterial;
-	public clock: THREE.Clock;
 
 	private world: World;
+	private startTime: number;
 
 	private readonly GrdSiz = 1000;
 	private readonly segNum = 200;
@@ -54,7 +54,11 @@ export class Ocean implements IUpdatable
 		});
 		object.material = this.material;
 
-		this.clock = new THREE.Clock();
+		// Wall-clock start time - feeds the wave shader's `time` uniform.
+		// THREE.Clock used to do this; it is deprecated in favour of
+		// performance.now() (THREE.Timer is the official replacement but
+		// adds an updatable just to wrap the same call).
+		this.startTime = performance.now();
 		this.createOcean();
 	}
 
@@ -276,10 +280,18 @@ export class Ocean implements IUpdatable
 		return y + 3.6 + tile.position.y + 0.1;
 	}
 
+	// Wall-clock seconds since the ocean was constructed. Mirrors the
+	// `time` value the wave shader sees, so callers (Boat) can sample
+	// getWaveHeightAt with a t that matches the visible waves.
+	public getElapsedTime(): number
+	{
+		return (performance.now() - this.startTime) / 1000;
+	}
+
 	public update(_timeStep: number): void
 	{
 		if (!this.loaded) return;
-		this.uniforms.time.value = this.clock.getElapsedTime();
+		this.uniforms.time.value = this.getElapsedTime();
 
 		if (this.waterNormalMap)
 		{

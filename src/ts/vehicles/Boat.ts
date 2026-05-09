@@ -233,7 +233,7 @@ export class Boat extends Vehicle implements IControllable
 		const ocean = this.world?.ocean;
 		if (ocean)
 		{
-			const time = ocean.clock.getElapsedTime();
+			const time = ocean.getElapsedTime();
 			const sampled = ocean.getWaveHeightAt(body.position.x, body.position.z, time);
 			if (sampled !== 'inner-zone')
 			{
