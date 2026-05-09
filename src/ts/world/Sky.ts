@@ -179,14 +179,15 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		const inSpace = this.world.onMoon || this.world.camera.position.y > 1500;
 		this.skyMesh.visible = !inSpace;
 
-		// Stars: ramp up as the sun drops below the horizon (sunPosition.y
-		// goes negative). Squared so the fade-in is gentle near dusk and
-		// fully on by deep night. In space we want them at full brightness
+		// Stars: linear ramp from late-afternoon (sunY=2, ~phi 168) to
+		// deep dusk (sunY=-3, ~phi 197). Earlier curve kept this squared
+		// from -sunY/10, which only became visible when the sun had
+		// dropped halfway to nadir - by which point the player had
+		// already been staring at a black sky for a while wondering
+		// where the stars were. In space we want them at full brightness
 		// regardless of sun position.
 		const sunY = this.sunPosition.y;
-		const SUN_DISTANCE = 10;
-		const horizonNight = THREE.MathUtils.clamp(-sunY / SUN_DISTANCE, 0, 1);
-		const nightFactor = inSpace ? 1.0 : horizonNight * horizonNight;
+		const nightFactor = inSpace ? 1.0 : THREE.MathUtils.clamp((2 - sunY) / 5, 0, 1);
 		this.starsMaterial.uniforms.nightFactor.value = nightFactor;
 		this.starsMaterial.uniforms.time.value += timeScale;
 
@@ -259,7 +260,11 @@ export class Sky extends THREE.Object3D implements IUpdatable
 					vTwinkle = twinklePhase;
 					vAlpha = nightFactor;
 					vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-					gl_PointSize = size * (300.0 / -mvPosition.z) * nightFactor;
+					// Constant screen-space size - the shell is at a fixed
+					// radius so distance attenuation just makes them tiny.
+					// Brightness fade lives entirely in vAlpha so the stars
+					// fade in without also visually shrinking to nothing.
+					gl_PointSize = size * 2.0;
 					gl_Position = projectionMatrix * mvPosition;
 				}
 			`,
