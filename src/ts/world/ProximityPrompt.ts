@@ -3,9 +3,10 @@ import { World } from './World';
 import { IUpdatable } from '../interfaces/IUpdatable';
 import { UpdateOrder } from '../enums/UpdateOrder';
 import { Character } from '../characters/Character';
-import { TriggerCube, TriggerCenter } from './TriggerCube';
 import { DialogBox, Dialog } from './ui/DialogBox';
 import { t } from '../i18n';
+
+export type ProximityCenter = THREE.Vector3 | (() => THREE.Vector3);
 
 export interface ProximityPromptParams
 {
@@ -29,24 +30,29 @@ export interface ProximityPromptParams
 // Single-player port of iErcann/Notblox's ProximityPrompt. The original
 // is networked + ECS-based: a NetworkComponent the server attaches to
 // any entity, plus a client system that draws a HUD label and forwards
-// the E key. We collapse that to a TriggerCube + a screen-space DOM
-// label + a document keydown listener.
+// the E key. We collapse that to a per-frame distance check + a screen-
+// space DOM label + a document keydown listener.
 //
-// maxInteractDistance is mapped to a half-extent on each axis of the
-// trigger cube; interactionCooldown is enforced locally via Date.now().
+// Visibility uses the same stateless squared-distance check WorldLabels
+// applies to the CSS2D name tags - simple, deterministic, and immune
+// to the desync windows a TriggerCube + onEnter/onExit state machine
+// can hit when the player teleports, gets dialogFreeze'd mid-step, or
+// the NPC walks past at speed.
+const _temp = new THREE.Vector3();
+
 export class ProximityPrompt implements IUpdatable
 {
 	public updateOrder = UpdateOrder.Prompts;
 
 	private world: World | null = null;
-	private trigger: TriggerCube;
+	private centerSource: ProximityCenter;
 
 	private label: HTMLDivElement;
 	private inside = false;
 	private lastInteract = 0;
 	private text: string;
 	private touchText: string;
-	private maxInteractDistance: number;
+	private maxInteractDistanceSq: number;
 	private interactionCooldown: number;
 	private onInteract: ((player: Character) => void) | undefined;
 	private dialog: Dialog | undefined;
@@ -56,11 +62,13 @@ export class ProximityPrompt implements IUpdatable
 	private boundKeyDown: (e: KeyboardEvent) => void;
 	private boundTouchModeChange: () => void;
 
-	constructor(center: TriggerCenter, params: ProximityPromptParams)
+	constructor(center: ProximityCenter, params: ProximityPromptParams)
 	{
+		this.centerSource = center;
 		this.text = params.text ?? t('prompt.interact');
 		this.touchText = params.touchText ?? params.text ?? t('prompt.interact.touch');
-		this.maxInteractDistance = params.maxInteractDistance ?? 3;
+		const maxInteractDistance = params.maxInteractDistance ?? 3;
+		this.maxInteractDistanceSq = maxInteractDistance * maxInteractDistance;
 		this.interactionCooldown = params.interactionCooldown ?? 1000;
 		this.onInteract = params.onInteract;
 		this.dialog = params.dialog;
@@ -69,36 +77,6 @@ export class ProximityPrompt implements IUpdatable
 		// button, plain interact gets the F button. Vehicles aren't
 		// ProximityPrompts so they're handled separately.
 		this.kind = params.dialog !== undefined ? 'dialog' : 'interact';
-
-		const r = this.maxInteractDistance;
-		this.trigger = new TriggerCube(
-			center,
-			new THREE.Vector3(r * 2, r * 2, r * 2),
-			() =>
-			{
-				this.inside = true;
-				this.label.style.visibility = 'visible';
-				if (this.world !== null) this.world.sfxBus.playUiTick();
-				window.dispatchEvent(new CustomEvent('proximity-near', {
-					detail: { kind: this.kind },
-				}));
-			},
-			() =>
-			{
-				this.inside = false;
-				this.label.style.visibility = 'hidden';
-				window.dispatchEvent(new CustomEvent('proximity-far', {
-					detail: { kind: this.kind },
-				}));
-				// No auto-close on walk-away. Both player and NPC are
-				// dialogFreeze'd, so a stray onExit here is residual
-				// velocity carrying the player out of the trigger box
-				// - closing on that would yank the dialog mid-
-				// typewriter. The dialog ends only via a choice (every
-				// tree has an 'end' branch), matching the
-				// "non-dismissable" rule.
-			},
-		);
 
 		this.label = document.createElement('div');
 		this.label.className = 'proximity-prompt';
@@ -118,7 +96,6 @@ export class ProximityPrompt implements IUpdatable
 	public addToWorld(world: World): void
 	{
 		this.world = world;
-		this.trigger.addToWorld(world);
 		document.body.appendChild(this.label);
 		document.addEventListener('keydown', this.boundKeyDown);
 		// Touch / interact button on the on-screen overlay. Both routes
@@ -131,7 +108,6 @@ export class ProximityPrompt implements IUpdatable
 
 	public removeFromWorld(world: World): void
 	{
-		this.trigger.removeFromWorld(world);
 		this.label.remove();
 		document.removeEventListener('keydown', this.boundKeyDown);
 		window.removeEventListener('touch-interact', this.boundKeyDown as any);
@@ -140,61 +116,52 @@ export class ProximityPrompt implements IUpdatable
 		this.world = null;
 	}
 
-	private safetyTickCounter = 0;
-
 	public update(_timeStep: number): void
 	{
+		if (this.world === null) return;
+
 		// Orphan detection - if our target NPC has been pulled from
 		// the world (scenario switch, Shift+R restart), tear ourselves
-		// down. Prompts are intentionally not part of clearEntities
-		// (animals + birds + butterflies are map-bound and we don't
-		// want to tear those down per scenario), so the prompt has to
-		// notice itself when its target is gone. Without this the
-		// trigger keeps reading the dead NPC's frozen position and a
-		// new scenario's player spawn that overlaps that frozen zone
-		// would see the label stuck visible permanently.
-		if (this.targetCharacter !== undefined && this.world !== null)
+		// down. Prompts are intentionally not part of clearEntities,
+		// so the prompt has to notice itself when its target is gone.
+		if (this.targetCharacter !== undefined)
 		{
 			if (this.world.characters.indexOf(this.targetCharacter) === -1)
 			{
-				const w = this.world;
 				this.label.style.visibility = 'hidden';
-				this.removeFromWorld(w);
+				this.removeFromWorld(this.world);
 				return;
 			}
 		}
 
-		// Safety net for the inside-flag / label-visibility pair: the
-		// TriggerCube's onEnter / onExit can desync (player teleport,
-		// dialogFreeze yanking velocity, NPC moving past at speed) and
-		// leave the label stuck visible past the actual leave. We
-		// re-verify with a real distance check, but only every 10
-		// frames - the stale-label window we're guarding against is
-		// much longer than 160ms anyway, and keeping this off the hot
-		// path matters across all 4 NPC prompts.
-		if (++this.safetyTickCounter < 10) return;
-		this.safetyTickCounter = 0;
-
-		if (!this.inside) return;
-		const player = this.world?.characters[0];
-		if (player === undefined) return;
-		const targetPos = this.targetCharacter !== undefined ? this.targetCharacter.position : null;
-		if (targetPos === null) return;
-		const dx = player.position.x - targetPos.x;
-		const dy = player.position.y - targetPos.y;
-		const dz = player.position.z - targetPos.z;
-		// 2x slack keeps the box-vs-sphere math forgiving (the cube's
-		// diagonal is r*sqrt(3) = 2.6r, so a player can legitimately be
-		// outside the cube but inside the inscribed sphere).
-		const r = this.maxInteractDistance * 2;
-		if (dx * dx + dy * dy + dz * dz > r * r)
+		const player = this.world.characters[0];
+		if (player === undefined)
 		{
-			this.inside = false;
-			this.label.style.visibility = 'hidden';
-			window.dispatchEvent(new CustomEvent('proximity-far', {
-				detail: { kind: this.kind },
-			}));
+			if (this.inside) this.setInside(false);
+			return;
 		}
+
+		const center = typeof this.centerSource === 'function'
+			? this.centerSource()
+			: this.centerSource;
+
+		const dx = player.position.x - center.x;
+		const dy = player.position.y - center.y;
+		const dz = player.position.z - center.z;
+		const distSq = dx * dx + dy * dy + dz * dz;
+		const shouldBeInside = distSq <= this.maxInteractDistanceSq;
+
+		if (shouldBeInside !== this.inside) this.setInside(shouldBeInside);
+	}
+
+	private setInside(value: boolean): void
+	{
+		this.inside = value;
+		this.label.style.visibility = value ? 'visible' : 'hidden';
+		if (value && this.world !== null) this.world.sfxBus.playUiTick();
+		window.dispatchEvent(new CustomEvent(value ? 'proximity-near' : 'proximity-far', {
+			detail: { kind: this.kind },
+		}));
 	}
 
 	private refreshLabelText(): void

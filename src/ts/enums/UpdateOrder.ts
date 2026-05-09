@@ -14,8 +14,7 @@ export enum UpdateOrder
 	Scenarios        = 60,    // RaceContent and other scripted progression
 	World            = 100,   // Grass, Ocean, WanderingAnimals - need camera
 	Audio            = 110,   // ProceduralAudio (engine/ambient), Speaker
-	Triggers         = 120,   // TriggerCube zones
-	Prompts          = 130,   // ProximityPrompt (after the trigger that owns it)
+	Prompts          = 130,   // ProximityPrompt (per-frame distance check)
 	Labels           = 140,   // CSS2D WorldLabels
 	PostCamera       = 150,   // CameraShake - runs after the camera is final
 }
