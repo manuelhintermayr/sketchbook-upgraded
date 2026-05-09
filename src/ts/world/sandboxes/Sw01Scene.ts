@@ -1,20 +1,138 @@
 import * as THREE from 'three';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+
 import { BaseScene } from './BaseScene';
 
-// Recreates the swift502 v0.1.0 (October 2018) demo scene as it
-// appeared in the live browser demo: a tiled platform, several
-// dynamic spheres + a couple of static cubes for the player to push
-// around / shelter behind, a wooden credit sign with grass at its
-// base, and three characters (player + Bob with FollowCharacter +
-// John with Random behaviour - the original demo's roster).
+// Faithful 1:1 port of swift502 v0.1.0 (October 2018) demo scene -
+// see `docs/js/index.js` in the upstream tag. The reference scene is:
 //
-// The on-disk v0.1.0 source (`docs/js/index.js`) had only boxes +
-// planks; the published demo evolved with spheres on top, which is
-// what the v0.1.0 demo actually looked like in browsers. We recreate
-// that visual here.
+//   Ground            (0, -1, 0)   half-extents (5,  1, 5)    static
+//   Heavy crate slab  (-4, 1, 0)   half-extents (1, 0.5, 4)   mass 10
+//   Heavy crate pillar (4, 2, 3)   half-extents (1, 2,   1)   mass 10
+//   Plank             (0, 5, 3)    half-extents (4, 0.02, 0.3) mass 5  - drops at start
+//   Plank             (-1, 3, -3)  half-extents (3, 0.02, 0.3) mass 5  - drops at start
+//   Credits sign      (-0.5, 0, 4.5) rotY=π/2  - sign.fbx
+//   Credits sign     scale 1.7× clone at +X 1   - sign.fbx (different credits texture)
+//
+// Characters: player + bob (FollowCharacter) + john (Random),
+// all spawning at (0, 0, 0). The original used `game_man.fbx` for
+// the model; we keep the engine's standard boxman so the rest of
+// the controller / state machine pipeline works unchanged.
+//
+// Sign is loaded async via FBXLoader, so the scene exposes a
+// static createAsync() factory and index.html dispatches through
+// the helper for sw-v01.
 
+const SIGN_DIR = 'build/assets/credits_sign/';
+
+export class Sw01Scene extends BaseScene
+{
+	public static createAsync(): Promise<Sw01Scene>
+	{
+		return new Promise((resolve, reject) =>
+		{
+			const loader = new FBXLoader();
+			loader.load(
+				SIGN_DIR + 'sign.fbx',
+				(sign) => resolve(new Sw01Scene(sign)),
+				undefined,
+				(err) => reject(err),
+			);
+		});
+	}
+
+	constructor(signFbx: THREE.Group)
+	{
+		super();
+
+		// Permanent map (ground + signs) lives directly on the scene -
+		// they're static and don't reset across scenario restarts.
+		// Dynamic objects (crates, planks) and character spawns go
+		// inside the scenario container so a Shift+R re-launch resets
+		// them, matching the v0.1 demo's "reload the page to reset"
+		// behaviour.
+		const scenario = new THREE.Object3D();
+		scenario.userData = {
+			name: 'swift502 v0.1 demo',
+			data: 'scenario',
+			default: 'true',
+			desc_title: 'swift502 v0.1',
+			desc_content: 'October 2018 - the original demo. Two heavy crates to shove, two planks dropping at start, two credit signs, and Bob + John following + wandering.',
+			camera_angle: 0,
+		};
+
+		// 10x2x10 ground centered at (0, -1, 0) - top surface at y=0.
+		addStaticBox(this.scene, 0, -1, 0, 10, 2, 10, 0xcccccc);
+
+		// Two heavy crates the player can shove around (mass 10).
+		addDynamicBox(scenario, -4, 1, 0, 2, 1, 8, 10, 0xcccccc);
+		addDynamicBox(scenario,  4, 2, 3, 2, 4, 2, 10, 0xcccccc);
+
+		// Two thin planks falling from above (mass 5). Drop on launch.
+		addDynamicBox(scenario,  0, 5,  3, 8, 0.04, 0.6, 5, 0xcccccc);
+		addDynamicBox(scenario, -1, 3, -3, 6, 0.04, 0.6, 5, 0xcccccc);
+
+		// Two credits signs. The original FBX has 4 sub-meshes (sign,
+		// grass, sign_shadow, credits) - each gets its own textured
+		// Lambert material the way docs/js/index.js wired them up. The
+		// first sits at (-0.5, 0, 4.5) rotated 90° around Y; the 1.7x
+		// clone uses a different `credits` texture (the larger
+		// "credits.png" vs "credits2.png"), nudges its sign + credits
+		// sub-meshes back along local Z, and lands next to the first
+		// sign at (0.5, 0, 4.5) after a translateZ(1) in its own
+		// rotated frame (local Z = world +X under rotY=π/2).
+		applySignMaterials(signFbx, false);
+		signFbx.translateZ(4.5);
+		signFbx.translateX(-0.5);
+		signFbx.rotateY(Math.PI / 2);
+		this.scene.add(signFbx);
+		// Static collider behind the small sign panel (matches
+		// upstream half-extents 0.3 × 0.45 × 0.1).
+		addStaticCollider(this.scene,
+			signFbx.position.x, signFbx.position.y + 0.45, signFbx.position.z,
+			0.6, 0.9, 0.2);
+
+		const signClone = signFbx.clone();
+		signClone.scale.multiplyScalar(1.7);
+		applySignMaterials(signClone, true);
+		signClone.translateZ(1); // local Z under rotY=π/2 → world +X
+		this.scene.add(signClone);
+		addStaticCollider(this.scene,
+			signClone.position.x, signClone.position.y + 0.58, signClone.position.z,
+			0.8, 1.16, 0.32);
+
+		// Player + Bob (FollowCharacter) + John (Random) - all at
+		// (0, 0, 0) like `world.SpawnCharacter()` with default position
+		// in v0.1. Physics resolves the overlap into something visible
+		// within the first frames.
+		const playerSpawn = new THREE.Object3D();
+		playerSpawn.position.set(0, 0, 0);
+		playerSpawn.userData = { data: 'spawn', type: 'player', name: 'user' };
+		scenario.add(playerSpawn);
+
+		const bob = new THREE.Object3D();
+		bob.position.set(0, 0, 0);
+		bob.userData = { data: 'spawn', type: 'character_ai', name: 'Bob', behaviour: 'follow' };
+		scenario.add(bob);
+
+		const john = new THREE.Object3D();
+		john.position.set(0, 0, 0);
+		john.userData = { data: 'spawn', type: 'character_ai', name: 'John', behaviour: 'random' };
+		scenario.add(john);
+
+		this.scene.add(scenario);
+	}
+}
+
+// Static visual + physics box at (x,y,z) of full size (w,h,d). The
+// physics marker uses half-extents in its scale (BoxCollider treats
+// scale.x as cannon's half-extent directly - SceneLoader convention),
+// while the visual mesh uses the full size as scale on a unit
+// BoxGeometry. Mismatching the two would either collide against an
+// invisible larger volume (player floats above the visible ground) or
+// fall through one smaller than visible.
 function addStaticBox(
-	scene: THREE.Scene,
+	target: THREE.Object3D,
 	x: number, y: number, z: number,
 	w: number, h: number, d: number,
 	color: number,
@@ -22,160 +140,122 @@ function addStaticBox(
 {
 	const vis = new THREE.Mesh(
 		new THREE.BoxGeometry(),
-		new THREE.MeshStandardMaterial({ color }),
+		new THREE.MeshLambertMaterial({ color }),
 	);
 	vis.scale.set(w, h, d);
 	vis.position.set(x, y, z);
 	vis.castShadow = true;
 	vis.receiveShadow = true;
-	scene.add(vis);
+	target.add(vis);
 
 	const phy = new THREE.Mesh(new THREE.BoxGeometry());
-	phy.scale.copy(vis.scale);
-	phy.position.copy(vis.position);
+	phy.scale.set(w / 2, h / 2, d / 2);
+	phy.position.set(x, y, z);
 	phy.userData = { data: 'physics', type: 'box' };
-	scene.add(phy);
+	target.add(phy);
 }
 
-// Approximation of the swift502 credits sign FBX: brown post + a
-// vertical sign panel + crossed grass planes at the base. The
-// original loaded a textured FBX; this rebuilds the silhouette with
-// primitives.
-function addSign(scene: THREE.Scene, x: number, z: number, scale: number): void
+// Dynamic box that ShapeSpawnPoint will turn into a CANNON-driven
+// entity at scenario launch. The marker mesh's scale is the FULL
+// visual size (ShapeEntity halves it internally to feed cannon's
+// half-extent constructor). visible=false here keeps the marker
+// from rendering alongside the ShapeEntity clone, which adds itself
+// at visible=true.
+function addDynamicBox(
+	target: THREE.Object3D,
+	x: number, y: number, z: number,
+	w: number, h: number, d: number,
+	mass: number,
+	color: number,
+): void
 {
-	const post = new THREE.Mesh(
+	const spawn = new THREE.Mesh(
 		new THREE.BoxGeometry(),
-		new THREE.MeshStandardMaterial({ color: 0x6b4a2a }),
+		new THREE.MeshLambertMaterial({ color }),
 	);
-	post.scale.set(0.16 * scale, 1.2 * scale, 0.16 * scale);
-	post.position.set(x, 0.6 * scale, z);
-	post.castShadow = true;
-	scene.add(post);
-
-	const panel = new THREE.Mesh(
-		new THREE.BoxGeometry(),
-		new THREE.MeshStandardMaterial({ color: 0xa07a4a }),
-	);
-	panel.scale.set(0.6 * scale, 0.6 * scale, 0.06 * scale);
-	panel.position.set(x, 0.95 * scale, z);
-	panel.castShadow = true;
-	scene.add(panel);
-
-	const col = new THREE.Mesh(new THREE.BoxGeometry());
-	col.scale.set(0.6 * scale, 1.2 * scale, 0.16 * scale);
-	col.position.set(x, 0.6 * scale, z);
-	col.userData = { data: 'physics', type: 'box' };
-	scene.add(col);
-
-	for (const a of [0, Math.PI / 2])
-	{
-		const grass = new THREE.Mesh(
-			new THREE.PlaneGeometry(0.7 * scale, 0.3 * scale),
-			new THREE.MeshStandardMaterial({ color: 0x4ea44e, side: THREE.DoubleSide }),
-		);
-		grass.position.set(x, 0.15 * scale, z);
-		grass.rotation.y = a;
-		scene.add(grass);
-	}
+	spawn.scale.set(w, h, d);
+	spawn.position.set(x, y, z);
+	spawn.castShadow = true;
+	spawn.receiveShadow = true;
+	spawn.visible = false;
+	spawn.userData = {
+		data: 'spawn',
+		type: 'shape',
+		subtype: 'box',
+		mass: String(mass),
+	};
+	target.add(spawn);
 }
 
-export class Sw01Scene extends BaseScene
+// Just the collision body, no visual - for the invisible static box
+// the v0.1 demo planted behind each credits sign. Half-extent
+// convention same as addStaticBox.
+function addStaticCollider(
+	target: THREE.Object3D,
+	x: number, y: number, z: number,
+	w: number, h: number, d: number,
+): void
 {
-	constructor()
+	const phy = new THREE.Mesh(new THREE.BoxGeometry());
+	phy.scale.set(w / 2, h / 2, d / 2);
+	phy.position.set(x, y, z);
+	phy.userData = { data: 'physics', type: 'box' };
+	target.add(phy);
+}
+
+// Apply the textured Lambert materials the v0.1 demo wired onto each
+// FBX sub-mesh. `bigCredits=true` selects credits.png (the larger
+// clone) instead of credits2.png (the small first sign), and nudges
+// the sign + credits panels back along local Z to inset them slightly
+// - same offsets the upstream traverse() applied.
+function applySignMaterials(root: THREE.Object3D, bigCredits: boolean): void
+{
+	const tex = (file: string): THREE.Texture =>
 	{
-		super();
+		const t = new THREE.TextureLoader().load(SIGN_DIR + file);
+		t.colorSpace = THREE.SRGBColorSpace;
+		return t;
+	};
 
-		// Tiled ground platform - 16x16, with a wireframe grid overlay
-		// for the visible tile lines that read in the v0.1 demo.
-		const groundVis = new THREE.Mesh(
-			new THREE.BoxGeometry(),
-			new THREE.MeshStandardMaterial({ color: 0xeeeeee }),
-		);
-		groundVis.scale.set(16, 0.4, 16);
-		groundVis.position.y = -0.2;
-		groundVis.receiveShadow = true;
-		this.scene.add(groundVis);
-
-		const groundGrid = new THREE.GridHelper(16, 16, 0xa0a0a0, 0xa0a0a0);
-		groundGrid.position.y = 0.001;
-		this.scene.add(groundGrid);
-
-		const groundPhy = new THREE.Mesh(new THREE.BoxGeometry());
-		groundPhy.scale.copy(groundVis.scale);
-		groundPhy.position.copy(groundVis.position);
-		groundPhy.userData = { data: 'physics', type: 'box' };
-		this.scene.add(groundPhy);
-
-		// Two static cubes - a large one in the middle-back and a smaller
-		// one on the right, matching the v0.1 demo's silhouette.
-		addStaticBox(this.scene,  0, 1.5, -3,   3, 3, 3,    0xb8b8b8);
-		addStaticBox(this.scene,  5, 1.0,  0,   1.6, 2, 1.6, 0xb8b8b8);
-
-		// A cluster of dynamic spheres in the middle of the platform -
-		// the v0.1 demo's signature "kick the spheres around" feature.
-		// Spawn type `shape` + subtype `sphere` gives them mass + a
-		// CANNON sphere collider so the player capsule can push them.
-		const spheres: { x: number; z: number; r: number }[] = [
-			{ x: -2.5, z:  0.5, r: 0.4 },
-			{ x: -1.2, z:  0.0, r: 0.5 },
-			{ x:  0.0, z:  0.3, r: 0.6 },
-			{ x:  1.2, z:  0.0, r: 0.5 },
-			{ x:  2.5, z:  0.5, r: 0.4 },
-		];
-		for (const s of spheres)
+	root.traverse((child) =>
+	{
+		const mesh = child as THREE.Mesh;
+		if ((mesh as any).isMesh)
 		{
-			const sphereVis = new THREE.Mesh(
-				new THREE.SphereGeometry(s.r, 16, 12),
-				new THREE.MeshStandardMaterial({ color: 0x9a9aa6 }),
-			);
-			sphereVis.position.set(s.x, s.r + 0.4, s.z);
-			sphereVis.castShadow = true;
-			sphereVis.receiveShadow = true;
-			this.scene.add(sphereVis);
-
-			const sphereSpawn = new THREE.Mesh(new THREE.SphereGeometry(s.r));
-			sphereSpawn.position.copy(sphereVis.position);
-			sphereSpawn.userData = {
-				data: 'spawn',
-				type: 'shape',
-				subtype: 'sphere',
-				mass: 2,
-				radius: s.r,
-			};
-			this.scene.add(sphereSpawn);
+			mesh.castShadow = true;
+			mesh.receiveShadow = true;
 		}
-
-		// Wooden credit sign with grass at the base - the v0.1 demo's
-		// signature decoration on the left side of the platform.
-		addSign(this.scene, -5, 1, 1.0);
-
-		// Default scenario - player + Bob (FollowCharacter) + John
-		// (Random), the v0.1 demo's exact roster.
-		const scenario = new THREE.Object3D();
-		scenario.userData = {
-			name: 'swift502 v0.1 foundation',
-			data: 'scenario',
-			default: 'true',
-			desc_title: 'swift502 v0.1',
-			desc_content: 'Original 2018 demo: character physics + state machine + AI characters.',
-			camera_angle: 0,
-		};
-
-		const playerSpawn = new THREE.Object3D();
-		playerSpawn.position.set(1.13, 3, -2.2);
-		playerSpawn.userData = { data: 'spawn', type: 'player', name: 'user' };
-		scenario.add(playerSpawn);
-
-		const bob = new THREE.Object3D();
-		bob.position.set(-5, 2, 3);
-		bob.userData = { data: 'spawn', type: 'character_ai', name: 'Bob', behaviour: 'follow' };
-		scenario.add(bob);
-
-		const john = new THREE.Object3D();
-		john.position.set(5, 2, 1);
-		john.userData = { data: 'spawn', type: 'character_ai', name: 'John', behaviour: 'random' };
-		scenario.add(john);
-
-		this.scene.add(scenario);
-	}
+		switch (child.name)
+		{
+			case 'grass':
+				mesh.material = new THREE.MeshLambertMaterial({
+					map: tex('grass.png'),
+					transparent: true,
+					depthWrite: false,
+					side: THREE.DoubleSide,
+				});
+				mesh.castShadow = false;
+				break;
+			case 'sign':
+				mesh.material = new THREE.MeshLambertMaterial({
+					map: tex('sign.png'),
+				});
+				if (bigCredits) mesh.translateZ(-0.2);
+				break;
+			case 'sign_shadow':
+				mesh.material = new THREE.MeshLambertMaterial({
+					map: tex('sign_shadow.png'),
+					transparent: true,
+				});
+				mesh.renderOrder = -1;
+				break;
+			case 'credits':
+				mesh.material = new THREE.MeshLambertMaterial({
+					map: tex(bigCredits ? 'credits.png' : 'credits2.png'),
+					transparent: true,
+				});
+				if (bigCredits) mesh.translateZ(-0.2);
+				break;
+		}
+	});
 }
