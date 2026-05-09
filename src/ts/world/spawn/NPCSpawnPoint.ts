@@ -3,6 +3,8 @@ import { ISpawnPoint } from '../../interfaces/ISpawnPoint';
 import { World } from '../World';
 import { Character } from '../../characters/Character';
 import { FollowPath } from '../../characters/character_ai/FollowPath';
+import { FollowTarget } from '../../characters/character_ai/FollowTarget';
+import { RandomBehaviour } from '../../characters/character_ai/RandomBehaviour';
 import { LoadingManager } from '../../core/LoadingManager';
 import * as Utils from '../../core/FunctionLibrary';
 import { attachNameLabel } from '../ui/NameLabel';
@@ -98,6 +100,32 @@ export class NPCSpawnPoint implements ISpawnPoint
 				const node = this.findNode(world, this.firstAINode);
 				if (node !== null) npc.setBehaviour(new FollowPath(node, 5));
 				else console.error('NPC path node ' + this.firstAINode + ' not found.');
+			}
+			else if (this.object.userData.behaviour === 'random')
+			{
+				// Wander randomly - same Random AI swift502 v0.1+ used for
+				// the example "John" NPC.
+				npc.setBehaviour(new RandomBehaviour());
+			}
+			else if (this.object.userData.behaviour === 'follow')
+			{
+				// Follow the player - swift502's FollowCharacter behaviour
+				// for the example "Bob" NPC. Resolved lazily on the first
+				// update tick because the player may spawn after this NPC.
+				const placeholder = new THREE.Object3D();
+				const followBehaviour = new FollowTarget(placeholder, 2);
+				npc.setBehaviour(followBehaviour);
+				const tick = (): void =>
+				{
+					const player = world.characters.find((c) => c !== npc);
+					if (player !== undefined)
+					{
+						followBehaviour.setTarget(player);
+						world.unregisterUpdatable(stepper);
+					}
+				};
+				const stepper = { updateOrder: 5, update: tick };
+				world.registerUpdatable(stepper);
 			}
 		});
 	}
