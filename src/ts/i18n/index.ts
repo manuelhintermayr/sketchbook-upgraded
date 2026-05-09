@@ -60,7 +60,7 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'settings.presets':  { en: 'Quality preset',   de: 'Qualitäts-Preset',  es: 'Preset de calidad' },
 	'settings.presetLow':{ en: 'Low',              de: 'Niedrig',           es: 'Bajo' },
 	'settings.presetHigh':{ en: 'High',            de: 'Hoch',              es: 'Alto' },
-	'settings.presetDesc':{ en: 'Quick toggles for shadows + outlines', de: 'Schatten + Outlines en bloc', es: 'Atajos para sombras + contornos' },
+	'settings.presetDesc':{ en: 'Quick toggles for shadows + outlines', de: 'Schatten + Outlines auf einen Schlag', es: 'Atajos para sombras + contornos' },
 
 	'error.reload':      { en: 'Reload',           de: 'Neu laden',         es: 'Recargar' },
 	'error.copy':        { en: 'Copy details',     de: 'Details kopieren',  es: 'Copiar detalles' },
@@ -95,12 +95,12 @@ const TRANSLATIONS: { [key: string]: LocaleMap } =
 	'world.planet.earth':  { en: 'Earth',                  de: 'Erde',                        es: 'Tierra' },
 	'world.planet.moon':   { en: 'Moon',                   de: 'Mond',                        es: 'Luna' },
 
-	// Animal labels
+	// World labels (player + animals; NPC names come from userData.name on the marker)
+	'label.player':        { en: 'You',                    de: 'Du',                          es: 'Tú' },
 	'animal.dog':          { en: 'Dog',                    de: 'Hund',                        es: 'Perro' },
 	'animal.cat':          { en: 'Cat',                    de: 'Katze',                       es: 'Gato' },
 
-	// Dialog hint + proximity prompts
-	'dialog.leaveHint':    { en: 'Press {key} to leave',   de: '{key} drücken zum Verlassen', es: 'Pulsa {key} para salir' },
+	// Proximity prompts
 	'prompt.talkTo':       { en: 'Press E to talk to {name}', de: 'E drücken zum Sprechen mit {name}', es: 'Pulsa E para hablar con {name}' },
 	'prompt.interact':     { en: 'Press E to interact',    de: 'E drücken zum Interagieren',  es: 'Pulsa E para interactuar' },
 	'prompt.talkTo.touch': { en: 'Tap E to talk to {name}',  de: 'E tippen zum Sprechen mit {name}', es: 'Toca E para hablar con {name}' },

@@ -5,6 +5,7 @@ import { Character } from '../../characters/Character';
 import { LoadingManager } from '../../core/LoadingManager';
 import * as Utils from '../../core/FunctionLibrary';
 import { attachNameLabel } from '../ui/NameLabel';
+import { t } from '../../i18n';
 
 export class CharacterSpawnPoint implements ISpawnPoint
 {
@@ -30,7 +31,7 @@ export class CharacterSpawnPoint implements ISpawnPoint
 			
 			world.add(player);
 			player.takeControl();
-			attachNameLabel(player, 'Du', true, { feature: 'Labels' });
+			attachNameLabel(player, t('label.player'), true, { feature: 'Labels' });
 		});
 	}
 }
