@@ -1,15 +1,19 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
 import * as Utils from './FunctionLibrary';
 import { World } from '../world/World';
 import { IInputReceiver } from '../interfaces/IInputReceiver';
 import { KeyBinding } from './KeyBinding';
 import { Character } from '../characters/Character';
-import _ = require('lodash');
+import * as _ from 'lodash';
 import { IUpdatable } from '../interfaces/IUpdatable';
+import { EntityType } from '../enums/EntityType';
+import { UpdateOrder } from '../enums/UpdateOrder';
+import { t } from '../i18n';
 
 export class CameraOperator implements IInputReceiver, IUpdatable
 {
-	public updateOrder: number = 4;
+	public updateOrder: number = UpdateOrder.Camera;
 
 	public world: World;
 	public camera: THREE.Camera;
@@ -33,6 +37,14 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 	public followMode: boolean = false;
 
 	public characterCaller: Character;
+
+	// 'Look around' tracking: when in first-person inside a vehicle and
+	// the player stops moving the mouse for autoRotateDelay ms, the
+	// camera slerps back to point along the vehicle's forward axis.
+	// Ported from Inthenew/Sketchbook.
+	private lastMouseMoveTime: number = performance.now();
+	private autoRotateDelay: number = 400;
+	private autoRotateLerpFactor: number = 0.1;
 
 	constructor(world: World, camera: THREE.Camera, sensitivityX: number = 1, sensitivityY: number = sensitivityX * 0.8)
 	{
@@ -83,6 +95,23 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 		this.theta %= 360;
 		this.phi += deltaY * (this.sensitivity.y / 2);
 		this.phi = Math.min(85, Math.max(-85, this.phi));
+		this.lastMouseMoveTime = performance.now();
+	}
+
+	// Convert the camera's quaternion back into the theta/phi spherical
+	// coordinates the controller uses, so the auto-rotate slerp leaves
+	// the angles consistent for the next mouse-driven move.
+	private quaternionToThetaPhi(q: THREE.Quaternion): { theta: number; phi: number }
+	{
+		const theta = Math.atan2(2 * (q.w * q.y + q.x * q.z), 1 - 2 * (q.y * q.y + q.x * q.x));
+		const sinPhi = 2 * (q.w * q.x - q.y * q.z);
+		const phi = Math.abs(sinPhi) >= 1
+			? Math.sign(sinPhi) * (Math.PI / 2)
+			: Math.asin(sinPhi);
+		return {
+			theta: theta * 180 / Math.PI,
+			phi: -phi * 180 / Math.PI,
+		};
 	}
 
 	public update(timeScale: number): void
@@ -96,15 +125,60 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 			this.camera.position.y = newPos.y;
 			this.camera.position.z = newPos.z;
 		}
-		else 
+		else
 		{
 			this.radius = THREE.MathUtils.lerp(this.radius, this.targetRadius, 0.1);
-	
+
 			this.camera.position.x = this.target.x + this.radius * Math.sin(this.theta * Math.PI / 180) * Math.cos(this.phi * Math.PI / 180);
 			this.camera.position.y = this.target.y + this.radius * Math.sin(this.phi * Math.PI / 180);
 			this.camera.position.z = this.target.z + this.radius * Math.cos(this.theta * Math.PI / 180) * Math.cos(this.phi * Math.PI / 180);
+			// Floor clamp: phi can swing to -85° which would otherwise put
+			// the camera ~1.6m below the player's standing plane and clip
+			// straight through the ground. Cap the orbital y at slightly
+			// below the target's feet so steep-down looks pivot in place
+			// instead of sinking the cam.
+			const minY = this.target.y - 0.3;
+			if (this.camera.position.y < minY) this.camera.position.y = minY;
 			this.camera.updateMatrix();
-			this.camera.lookAt(this.target);
+
+			// 'Look around' auto-return: in first-person inside a non-rocket
+			// vehicle, after autoRotateDelay ms of no mouse movement, slerp
+			// the camera quaternion back toward the vehicle's forward axis.
+			// The rocket is excluded because Inthenew leaves it untouched
+			// during the auto-flight sequence.
+			const vehicle = this.characterCaller?.controlledObject as { firstPerson?: boolean; quaternion?: THREE.Quaternion; entityType?: EntityType } | undefined;
+			const isInFirstPersonVehicle = vehicle?.firstPerson === true
+				&& vehicle?.entityType !== undefined
+				&& vehicle.entityType !== EntityType.RocketShip;
+			if (isInFirstPersonVehicle && vehicle?.quaternion)
+			{
+				const lookDir = new THREE.Vector3(0, 0, -1).applyQuaternion(vehicle.quaternion);
+				const targetPos = this.target.clone().add(lookDir);
+				const since = performance.now() - this.lastMouseMoveTime;
+				if (since > this.autoRotateDelay)
+				{
+					const dummy = new THREE.Object3D();
+					dummy.position.copy(this.camera.position);
+					dummy.lookAt(targetPos);
+					const factor = this.camera.quaternion.angleTo(dummy.quaternion) < 0.05
+						? 0.025
+						: this.autoRotateLerpFactor;
+					this.camera.quaternion.slerp(dummy.quaternion, factor);
+					this.camera.up.set(0, 1, 0);
+					const angles = this.quaternionToThetaPhi(this.camera.quaternion);
+					this.theta = angles.theta;
+					this.phi = angles.phi;
+				}
+				else
+				{
+					this.camera.up.set(0, 1, 0);
+					this.camera.lookAt(this.target);
+				}
+			}
+			else
+			{
+				this.camera.lookAt(this.target);
+			}
 		}
 	}
 
@@ -117,6 +191,27 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 			{
 				this.world.inputManager.setInputReceiver(this.characterCaller);
 				this.characterCaller = undefined;
+			}
+		}
+		// Teleport: drop the character (or whatever they're driving) to
+		// the free-camera's current target. Ported from Inthenew.
+		else if (code === 'KeyT' && pressed === true && this.characterCaller !== undefined)
+		{
+			const t = this.target;
+			const controlled = this.characterCaller.controlledObject as { collision?: CANNON.Body } | undefined;
+			if (controlled?.collision)
+			{
+				const body = controlled.collision;
+				body.position.set(t.x, t.y, t.z);
+				body.interpolatedPosition.set(t.x, t.y, t.z);
+				body.velocity.setZero();
+				body.angularVelocity.setZero();
+			}
+			else
+			{
+				const body = this.characterCaller.characterCapsule.body;
+				body.position.set(t.x, t.y, t.z);
+				body.velocity.set(0, 0, 0);
 			}
 		}
 		else
@@ -162,25 +257,12 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 	{
 		this.target.copy(this.camera.position);
 		this.setRadius(0, true);
-		// this.world.dirLight.target = this.world.camera;
 
 		this.world.updateControls([
-			{
-				keys: ['W', 'S', 'A', 'D'],
-				desc: 'Move around'
-			},
-			{
-				keys: ['E', 'Q'],
-				desc: 'Move up / down'
-			},
-			{
-				keys: ['Shift'],
-				desc: 'Speed up'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Exit free camera mode'
-			},
+			{ keys: ['W', 'S', 'A', 'D'], desc: t('controls.moveAround') },
+			{ keys: ['E', 'Q'],           desc: t('controls.moveUpDown') },
+			{ keys: ['Shift'],            desc: t('controls.speedUp') },
+			{ keys: ['Shift', '+', 'C'],  desc: t('controls.freeCameraExit') },
 		]);
 	}
 

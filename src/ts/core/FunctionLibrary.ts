@@ -40,10 +40,12 @@ export function round(value: number, decimals: number = 0): number
 
 export function roundVector(vector: THREE.Vector3, decimals: number = 0): THREE.Vector3
 {
+	// Direct calls - see getSignedAngleBetweenVectors below for why
+	// `this.` would break in the minified production bundle.
 	return new THREE.Vector3(
-		this.round(vector.x, decimals),
-		this.round(vector.y, decimals),
-		this.round(vector.z, decimals),
+		round(vector.x, decimals),
+		round(vector.y, decimals),
+		round(vector.z, decimals),
 	);
 }
 
@@ -84,7 +86,12 @@ export function getAngleBetweenVectors(v1: THREE.Vector3, v2: THREE.Vector3, dot
  */
 export function getSignedAngleBetweenVectors(v1: THREE.Vector3, v2: THREE.Vector3, normal: THREE.Vector3 = new THREE.Vector3(0, 1, 0), dotTreshold: number = 0.0005): number
 {
-	let angle = this.getAngleBetweenVectors(v1, v2, dotTreshold);
+	// Direct call - using `this.getAngleBetweenVectors` here (legacy
+	// from swift502's original) only worked in dev mode because the
+	// import * as Utils namespace object satisfied the `this` binding.
+	// terser's prod-mode minifier inlines the namespace call into a
+	// direct function call, which breaks the `this` reference.
+	let angle = getAngleBetweenVectors(v1, v2, dotTreshold);
 
 	// Get vector pointing up or down
 	let cross = new THREE.Vector3().crossVectors(v1, v2);
@@ -189,8 +196,6 @@ export function setupMeshProperties(child: any): void
 		mat.map.anisotropy = 4;
 		mat.aoMap = child.material.aoMap;
 		mat.transparent = child.material.transparent;
-		//mat.skinning = child.material.skinning; FIGURE OUT THIS PROBLEM
-		// mat.map.encoding = THREE.LinearEncoding;
 		child.material = mat;
 	}
 }
@@ -220,7 +225,7 @@ export function getRight(obj: THREE.Object3D, space: Space = Space.Global): THRE
 		matrix.elements[0],
 		matrix.elements[1],
 		matrix.elements[2]
-		);
+	);
 }
 
 export function getUp(obj: THREE.Object3D, space: Space = Space.Global): THREE.Vector3
@@ -230,7 +235,7 @@ export function getUp(obj: THREE.Object3D, space: Space = Space.Global): THREE.V
 		matrix.elements[4],
 		matrix.elements[5],
 		matrix.elements[6]
-		);
+	);
 }
 
 export function getForward(obj: THREE.Object3D, space: Space = Space.Global): THREE.Vector3
@@ -240,7 +245,7 @@ export function getForward(obj: THREE.Object3D, space: Space = Space.Global): TH
 		matrix.elements[8],
 		matrix.elements[9],
 		matrix.elements[10]
-		);
+	);
 }
 
 export function getBack(obj: THREE.Object3D, space: Space = Space.Global): THREE.Vector3
@@ -250,7 +255,7 @@ export function getBack(obj: THREE.Object3D, space: Space = Space.Global): THREE
 		-matrix.elements[8],
 		-matrix.elements[9],
 		-matrix.elements[10]
-		);
+	);
 }
 
 export function getMatrix(obj: THREE.Object3D, space: Space): THREE.Matrix4
@@ -262,20 +267,6 @@ export function getMatrix(obj: THREE.Object3D, space: Space): THREE.Matrix4
 	}
 }
 
-export function countSleepyBodies(): any
-{
-	// let awake = 0;
-	// let sleepy = 0;
-	// let asleep = 0;
-	// this.physicsWorld.bodies.forEach((body) =>
-	// {
-	//     if (body.sleepState === 0) awake++;
-	//     if (body.sleepState === 1) sleepy++;
-	//     if (body.sleepState === 2) asleep++;
-	// });
-}
-
-// From online for converting Geometry to BufferGeometry
 export function isIndexed(mesh: THREE.Mesh) {
 	return mesh.geometry.index != null;
 }
@@ -308,7 +299,7 @@ export function getFaces(mesh: THREE.Mesh) {
 	   }
 	}
 	
-   for( let j = 0; j < faces.length; j ++ ) {
+	for( let j = 0; j < faces.length; j ++ ) {
 	   let face = faces[j];
 	   let pointA = new THREE.Vector3(
 		   position.getX(face.a),
@@ -333,7 +324,7 @@ export function getFaces(mesh: THREE.Mesh) {
 	   );
 	   
 	   faceTriangle.getNormal(faces[j].normal);
-   }
+	}
 	
 	return faces;
 }
@@ -350,9 +341,9 @@ export function getVertices(mesh: THREE.Mesh) {
 	   );
 	   
 	   vertices.push(vertex);
-   }
+	}
    
-   return vertices;
+	return vertices;
 }
 
 export function getFaceVertexUvs(mesh: THREE.Mesh) {
@@ -403,6 +394,22 @@ export function getFaceVertexUvs(mesh: THREE.Mesh) {
 	}
 	
 	return faceVertexUvs;
+}
+
+// Mulberry32 - small deterministic PRNG. Used by every animal /
+// bird / butterfly manager so spawn placement stays stable across
+// page reloads. Single shared implementation here instead of three
+// near-identical copies per manager.
+export function mulberry32(seed: number): () => number
+{
+	return () =>
+	{
+		seed |= 0;
+		seed = (seed + 0x6d2b79f5) | 0;
+		let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
 }
 
 //#endregion

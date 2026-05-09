@@ -41,6 +41,12 @@ export class EnteringVehicle extends CharacterStateBase
 		this.animData = this.getEntryAnimations(seat.vehicle.entityType);
 		this.playAnimation(this.animData[side], 0.1);
 
+		// Door clunk - open at the start of the entry animation, close
+		// later when physics is re-enabled (see the sit branch below).
+		// Per-character positional - the AI driver entering its vehicle
+		// also gets a clunk at its position, not the player's.
+		if (seat.door !== undefined) this.character.sfx?.playDoor();
+
 		this.character.resetVelocity();
 		this.character.tiltContainer.rotation.z = 0;
 		this.character.setPhysicsEnabled(false);
@@ -70,7 +76,11 @@ export class EnteringVehicle extends CharacterStateBase
 
 			if (this.seat.type === SeatType.Driver)
 			{
-				if (this.seat.door) this.seat.door.physicsEnabled = true;
+				if (this.seat.door)
+				{
+					this.seat.door.physicsEnabled = true;
+					this.character.sfx?.playDoor();
+				}
 				this.character.setState(new Driving(this.character, this.seat));
 			}
 			else if (this.seat.type === SeatType.Passenger)
@@ -94,7 +104,6 @@ export class EnteringVehicle extends CharacterStateBase
 			let lerpPosition = new THREE.Vector3().lerpVectors(this.startPosition.clone().sub(currentPosOffset), this.endPosition, sineFactor);
 			this.character.setPosition(lerpPosition.x, lerpPosition.y, lerpPosition.z);
 
-			//THREE.Quaternion.slerp(this.startRotation, this.endRotation, this.character.quaternion, this.factorSimulator.position);
 			this.character.quaternion.slerpQuaternions(this.startRotation, this.endRotation, this.factorSimulator.position);
 		}
 	}

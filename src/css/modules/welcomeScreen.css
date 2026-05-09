@@ -1,37 +1,46 @@
-.swal2-container {
+/* SweetAlert + welcome-modal overrides. Confirm button is the gold
+ * keycap-style press button - the signature interaction surface. */
+
+.swal2-container
+{
 	text-shadow: none;
 }
 
-.swal2-confirm {
+.swal2-confirm
+{
 	display: inline-block;
-	background: #FFB900;
+	background: var(--color-primary);
 	border: none;
-	padding: 12px 28px;
-	color: #222;
+	padding: var(--space-3) var(--space-8);
+	color: var(--color-on-primary);
 	outline: none;
-	border-radius: 4px;
-	font-family: 'Solway', serif;
-	font-weight: 700;
-	font-size: 18px;
+	border-radius: var(--radius-md);
+	font-family: var(--font-body);
+	font-weight: var(--weight-bold);
+	font-size: var(--text-body-lg);
 	cursor: pointer;
 	margin: 0 0 4px 0;
-	box-shadow: 0 4px 0 0 rgb(228 158 0);
+	box-shadow: var(--shadow-gold);
+	transition: background var(--motion-fast) var(--ease-default);
 }
 
-.swal2-confirm:active {
+.swal2-confirm:active
+{
 	margin: 4px 0 0 0;
-	box-shadow: 0 0px 0 0 rgb(228 158 0);
+	box-shadow: 0 0px 0 0 var(--color-primary-shadow);
 }
 
-div.swal2-footer {
+div.swal2-footer
+{
 	justify-content: space-evenly;
 }
 
-.button {
+.button
+{
 	opacity: 0;
 	background: black;
-	padding: 12px 15px 12px 15px;
-	font-family: "Cutive Mono", monospace;
+	padding: var(--space-3) var(--space-4);
+	font-family: var(--font-mono);
 	font-size: 1.2rem;
 	border: none;
 	color: white;

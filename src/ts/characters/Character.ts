@@ -7,6 +7,7 @@ import { KeyBinding } from '../core/KeyBinding';
 import { VectorSpringSimulator } from '../physics/spring_simulation/VectorSpringSimulator';
 import { RelativeSpringSimulator } from '../physics/spring_simulation/RelativeSpringSimulator';
 import { Idle } from './character_states/Idle';
+import { CharacterSfx } from '../world/audio/CharacterSfx';
 import { EnteringVehicle } from './character_states/vehicles/EnteringVehicle';
 import { ExitingVehicle } from './character_states/vehicles/ExitingVehicle';
 import { OpenVehicleDoor as OpenVehicleDoor } from './character_states/vehicles/OpenVehicleDoor';
@@ -27,10 +28,20 @@ import { GroundImpactData } from './GroundImpactData';
 import { ClosestObjectFinder } from '../core/ClosestObjectFinder';
 import { Object3D } from 'three';
 import { EntityType } from '../enums/EntityType';
+import { UpdateOrder } from '../enums/UpdateOrder';
+import { commonGlobalControls } from '../core/CommonControls';
+import { t } from '../i18n';
+import * as PhysicsBridge from './CharacterPhysicsBridge';
+import * as InputBridge from './CharacterInputBridge';
+
+// Module-scoped scratch for springRotation - reused across all
+// characters in the scene. Larger physics + raycast scratches moved
+// to CharacterPhysicsBridge alongside the physics step functions.
+const _Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 export class Character extends THREE.Object3D implements IWorldEntity
 {
-	public updateOrder: number = 1;
+	public updateOrder: number = UpdateOrder.CharacterPhysics;
 	public entityType: EntityType = EntityType.Character;
 
 	public height: number = 0;
@@ -74,7 +85,24 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	public world: World;
 	public charState: ICharacterState;
 	public behaviour: ICharacterAI;
-	
+	// Per-character positional audio for footsteps / jump / land / door.
+	// Same role EngineSound has for vehicles. Initialised in addToWorld
+	// once world is set; disposed in removeFromWorld.
+	public sfx: CharacterSfx | undefined;
+
+	// True while a DialogBox is open with this character as a participant
+	// (player AND the NPC they're talking to). Movement / behaviour /
+	// input handlers all early-return - the world keeps simulating, but
+	// these characters stand still until DialogBox.close() flips it back.
+	public dialogFreeze: boolean = false;
+
+	// Set to true on the human-controlled character. Used by per-frame
+	// systems that need to find the player without depending on the
+	// fragile `world.characters[0]` order, which depends on async GLB
+	// load order and can land an NPC there if the boxman.glb finishes
+	// loading for an NPC spawn before the player one.
+	public isPlayer: boolean = false;
+
 	// Vehicles
 	public controlledObject: IControllable;
 	public occupyingSeat: VehicleSeat = null;
@@ -132,7 +160,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			segments: 8,
 			friction: 0.0
 		});
-		// capsulePhysics.physical.collisionFilterMask = ~CollisionGroups.Trimesh;
 		this.characterCapsule.body.shapes.forEach((shape) => {
 			// tslint:disable-next-line: no-bitwise
 			shape.collisionFilterMask = ~CollisionGroups.TrimeshColliders;
@@ -153,12 +180,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		});
 		this.raycastBox = new THREE.Mesh(boxGeo, boxMat);
 		this.raycastBox.visible = false;
-
-		// Physics pre/post step callback bindings
-		//this.characterCapsule.body.preStep = (body: CANNON.Body) => { this.physicsPreStep(body, this); };
-		//this.characterCapsule.body.postStep = (body: CANNON.Body) => { this.physicsPostStep(body, this); };
-		//this.physicsPreStep(this.characterCapsule.body, this);
-		//this.physicsPostStep(this.characterCapsule.body, this);
 
 		// States
 		this.setState(new Idle(this));
@@ -242,6 +263,26 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		this.setOrientation(forward, true);
 	}
 
+	private applyNearbyPlayerLookAt(): void
+	{
+		if (this.dialogFreeze) return;
+		// Walking NPCs (FollowPath etc.) own their own orientation each
+		// tick - overriding here would yank them off-path the moment the
+		// player passed by. Only stationary NPCs (no behaviour) react.
+		if (this.behaviour !== undefined && this.behaviour !== null) return;
+		if (this.world === undefined) return;
+		const player = this.world.characters.find((c) => c.isPlayer);
+		if (player === undefined || player === this) return;
+
+		const dx = player.position.x - this.position.x;
+		const dz = player.position.z - this.position.z;
+		const distSq = dx * dx + dz * dz;
+		if (distSq > 1) return;        // outside 1 m radius
+		if (distSq < 1e-4) return;     // overlapping → no meaningful direction
+
+		this.setOrientation(new THREE.Vector3(dx, 0, dz));
+	}
+
 	public setBehaviour(behaviour: ICharacterAI): void
 	{
 		behaviour.character = this;
@@ -280,109 +321,27 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public handleKeyboardEvent(event: KeyboardEvent, code: string, pressed: boolean): void
 	{
-		if (this.controlledObject !== undefined)
-		{
-			this.controlledObject.handleKeyboardEvent(event, code, pressed);
-		}
-		else
-		{
-			// Free camera
-			if (code === 'KeyC' && pressed === true && event.shiftKey === true)
-			{
-				this.resetControls();
-				this.world.cameraOperator.characterCaller = this;
-				this.world.inputManager.setInputReceiver(this.world.cameraOperator);
-			}
-			else if (code === 'KeyR' && pressed === true && event.shiftKey === true)
-			{
-				this.world.restartScenario();
-			}
-			else
-			{
-				for (const action in this.actions) {
-					if (this.actions.hasOwnProperty(action)) {
-						const binding = this.actions[action];
-	
-						if (_.includes(binding.eventCodes, code))
-						{
-							this.triggerAction(action, pressed);
-						}
-					}
-				}
-			}
-		}
+		InputBridge.handleKeyboardEvent(this, event, code, pressed);
 	}
 
 	public handleMouseButton(event: MouseEvent, code: string, pressed: boolean): void
 	{
-		if (this.controlledObject !== undefined)
-		{
-			this.controlledObject.handleMouseButton(event, code, pressed);
-		}
-		else
-		{
-			for (const action in this.actions) {
-				if (this.actions.hasOwnProperty(action)) {
-					const binding = this.actions[action];
-
-					if (_.includes(binding.eventCodes, code))
-					{
-						this.triggerAction(action, pressed);
-					}
-				}
-			}
-		}
+		InputBridge.handleMouseButton(this, event, code, pressed);
 	}
 
 	public handleMouseMove(event: MouseEvent, deltaX: number, deltaY: number): void
 	{
-		if (this.controlledObject !== undefined)
-		{
-			this.controlledObject.handleMouseMove(event, deltaX, deltaY);
-		}
-		else
-		{
-			this.world.cameraOperator.move(deltaX, deltaY);
-		}
+		InputBridge.handleMouseMove(this, event, deltaX, deltaY);
 	}
-	
+
 	public handleMouseWheel(event: WheelEvent, value: number): void
 	{
-		if (this.controlledObject !== undefined)
-		{
-			this.controlledObject.handleMouseWheel(event, value);
-		}
-		else
-		{
-			this.world.scrollTheTimeScale(value);
-		}
+		InputBridge.handleMouseWheel(this, event, value);
 	}
 
 	public triggerAction(actionName: string, value: boolean): void
 	{
-		// Get action and set it's parameters
-		let action = this.actions[actionName];
-
-		if (action.isPressed !== value)
-		{
-			// Set value
-			action.isPressed = value;
-
-			// Reset the 'just' attributes
-			action.justPressed = false;
-			action.justReleased = false;
-
-			// Set the 'just' attributes
-			if (value) action.justPressed = true;
-			else action.justReleased = true;
-
-			// Tell player to handle states according to new input
-			this.charState.onInputChange();
-
-			// Reset the 'just' attributes
-			action.justPressed = false;
-			action.justReleased = false;
-		}
+		InputBridge.triggerAction(this, actionName, value);
 	}
 
 	public takeControl(): void
@@ -408,12 +367,24 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public update(timeStep: number): void
 	{
-		this.behaviour?.update(timeStep);
+		// Skip behaviour ticks while frozen - DialogBox.open() already
+		// called resetControls() so actions are cleared and the state
+		// machine has flipped to Idle. We just stop AI from re-issuing
+		// triggerAction calls until close().
+		if (!this.dialogFreeze)
+		{
+			this.behaviour?.update(timeStep);
+		}
 		this.vehicleEntryInstance?.update(timeStep);
-		// console.log(this.occupyingSeat);
 		this.charState?.update(timeStep);
 
-		// this.visuals.position.copy(this.modelOffset);
+		// Idle NPCs face the player when they get close. Skips walking
+		// NPCs (FollowPath sets behaviour and would fight us each tick),
+		// the player itself, and frozen-in-dialog characters (DialogBox
+		// already oriented them in open()). springRotation interpolates
+		// to the new target so the turn looks natural.
+		this.applyNearbyPlayerLookAt();
+
 		if (this.physicsEnabled) this.springMovement(timeStep);
 		if (this.physicsEnabled) this.springRotation(timeStep);
 		if (this.physicsEnabled) this.rotateModel();
@@ -449,7 +420,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 		this.world.cameraOperator.setRadius(1.6, true);
 		this.world.cameraOperator.followMode = false;
-		// this.world.dirLight.target = this;
 
 		this.displayControls();
 	}
@@ -457,30 +427,12 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	public displayControls(): void
 	{
 		this.world.updateControls([
-			{
-				keys: ['W', 'A', 'S', 'D'],
-				desc: 'Movement'
-			},
-			{
-				keys: ['Shift'],
-				desc: 'Sprint'
-			},
-			{
-				keys: ['Space'],
-				desc: 'Jump'
-			},
-			{
-				keys: ['F', 'or', 'G'],
-				desc: 'Enter vehicle'
-			},
-			{
-				keys: ['Shift', '+', 'R'],
-				desc: 'Respawn'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Free camera'
-			},
+			{ keys: ['W', 'A', 'S', 'D'],   desc: t('controls.movement') },
+			{ keys: ['Shift'],              desc: t('controls.sprint') },
+			{ keys: ['Space'],              desc: t('controls.jump') },
+			{ keys: ['F', 'or', 'G'],       desc: t('controls.enterVehicle') },
+			{ keys: ['V'],                  desc: t('controls.viewDistance') },
+			...commonGlobalControls(),
 		]);
 	}
 
@@ -492,8 +444,11 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		}
 		else
 		{
-			// Look in camera's direction
-			this.viewVector = new THREE.Vector3().subVectors(this.position, this.world.camera.position);
+			// Look in camera's direction. viewVector is read by other
+			// systems each frame; we copy into the field-bound vector
+			// instead of replacing the reference + allocating.
+			if (this.viewVector === undefined) this.viewVector = new THREE.Vector3();
+			this.viewVector.copy(this.position).sub(this.world.camera.position);
 			this.getWorldPosition(this.world.cameraOperator.target);
 		}
 		
@@ -544,7 +499,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		let rot = this.rotationSimulator.position;
 
 		// Updating values
-		this.orientation.applyAxisAngle(new THREE.Vector3(0, 1, 0), rot);
+		this.orientation.applyAxisAngle(_Y_AXIS, rot);
 		this.angularVelocity = this.rotationSimulator.velocity;
 	}
 
@@ -568,11 +523,23 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public setCameraRelativeOrientationTarget(): void
 	{
+		// Movement states (Walk / Sprint / StartWalk / etc.) call this
+		// every tick to keep the character facing where they move.
+		// While frozen in a dialog we keep the orientation set by
+		// DialogBox.open() - otherwise the few frames it takes to
+		// transition out of Walk would yank the NPC back toward their
+		// path direction.
+		if (this.dialogFreeze) return;
 		if (this.vehicleEntryInstance === null)
 		{
-			let moveVector = this.getCameraRelativeMovementVector();
-	
-			if (moveVector.x === 0 && moveVector.y === 0 && moveVector.z === 0)
+			const moveVector = this.getCameraRelativeMovementVector();
+
+			// Epsilon compare instead of `=== 0` - exact zero would be
+			// the typical idle path, but transient camera-rotated
+			// vectors can settle to ~1e-17 floats and the strict check
+			// would push the character into a setOrientation(near-zero)
+			// branch that yanks the facing.
+			if (moveVector.lengthSq() < 1e-6)
 			{
 				this.setOrientation(this.orientation);
 			}
@@ -677,7 +644,10 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	{
 		this.resetControls();
 
-		if (seat.door?.rotation < 0.5)
+		// Boats and rockets have no door animation, so don't try to play one.
+		const skipDoor = seat.vehicle.entityType === EntityType.Boat
+			|| seat.vehicle.entityType === EntityType.RocketShip;
+		if (seat.door?.rotation < 0.5 && !skipDoor)
 		{
 			this.setState(new OpenVehicleDoor(this, seat, entryPoint));
 		}
@@ -709,11 +679,22 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		{
 			this.transferControls(vehicle);
 			this.resetControls();
-	
+
 			this.controlledObject = vehicle;
 			this.controlledObject.allowSleep(false);
-			vehicle.inputReceiverInit();
-	
+
+			// Only refresh the HUD controls list if this character is the
+			// active input receiver. Otherwise - e.g. an AI driver being
+			// teleported into a vehicle by VehicleSpawnPoint - running
+			// vehicle.inputReceiverInit() would overwrite the player's
+			// WASD list with the AI's vehicle list at scenario start, so
+			// the player would see car/heli controls before having
+			// touched anything.
+			if (this.world.inputManager.inputReceiver === this)
+			{
+				vehicle.inputReceiverInit();
+			}
+
 			vehicle.controllingCharacter = this;
 		}
 	}
@@ -792,146 +773,17 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 	public physicsPreStep(body: CANNON.Body, character: Character): void
 	{
-		character.feetRaycast();
-
-		// Raycast debug
-		if (character.rayHasHit)
-		{
-			if (character.raycastBox.visible) {
-				character.raycastBox.position.x = character.rayResult.hitPointWorld.x;
-				character.raycastBox.position.y = character.rayResult.hitPointWorld.y;
-				character.raycastBox.position.z = character.rayResult.hitPointWorld.z;
-			}
-		}
-		else
-		{
-			if (character.raycastBox.visible) {
-				character.raycastBox.position.set(body.position.x, body.position.y - character.rayCastLength - character.raySafeOffset, body.position.z);
-			}
-		}
+		PhysicsBridge.physicsPreStep(body, character);
 	}
 
 	public feetRaycast(): void
 	{
-		// Player ray casting
-		// Create ray
-		let body = this.characterCapsule.body;
-		const start = new CANNON.Vec3(body.position.x, body.position.y, body.position.z);
-		const end = new CANNON.Vec3(body.position.x, body.position.y - this.rayCastLength - this.raySafeOffset, body.position.z);
-		// Raycast options
-		const rayCastOptions = {
-			collisionFilterMask: CollisionGroups.Default,
-			skipBackfaces: true      /* ignore back faces */
-		};
-		// Cast the ray
-		this.rayHasHit = this.world.physicsWorld.raycastClosest(start, end, rayCastOptions, this.rayResult);
+		PhysicsBridge.feetRaycast(this);
 	}
 
 	public physicsPostStep(body: CANNON.Body, character: Character): void
 	{
-		// Get velocities
-		let simulatedVelocity = new THREE.Vector3(body.velocity.x, body.velocity.y, body.velocity.z);
-
-		// Take local velocity
-		let arcadeVelocity = new THREE.Vector3().copy(character.velocity).multiplyScalar(character.moveSpeed);
-		// Turn local into global
-		arcadeVelocity = Utils.appplyVectorMatrixXZ(character.orientation, arcadeVelocity);
-
-		let newVelocity = new THREE.Vector3();
-
-		// Additive velocity mode
-		if (character.arcadeVelocityIsAdditive)
-		{
-			newVelocity.copy(simulatedVelocity);
-
-			let globalVelocityTarget = Utils.appplyVectorMatrixXZ(character.orientation, character.velocityTarget);
-			let add = new THREE.Vector3().copy(arcadeVelocity).multiply(character.arcadeVelocityInfluence);
-
-			if (Math.abs(simulatedVelocity.x) < Math.abs(globalVelocityTarget.x * character.moveSpeed) || Utils.haveDifferentSigns(simulatedVelocity.x, arcadeVelocity.x)) { newVelocity.x += add.x; }
-			if (Math.abs(simulatedVelocity.y) < Math.abs(globalVelocityTarget.y * character.moveSpeed) || Utils.haveDifferentSigns(simulatedVelocity.y, arcadeVelocity.y)) { newVelocity.y += add.y; }
-			if (Math.abs(simulatedVelocity.z) < Math.abs(globalVelocityTarget.z * character.moveSpeed) || Utils.haveDifferentSigns(simulatedVelocity.z, arcadeVelocity.z)) { newVelocity.z += add.z; }
-		}
-		else
-		{
-			newVelocity = new THREE.Vector3(
-				THREE.MathUtils.lerp(simulatedVelocity.x, arcadeVelocity.x, character.arcadeVelocityInfluence.x),
-				THREE.MathUtils.lerp(simulatedVelocity.y, arcadeVelocity.y, character.arcadeVelocityInfluence.y),
-				THREE.MathUtils.lerp(simulatedVelocity.z, arcadeVelocity.z, character.arcadeVelocityInfluence.z),
-			);
-		}
-
-		// If we're hitting the ground, stick to ground
-		if (character.rayHasHit)
-		{
-			// Flatten velocity
-			newVelocity.y = 0;
-
-			// Move on top of moving objects
-			if (character.rayResult.body.mass > 0)
-			{
-				let pointVelocity = new CANNON.Vec3();
-				character.rayResult.body.getVelocityAtWorldPoint(character.rayResult.hitPointWorld, pointVelocity);
-				newVelocity.add(Utils.threeVector(pointVelocity));
-			}
-
-			// Measure the normal vector offset from direct "up" vector
-			// and transform it into a matrix
-			let up = new THREE.Vector3(0, 1, 0);
-			let normal = new THREE.Vector3(character.rayResult.hitNormalWorld.x, character.rayResult.hitNormalWorld.y, character.rayResult.hitNormalWorld.z);
-			let q = new THREE.Quaternion().setFromUnitVectors(up, normal);
-			let m = new THREE.Matrix4().makeRotationFromQuaternion(q);
-
-			// Rotate the velocity vector
-			newVelocity.applyMatrix4(m);
-
-			// Compensate for gravity
-			// newVelocity.y -= body.world.physicsWorld.gravity.y / body.character.world.physicsFrameRate;
-
-			// Apply velocity
-			body.velocity.x = newVelocity.x;
-			body.velocity.y = newVelocity.y;
-			body.velocity.z = newVelocity.z;
-			// Ground character
-			body.position.y = character.rayResult.hitPointWorld.y + character.rayCastLength + (newVelocity.y / character.world.physicsFrameRate);
-		}
-		else
-		{
-			// If we're in air
-			body.velocity.x = newVelocity.x;
-			body.velocity.y = newVelocity.y;
-			body.velocity.z = newVelocity.z;
-
-			// Save last in-air information
-			character.groundImpactData.velocity.x = body.velocity.x;
-			character.groundImpactData.velocity.y = body.velocity.y;
-			character.groundImpactData.velocity.z = body.velocity.z;
-		}
-
-		// Jumping
-		if (character.wantsToJump)
-		{
-			// If initJumpSpeed is set
-			if (character.initJumpSpeed > -1)
-			{
-				// Flatten velocity
-				body.velocity.y = 0;
-				let speed = Math.max(character.velocitySimulator.position.length() * 4, character.initJumpSpeed);
-				body.velocity = Utils.cannonVector(character.orientation.clone().multiplyScalar(speed));
-			}
-			else {
-				// Moving objects compensation
-				let add = new CANNON.Vec3();
-				character.rayResult.body.getVelocityAtWorldPoint(character.rayResult.hitPointWorld, add);
-				body.velocity.vsub(add, body.velocity);
-			}
-
-			// Add positive vertical velocity 
-			body.velocity.y += 4;
-			// Move above ground by 2x safe offset value
-			body.position.y += character.raySafeOffset * 2;
-			// Reset flag
-			character.wantsToJump = false;
-		}
+		PhysicsBridge.physicsPostStep(body, character);
 	}
 
 	public addToWorld(world: World): void
@@ -947,6 +799,11 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 			// Register character
 			world.characters.push(this);
+
+			// Per-character positional SFX (footsteps / jump / land /
+			// door). Lazy nodes inside, so this is just attaching the
+			// listener parent.
+			this.sfx = new CharacterSfx(this, world);
 
 			// Register physics
 			world.physicsWorld.addBody(this.characterCapsule.body);
@@ -974,6 +831,12 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			if (world.inputManager.inputReceiver === this)
 			{
 				world.inputManager.inputReceiver = undefined;
+			}
+
+			if (this.sfx !== undefined)
+			{
+				this.sfx.dispose();
+				this.sfx = undefined;
 			}
 
 			this.world = undefined;

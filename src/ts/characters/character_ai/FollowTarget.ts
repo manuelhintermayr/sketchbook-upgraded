@@ -57,8 +57,18 @@ export class FollowTarget implements ICharacterAI
 
 			if (forward.dot(viewVector) < 0.0)
 			{
-				this.character.controlledObject.triggerAction('reverse', true);
-				this.character.controlledObject.triggerAction('throttle', false);
+				if (this.character.controlledObject.entityType === EntityType.Boat)
+				{
+					// Boats can't really reverse to face a target; nudge the
+					// rudder so the hull starts swinging around instead.
+					this.character.controlledObject.triggerAction('right', true);
+					this.character.controlledObject.triggerAction('left', false);
+				}
+				else
+				{
+					this.character.controlledObject.triggerAction('reverse', true);
+					this.character.controlledObject.triggerAction('throttle', false);
+				}
 			}
 			else
 			{

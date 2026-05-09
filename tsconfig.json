@@ -3,14 +3,14 @@
         "src/ts/**/*"
     ],
     "compilerOptions": {
-        "module": "commonjs",
+        "module": "esnext",
         "target": "ES6",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "strict": false,
         "declaration": true,
         "declarationDir": "build/types",
-        "baseUrl": ".",
-        "paths": {
-            "cannon" : ["src/lib/cannon/cannon"]
-        }
+        "rootDir": "src/ts"
     }
 }

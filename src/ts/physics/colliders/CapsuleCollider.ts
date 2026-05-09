@@ -1,5 +1,4 @@
 import * as CANNON from 'cannon-es';
-import * as THREE from 'three';
 import * as Utils from '../../core/FunctionLibrary';
 import { ICollider } from '../../interfaces/ICollider';
 
@@ -7,7 +6,6 @@ export class CapsuleCollider implements ICollider
 {
 	public options: any;
 	public body: CANNON.Body;
-	// public visual: THREE.Mesh;
 
 	constructor(options: any)
 	{
@@ -33,9 +31,7 @@ export class CapsuleCollider implements ICollider
 		// Compound shape
 		let sphereShape = new CANNON.Sphere(options.radius);
 
-		// Materials
 		capsuleBody.material = mat;
-		// sphereShape.material = mat;
 
 		capsuleBody.addShape(sphereShape, new CANNON.Vec3(0, 0, 0));
 		capsuleBody.addShape(sphereShape, new CANNON.Vec3(0, options.height / 2, 0));

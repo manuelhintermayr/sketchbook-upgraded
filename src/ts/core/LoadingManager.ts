@@ -1,7 +1,7 @@
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { LoadingTrackerEntry } from './LoadingTrackerEntry';
 import { UIManager } from './UIManager';
-import { Scenario } from '../world/Scenario';
+import { Scenario } from '../world/scenarios/Scenario';
 import Swal from 'sweetalert2';
 import { World } from '../world/World';
 
@@ -22,6 +22,7 @@ export class LoadingManager
 		this.world.setTimeScale(0);
 		UIManager.setUserInterfaceVisible(false);
 		UIManager.setLoadingScreenVisible(true);
+		UIManager.setLoadingProgress(0);
 	}
 
 	public loadGLTF(path: string, onLoadingFinished: (gltf: any) => void): void
@@ -29,22 +30,23 @@ export class LoadingManager
 		let trackerEntry = this.addLoadingEntry(path);
 
 		this.gltfLoader.load(path,
-		(gltf)  =>
-		{
-			onLoadingFinished(gltf);
-			this.doneLoading(trackerEntry);
-		},
-		(xhr) =>
-		{
-			if ( xhr.lengthComputable )
+			(gltf)  =>
 			{
-				trackerEntry.progress = xhr.loaded / xhr.total;
-			}
-		},
-		(error)  =>
-		{
-			console.error(error);
-		});
+				onLoadingFinished(gltf);
+				this.doneLoading(trackerEntry);
+			},
+			(xhr) =>
+			{
+				if ( xhr.lengthComputable )
+				{
+					trackerEntry.progress = xhr.loaded / xhr.total;
+					UIManager.setLoadingProgress(this.getLoadingPercentage());
+				}
+			},
+			(error)  =>
+			{
+				console.error(error);
+			});
 	}
 
 	public addLoadingEntry(path: string): LoadingTrackerEntry
@@ -55,14 +57,26 @@ export class LoadingManager
 		return entry;
 	}
 
-	public doneLoading(trackerEntry: LoadingTrackerEntry): void
+	public async doneLoading(trackerEntry: LoadingTrackerEntry): Promise<void>
 	{
 		trackerEntry.finished = true;
 		trackerEntry.progress = 1;
+		UIManager.setLoadingProgress(this.getLoadingPercentage());
 
 		if (this.isLoadingDone())
 		{
-			if (this.onFinishedCallback !== undefined) 
+			// Walk the freshly-loaded scene and pre-compile every material
+			// permutation on the GPU so the first time the player turns
+			// toward a distant vehicle, NPC, or piece of terrain the frame
+			// doesn't stall while WebGL builds shaders. compileAsync yields
+			// to the event loop between programs so the loading screen
+			// stays responsive while it runs.
+			await this.world.renderer.compileAsync(
+				this.world.graphicsWorld,
+				this.world.camera,
+			);
+
+			if (this.onFinishedCallback !== undefined)
 			{
 				this.onFinishedCallback();
 			}
@@ -92,15 +106,15 @@ export class LoadingManager
 					if (result.isConfirmed) {
 						this.world.setTimeScale(1);
 						UIManager.setUserInterfaceVisible(true);
+						this.world.pauseMenu?.enable();
 					}
 				})
 			};
 		}
 	}
 
-	private getLoadingPercentage(): number
+	public getLoadingPercentage(): number
 	{
-		let done = true;
 		let total = 0;
 		let finished = 0;
 
@@ -108,9 +122,9 @@ export class LoadingManager
 		{
 			total++;
 			finished += item.progress;
-			if (!item.finished) done = false;
 		}
 
+		if (total === 0) return 0;
 		return (finished / total) * 100;
 	}
 

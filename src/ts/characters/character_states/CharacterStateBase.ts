@@ -67,10 +67,10 @@ export abstract class CharacterStateBase implements ICharacterState
 				this.character.actions.down.justPressed ||
 				this.character.actions.left.justPressed ||
 				this.character.actions.right.justPressed)
-				{
-					this.character.vehicleEntryInstance = null;
-					this.character.actions.up.isPressed = false;
-				}
+			{
+				this.character.vehicleEntryInstance = null;
+				this.character.actions.up.isPressed = false;
+			}
 		}
 	}
 

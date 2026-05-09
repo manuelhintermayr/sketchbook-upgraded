@@ -3,8 +3,9 @@ import
 	CharacterStateBase,
 } from '../_stateLibrary';
 import { Character } from '../../Character';
-import { VehicleSeat } from 'src/ts/vehicles/VehicleSeat';
+import { VehicleSeat } from '../../../vehicles/VehicleSeat';
 import { CloseVehicleDoorInside } from './CloseVehicleDoorInside';
+import { EntityType } from '../../../enums/EntityType';
 
 export class Driving extends CharacterStateBase
 {
@@ -27,7 +28,9 @@ export class Driving extends CharacterStateBase
 	{
 		super.update(timeStep);
 
-		if (!this.seat.door?.achievingTargetRotation && this.seat.door?.rotation > 0 && this.seat.vehicle.noDirectionPressed())
+		const skipDoor = this.seat.vehicle.entityType === EntityType.Boat
+			|| this.seat.vehicle.entityType === EntityType.RocketShip;
+		if (!this.seat.door?.achievingTargetRotation && this.seat.door?.rotation > 0 && this.seat.vehicle.noDirectionPressed() && !skipDoor)
 		{
 			this.character.setState(new CloseVehicleDoorInside(this.character, this.seat));
 		}

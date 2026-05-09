@@ -19,6 +19,11 @@ export class DropIdle extends CharacterStateBase implements ICharacterState
 		this.character.setArcadeVelocityTarget(0);
 		this.playAnimation('drop_idle', 0.1);
 
+		// groundImpactData.velocity.y is negative; magnitude is the
+		// drop force. Light hop ~ 2-3, big drop ~ 6+.
+		const force = Math.min(3, Math.abs(this.character.groundImpactData.velocity.y) * 0.5);
+		this.character.sfx?.playLand(force);
+
 		if (this.anyDirection())
 		{
 			this.character.setState(new StartWalkForward(character));

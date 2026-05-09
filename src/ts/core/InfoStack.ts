@@ -2,10 +2,11 @@ import { InfoStackMessage } from './InfoStackMessage';
 import { IWorldEntity } from '../interfaces/IWorldEntity';
 import { EntityType } from '../enums/EntityType';
 import { World } from '../world/World';
+import { UpdateOrder } from '../enums/UpdateOrder';
 
 export class InfoStack implements IWorldEntity
 {
-	public updateOrder: number = 3;
+	public updateOrder: number = UpdateOrder.Input;
 	public entityType: EntityType = EntityType.System;
 
 	public messages: InfoStackMessage[] = [];
