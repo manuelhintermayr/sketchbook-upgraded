@@ -1,10 +1,12 @@
 import { World } from '../World';
 import { IrisTransition } from '../ui/IrisTransition';
 
-// Adds a Map dropdown to the Scenarios lil-gui folder. Default is the
-// Inthenew (v0.6) map; alternates are five socketControl maps - two
-// GLB-backed Sketchbook variants and four code-built test sandboxes
-// that BaseScene subclasses build procedurally at runtime.
+// Adds a Map dropdown to the Map & Scenarios lil-gui folder. Default
+// is the Inthenew (v0.6) map; alternates are two procedural code-built
+// recreations of the swift502 v0.1 + v0.2 demos (the originals predate
+// Sketchbook's GLB+userData map authoring), two socketControl-flavoured
+// Sketchbook v0.3 / v0.4 GLBs, and four code-built socketControl test
+// sandboxes.
 //
 // Selection persists in localStorage('sketchbook.map'). Switching
 // triggers a full page reload (cleanest way to swap the entire scene
@@ -15,6 +17,8 @@ export function addMapSwitcher(world: World): void
 	const stored = localStorage.getItem('sketchbook.map');
 	const choices: { [label: string]: string } = {
 		'Inthenew (v0.6, default)': 'inthenew',
+		'swift502 v0.1 (foundation)': 'sw-v01',
+		'swift502 v0.2 (test world)': 'sw-v02',
 		'sketchbook v0.3 (socketControl)': 'sc-v03',
 		'sketchbook v0.4 (socketControl)': 'sc-v04',
 		'test (socketControl sandbox)': 'sc-test',

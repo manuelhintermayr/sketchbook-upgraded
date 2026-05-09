@@ -24,6 +24,8 @@
 				'sc-v04':   'build/assets/world_sc_v04.glb',
 			};
 			const sceneClasses = {
+				'sw-v01':     Sketchbook.Sw01Scene,
+				'sw-v02':     Sketchbook.Sw02Scene,
 				'sc-test':    Sketchbook.TestScene,
 				'sc-test2':   Sketchbook.Test2Scene,
 				'sc-test3':   Sketchbook.Test3Scene,
@@ -37,9 +39,16 @@
 				title: 'Sketchbook',
 				version: 'Version 0.8.0',
 				prompt: 'Click or press any key to start',
-			}).then(() => {
+			}).then(async () => {
 				if (sceneClasses[choice]) {
-					new Sketchbook.World(new sceneClasses[choice]());
+					const SceneClass = sceneClasses[choice];
+					// Sandboxes that need async asset loading expose a
+					// static `createAsync()` factory; the others are
+					// constructed synchronously.
+					const instance = typeof SceneClass.createAsync === 'function'
+						? await SceneClass.createAsync()
+						: new SceneClass();
+					new Sketchbook.World(instance);
 				} else {
 					new Sketchbook.World(glbPaths[choice] || glbPaths['inthenew']);
 				}
