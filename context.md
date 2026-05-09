@@ -25,6 +25,7 @@ src/
 └── ts/
     ├── sketchbook.ts               ← bundle entry; re-exports public API
     ├── characters/                 ← Character + state machine + AI behaviours
+    │                                  + CharacterPhysicsBridge + CharacterInputBridge
     ├── core/                       ← LoadingManager, InputManager, CameraOperator, CameraShake,
     │                                  CommonControls, UIManager, TouchControls, FunctionLibrary
     ├── enums/                      ← EntityType, CollisionGroups, SeatType, Side, Space,
@@ -32,9 +33,10 @@ src/
     ├── i18n/                       ← t(key, vars) flat translation table (en/de/es)
     ├── interfaces/                 ← IUpdatable, IWorldEntity, ISpawnPoint, ICollider
     ├── physics/colliders/          ← Box, Sphere, Cylinder, Capsule, Trimesh wrappers
-    ├── vehicles/                   ← Vehicle + Car/Helicopter/Airplane/Boat/RocketShip + StuckRecovery
+    ├── vehicles/                   ← Vehicle + Car/Helicopter/Airplane/Boat/RocketShip
+    │                                  + StuckRecovery + VehicleAudioBridge + WheelManager
     └── world/
-        ├── World.ts                ← orchestrator; ~636 LOC; per-frame loop + updatables registry
+        ├── World.ts                ← orchestrator; ~650 LOC; per-frame loop + updatables registry
         ├── Sky.ts, Ocean.ts        ← visual environment entities at root
         ├── Grass.ts, GrassShader.ts, Perlin.ts
         ├── OutlineEffect.ts        ← depth-Sobel toon outline post-process
@@ -52,7 +54,8 @@ src/
         │                              BackgroundMusic, Speaker, SfxBus, CharacterSfx,
         │                              BirdSound, AnimalVoices, AudioHelpers (shared utils)
         ├── animals/                ← WanderingAnimals + AnimalBehavior/Dog/Cat,
-        │                              AnimalModels, Birds, Butterflies
+        │                              AnimalModels (types + helpers), CatBuilder, DogBuilder,
+        │                              AnimalAnimator, AnimalSpawner, Birds, Butterflies
         └── sandboxes/              ← BaseScene + Test/Test2/Test3/Example procedural scenes
 build/assets/                       ← world.glb, world_sc_v03.glb, world_sc_v04.glb, vehicles
 vendor/joycon/                      ← Joycon.min.js + Client.js + joycon-sketchbook.js (loaded
@@ -77,7 +80,7 @@ ThreejsEditor/project.json          ← upstream THREE.js editor compat - leave 
 
 ## Engine mental model
 
-- **Frame loop:** `World.render()` (RAF) → `World.update(timeStep)` → every registered `IUpdatable.update()` sorted by `updateOrder` → `composer.render()` (FXAA + Bloom + DoF) → `outlineEffect.renderPass()` (if Outlines on) → `labelRenderer.render()` (CSS2D name tags).
+- **Frame loop:** `World.render()` (RAF) → `World.update(timeStep)` → every registered `IUpdatable.update()` sorted by `updateOrder` → `tickRenderPipeline(world)` runs `composer.render()` (FXAA only - Bloom + DoF were dropped) → `outlineEffect.renderPass()` (if Outlines on) → `labelRenderer.render()` (CSS2D name tags).
 - **Update order slots:** named in `enums/UpdateOrder.ts` - `CharacterPhysics → VehiclePhysics → Input → Camera → Environment → Scenarios → World → Audio → Triggers → Prompts → Labels → PostCamera`. Spaced by 10 so new slots can squeeze between two existing ones without renumbering.
 - **Pause:** `world.setTimeScale(0)` freezes everything. `PauseMenu` uses this; `SettingsModal` adjusts `params.Master_Volume` etc. through lil-gui controllers so existing onChange handlers fire.
 - **Updatables:** anything visible (Ocean, Grass, Speaker, RaceContent, TriggerCube, ProximityPrompt, Sky, Character, Vehicle, WanderingAnimals, etc.) implements `IUpdatable` and is registered via `world.registerUpdatable()` (or `world.add()` which also registers).

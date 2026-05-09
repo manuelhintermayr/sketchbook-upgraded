@@ -37,6 +37,8 @@ StatsBox           --z-stats     (10000)           stats.js, toggle via Debug_FP
 
 Pre-game card with bouncing cube + version label + "click or press any key to start". Lives at `--z-modal`. Returns a `Promise<void>` that resolves on first user gesture; the gesture also unblocks browser audio autoplay (Speaker depends on this). Bootstraps fonts itself so it looks correct even before `main.css` has finished applying.
 
+A language picker (en / de / es) sits at the bottom of the card, plus two icon buttons in the top-right - dark-mode toggle and sound-mute toggle. The sound-mute button writes `localStorage['sketchbook.soundMuted']`, which `ParamsGUI` reads on next boot to seed the `Master_Audio` flag - so the player's choice carries through the page reload.
+
 ### LoadingScreen + progress (`src/css/modules/loadingScreen.css`, `src/ts/core/UIManager.ts`)
 
 Built into the `<div id="loading-screen">` injected by `bootstrapHTML(world)` (in `src/ts/world/setup/HTMLBootstrap.ts`). The percentage label and bar are driven by `UIManager.setLoadingProgress(percent)`, called by `LoadingManager` on every `xhr.progress` and on each `doneLoading()`. Width animates via `transition: width var(--motion-fast)`.
@@ -72,7 +74,7 @@ interface DialogChoice
 }
 ```
 
-Mouse + 1–9 keys pick a choice. Esc closes. ProximityPrompt auto-closes the dialog when the player walks out of the trigger area (`onExit` calls `DialogBox.getInstance().close()`).
+Mouse + 1–9 keys pick a choice. Players exit only by picking a closing choice (every dialog has one that routes to `'end'`); Esc + walk-away are intentionally non-dismissing so the typewriter can't be yanked mid-sentence by stray input or residual velocity. Both player and NPC are dialogFreeze'd so the world keeps simulating around them but neither moves.
 
 Default NPC dialogs live in `src/ts/world/scenarios/defaultDialogs.ts`. The dialog tree is cached by locale, so successive scenario launches in the same language reuse the previous build instead of re-running the ~36 `t()` lookups.
 
@@ -101,13 +103,11 @@ The handler also peeks at `.swal2-container`, `#dialog-bar.visible`, `#settings-
 
 ### SettingsModal (`src/ts/world/ui/SettingsModal.ts`)
 
-Three cards - Graphics / Audio / Controls - plus a Low / High quality preset shortcut row at the top of the Graphics card. Every control writes to `world.params[X]` and forwards via a lazy-built `Map<string, controller>` cache (built once from `world.gui.controllersRecursive()` on the first lookup) so every existing lil-gui `onChange` handler (CSM enable, mouse-sensitivity push to CameraOperator, pointer-lock toggle on InputManager, etc.) fires automatically. No duplication of logic - the modal is a *view* over the same controllers.
+Four cards - General / Graphics / Audio / Controls - plus a Low / High quality preset shortcut row at the top of the Graphics card. The General card carries the language picker (en / de / es), Dark mode toggle, and a Reset settings button (wipes every persisted `sketchbook.*` localStorage key + reload). Every other control writes to `world.params[X]` and forwards via a lazy-built `Map<string, controller>` cache (built once from `world.gui.controllersRecursive()` on the first lookup) so every existing lil-gui `onChange` handler (CSM enable, mouse-sensitivity push to CameraOperator, etc.) fires automatically. No duplication of logic - the modal is a *view* over the same controllers.
 
-Audio is a special case - `Master_Volume` doesn't have a lil-gui controller, so the modal calls `world.setMasterVolume(v)` directly. That writes to params and pushes `v / 100` into `world.audioListener.setMasterVolume()` (the listener is attached lazily by Speaker on the camera).
+Audio: `Master_Audio` is a master mute switch - when off, every audio source (continuous synths via `getMasterVolume`, 3D-positional sources via `World.applyAudioListenerVolume`) goes silent regardless of the sub-toggles. Sub-toggles for `Sound_Effects` and `Background_Music` grey out visually while master is off. `Master_Volume` calls `world.setMasterVolume(v)` directly (no lil-gui controller); `Music_Volume` is wired into BackgroundMusic's `perBusGain`. `SFX_Volume` exists in params for legacy reasons but isn't surfaced in the UI - SfxBus uses `Master_Volume` directly.
 
-`Music_Volume` and `SFX_Volume` are reserved - Sketchbook currently has no separate music or SFX bus, so they update params but have no audible effect. Wire them up if you add a bus.
-
-`refresh()` is called on `open()` to pull the latest values back from params (in case lil-gui changed them while the modal was closed).
+A `gui.onChange` listener mirrors any lil-gui debug-panel change back into the open modal so both views stay in sync. `gui.save()` runs on every modal write so toggle clicks persist immediately (lil-gui's own `onFinishChange` only fires on slider drag-end). `refresh()` runs on `open()` to pull the latest values back from params.
 
 ### ErrorOverlay (`src/ts/world/ui/ErrorOverlay.ts`)
 

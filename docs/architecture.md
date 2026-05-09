@@ -13,18 +13,21 @@ In-depth notes on how the engine is wired together. Pair with `CLAUDE.md` / `con
               │
               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  World (src/ts/world/World.ts, ~636 LOC)                        │
+│  World (src/ts/world/World.ts, ~650 LOC)                        │
 │    renderer • composer • labelRenderer • camera • graphicsWorld │
-│    physicsWorld • bloomPass • bokehPass • outlineEffect         │
+│    physicsWorld • outlineEffect                                 │
 │    LoadingManager • InputManager • CameraOperator • CameraShake │
-│    Sky • ambientSound • worldLabels                             │
+│    Sky • ambientSound • backgroundMusic • sfxBus • worldLabels  │
 │    PauseMenu • SettingsModal • DialogBox singleton              │
 │    scenarios[] • paths[] • characters[] • vehicles[]            │
 │    updatables[] (sorted by IUpdatable.updateOrder)              │
 │    audioListener • gui (lil-gui)                                │
 │                                                                 │
 │  Heavy setup is in helpers (called from constructor):           │
-│    setup/RendererPipeline   - renderer + composer + post-FX     │
+│    setup/RendererPipeline   - renderer + composer + FXAA;       │
+│                                tickRenderPipeline draws each    │
+│                                frame; tickCannonDebug for the   │
+│                                debug-physics overlay            │
 │    setup/HTMLBootstrap      - DOM scaffolding                   │
 │    setup/ParamsGUI          - lil-gui panel + persistence       │
 │    setup/MapSwitcher        - Map & Scenarios map dropdown      │
@@ -39,9 +42,10 @@ In-depth notes on how the engine is wired together. Pair with `CLAUDE.md` / `con
 │  Per-frame loop                                                 │
 │    requestAnimationFrame → render(world)                        │
 │      update(timeStep)  →  for each updatables: u.update()       │
-│      composer.render() / renderer.render()                      │
-│      outlineEffect.renderPass()  ← if params.Outlines           │
-│      labelRenderer.render()  ← CSS2D name tags                  │
+│      tickRenderPipeline(world)  →  composer.render() (FXAA on)  │
+│                                  or renderer.render() (FXAA off)│
+│                                  + outlineEffect.renderPass()   │
+│                                  + labelRenderer.render() CSS2D │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,7 +74,7 @@ Slot constants are defined in `src/ts/enums/UpdateOrder.ts`. Each slot is spaced
 
 ```
 Sketchbook.World(scenePath)
-  ├─ setupRendererPipeline(this)  ← renderer + composer + FXAA/Bloom/DoF + resize
+  ├─ setupRendererPipeline(this)  ← renderer + composer + FXAA + resize
   ├─ bootstrapHTML(this)          ← injects #loading-screen, #ui-container, #planet-menu, canvas
   ├─ initStats()
   ├─ createParamsGUI(this)        ← lil-gui panel + scenarioGUIFolder + persistence
@@ -88,7 +92,7 @@ Sketchbook.World(scenePath)
         else (BaseScene): loadScene(this, lm, {scene: instance.scene})
 ```
 
-`loadScene(world, lm, gltf)` (in `src/ts/world/loading/SceneLoader.ts`) walks every node, branches on `userData`, and registers entities. After parsing, it calls `addMapSwitcher(world)`, `injectDefaultSceneNPCs(world)` (programmatically adds Anna/Ben/Carla/Dieter on the Inthenew map), and `injectWanderingAnimals(world)` (8 dogs + 10 cats), then launches the default scenario.
+`loadScene(world, lm, gltf)` (in `src/ts/world/loading/SceneLoader.ts`) walks every node, branches on `userData`, and registers entities. `addMapSwitcher(world)` runs at the start so the map dropdown lands above the scenario buttons. After parsing the GLB, it calls `injectDefaultSceneNPCs(world)` (programmatically adds Anna/Ben/Carla/Dieter on the Inthenew map), `injectWanderingAnimals(world)` (1 dog + 2 cats), `injectFlyingBirds(world)` (2 birds with per-bird positional chirps), `injectButterflies(world)` (2 ambient butterflies), then launches the default scenario. Animals + birds + butterflies are map-bound (re-injected only when the GLB reloads via the map switcher), not scenario-bound, so a scenario restart leaves them in place.
 
 ## Lifecycle interfaces
 
@@ -127,7 +131,7 @@ ICollider            options: any
 Setup lives in `src/ts/world/setup/RendererPipeline.ts` and is called once from `World`'s constructor. Per-frame work runs from `World.render`.
 
 - `THREE.WebGLRenderer` with PCF shadows, ACES tone mapping, `pixelRatio` capped at 2 (`Math.min(window.devicePixelRatio, 2)`).
-- `EffectComposer` chain in order: `RenderPass` → `FXAAShader` → `UnrealBloomPass` → `BokehPass`. Bloom and DoF default to `enabled = false` so toggling them at runtime never has to rebuild the composer.
+- `EffectComposer` chain: `RenderPass` → `FXAAShader`. FXAA can be toggled at runtime (`world.params.FXAA`); when off, `tickRenderPipeline` calls `renderer.render()` directly to bypass the composer pass cost. Bloom + DoF were dropped because the post-FX cost wasn't justifying the visual gain on integrated GPUs.
 - `OutlineEffect` (in `src/ts/world/OutlineEffect.ts`) runs *after* the composer. Two-pass: depth pre-pass into a `HalfFloatType` render target via `MeshDepthMaterial` override (skips `RenderLayer.OutlineSkip` - sky / stars / earth / moon / grass / ocean), then a Sobel-edge fullscreen quad with a scale-invariant ratio threshold.
 - `CSM` (cascaded shadow maps from three.js examples) attached to `Sky` with `shadowMapSize: 1024` × 3 cascades. `csm.setupMaterial(child.material)` is called for every loaded mesh during `loadScene`.
 - `CSS2DRenderer` runs after the outline pass to project name-tag divs above their world-space anchor. Lives at `world.labelRenderer`, has its own absolutely-positioned overlay div with `pointer-events: none`. Distance culling is centralised through `WorldLabels` in `src/ts/world/ui/WorldLabels.ts`.
