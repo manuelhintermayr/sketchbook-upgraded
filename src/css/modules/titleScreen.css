@@ -11,6 +11,7 @@
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	padding: var(--space-4);
 	background: linear-gradient(to bottom, var(--color-loading-top) 0%, var(--color-loading-bottom) 100%);
 	z-index: var(--z-modal);
 	cursor: pointer;
@@ -21,10 +22,16 @@
 {
 	font-family: var(--font-headline);
 	font-weight: var(--weight-extrabold);
-	font-size: 4rem;
+	/* Scales fluidly between 1.8rem on the narrowest phones and 4rem
+	 * on desktop - clamp(min, preferred, max) means the text is
+	 * always visible without clipping at any viewport width. */
+	font-size: clamp(1.8rem, 11vw, 4rem);
 	color: #ffffff;
 	text-shadow: var(--text-shadow-overlay);
 	margin-bottom: var(--space-2);
+	max-width: 100%;
+	text-align: center;
+	overflow-wrap: break-word;
 }
 
 #title-screen .title-version
@@ -88,12 +95,15 @@
 {
 	display: flex;
 	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
 	gap: var(--space-3);
 	margin-top: var(--space-6);
 	font-family: var(--font-label);
 	font-size: var(--text-body-sm);
 	color: rgba(255, 255, 255, 0.85);
 	text-shadow: var(--text-shadow-overlay);
+	max-width: 100%;
 }
 
 #title-screen .title-lang-btn
