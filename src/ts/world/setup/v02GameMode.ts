@@ -48,7 +48,7 @@ export function wireV02GameMode(world: World): void
 		else if (e.code === 'KeyV')
 		{
 			// Only on foot - vehicles already use V for first-person.
-			const player = world.characters[0];
+			const player = world.characters.find((c) => c.isPlayer);
 			if (player !== undefined && player.controlledObject === undefined)
 			{
 				viewIndex = (viewIndex + 1) % VIEW_DISTANCES.length;

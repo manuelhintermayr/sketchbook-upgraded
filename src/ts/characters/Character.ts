@@ -96,6 +96,13 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	// these characters stand still until DialogBox.close() flips it back.
 	public dialogFreeze: boolean = false;
 
+	// Set to true on the human-controlled character. Used by per-frame
+	// systems that need to find the player without depending on the
+	// fragile `world.characters[0]` order, which depends on async GLB
+	// load order and can land an NPC there if the boxman.glb finishes
+	// loading for an NPC spawn before the player one.
+	public isPlayer: boolean = false;
+
 	// Vehicles
 	public controlledObject: IControllable;
 	public occupyingSeat: VehicleSeat = null;
@@ -264,7 +271,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 		// player passed by. Only stationary NPCs (no behaviour) react.
 		if (this.behaviour !== undefined && this.behaviour !== null) return;
 		if (this.world === undefined) return;
-		const player = this.world.characters[0];
+		const player = this.world.characters.find((c) => c.isPlayer);
 		if (player === undefined || player === this) return;
 
 		const dx = player.position.x - this.position.x;

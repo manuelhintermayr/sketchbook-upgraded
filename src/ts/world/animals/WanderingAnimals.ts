@@ -159,7 +159,7 @@ export class WanderingAnimals implements IWorldEntity
 		if (this.world === null) return;
 
 		const dt = Math.min(unscaledTimeStep, 0.05);
-		const player = this.world.characters[0];
+		const player = this.world.characters.find((c) => c.isPlayer);
 		if (player === undefined) return;
 		const playerPos = player.position;
 

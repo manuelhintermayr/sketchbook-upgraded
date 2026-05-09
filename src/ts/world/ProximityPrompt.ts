@@ -134,7 +134,12 @@ export class ProximityPrompt implements IUpdatable
 			}
 		}
 
-		const player = this.world.characters[0];
+		// Use the explicit isPlayer flag instead of characters[0] -
+		// async boxman.glb loads can land an NPC at index 0 if its
+		// callback fires before the player's, which would put the
+		// distance check at NPC↔NPC = 0 and stick the label visible
+		// from anywhere on the map.
+		const player = this.world.characters.find((c) => c.isPlayer);
 		if (player === undefined)
 		{
 			if (this.inside) this.setInside(false);
@@ -198,7 +203,7 @@ export class ProximityPrompt implements IUpdatable
 		const now = Date.now();
 		if (now - this.interactionCooldown < this.lastInteract) return;
 		this.lastInteract = now;
-		const player = this.world?.characters[0];
+		const player = this.world?.characters.find((c) => c.isPlayer);
 		if (!player) return;
 
 		if (this.dialog !== undefined)

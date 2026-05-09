@@ -197,7 +197,7 @@ export class Butterflies implements IWorldEntity
 		this.animTime += dt;
 
 		const camPos = this.world.camera.position;
-		const player = this.world.characters[0];
+		const player = this.world.characters.find((c) => c.isPlayer);
 		// X/Z stay player-relative so the swarm doesn't wander to the
 		// other side of the map; Y is anchored to the player's spawn
 		// elevation captured on first frame, then never updated -

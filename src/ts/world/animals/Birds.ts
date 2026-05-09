@@ -238,7 +238,7 @@ export class Birds implements IWorldEntity
 		// "fixed values" relative to wherever the player started, not
 		// fixed absolute world Y (which would put birds underground on
 		// elevated maps like Inthenew's helipad).
-		const player = this.world.characters[0];
+		const player = this.world.characters.find((c) => c.isPlayer);
 		const playerX = player !== undefined ? player.position.x : 0;
 		const playerZ = player !== undefined ? player.position.z : 0;
 

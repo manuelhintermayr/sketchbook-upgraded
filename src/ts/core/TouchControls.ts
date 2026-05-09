@@ -247,7 +247,7 @@ export class TouchControls
 	private pollWorldState(): void
 	{
 		if (this.world === null) return;
-		const player = this.world.characters[0];
+		const player = this.world.characters.find((c) => c.isPlayer);
 		if (!player) return;
 
 		// Mode from controlledObject.entityType (driver) or occupyingSeat

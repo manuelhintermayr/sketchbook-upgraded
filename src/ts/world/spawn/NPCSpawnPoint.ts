@@ -117,7 +117,7 @@ export class NPCSpawnPoint implements ISpawnPoint
 				npc.setBehaviour(followBehaviour);
 				const tick = (): void =>
 				{
-					const player = world.characters.find((c) => c !== npc);
+					const player = world.characters.find((c) => c.isPlayer);
 					if (player !== undefined)
 					{
 						followBehaviour.setTarget(player);

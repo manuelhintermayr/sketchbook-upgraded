@@ -29,6 +29,7 @@ export class CharacterSpawnPoint implements ISpawnPoint
 			let forward = Utils.getForward(this.object);
 			player.setOrientation(forward, true);
 			
+			player.isPlayer = true;
 			world.add(player);
 			player.takeControl();
 			attachNameLabel(player, t('label.player'), true, { feature: 'Labels' });
