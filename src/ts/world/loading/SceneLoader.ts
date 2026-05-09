@@ -41,7 +41,11 @@ export function loadScene(world: World, loadingManager: LoadingManager, gltf: an
 
 		if (child.type === 'Mesh')
 		{
-			child.geometry = child.geometry.toNonIndexed();
+			// TrimeshCollider needs non-indexed geometry. Only convert
+			// when actually indexed - sandbox scenes build their
+			// BufferGeometries manually without an index, in which case
+			// toNonIndexed() is a no-op that warns.
+			if (child.geometry.index !== null) child.geometry = child.geometry.toNonIndexed();
 			Utils.setupMeshProperties(child);
 			world.sky.csm.setupMaterial(child.material);
 
