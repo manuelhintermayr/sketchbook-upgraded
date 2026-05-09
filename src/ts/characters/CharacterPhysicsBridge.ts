@@ -68,6 +68,19 @@ export function feetRaycast(character: Character): void
 
 export function physicsPostStep(body: CANNON.Body, character: Character): void
 {
+	// Frozen by an open dialog - hold the body still. Without this the
+	// state machine's lerp toward velocityTarget=0 would still take a
+	// few frames to settle (and additive-mode states like Falling /
+	// JumpRunning would keep the existing velocity entirely), letting
+	// the character drift mid-conversation.
+	if (character.dialogFreeze)
+	{
+		body.velocity.x = 0;
+		body.velocity.y = 0;
+		body.velocity.z = 0;
+		return;
+	}
+
 	// Get velocities
 	_simulatedVelocity.set(body.velocity.x, body.velocity.y, body.velocity.z);
 
