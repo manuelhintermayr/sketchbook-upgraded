@@ -204,10 +204,14 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		const inSpace = this.world.onMoon || this.world.camera.position.y > 1500;
 		this.skyMesh.visible = !inSpace;
 
-		// Outline ring only while earth-bound. Past the atmosphere
-		// boundary the camera approaches the moon and slips inside the
-		// BackSide shell, which then renders as a solid black void.
-		this.moonOutlineShell.visible = !inSpace;
+		// Outline ring only while earth-bound AND the global Outlines
+		// toggle is on. The shell is a separate mesh, not part of the
+		// depth-based outline pass, so it doesn't auto-hide when the
+		// Outlines param flips - we have to mirror the gate here.
+		// Past the atmosphere boundary the camera approaches the moon
+		// and slips inside the shell, which then renders as a solid
+		// black void - hence the inSpace half of the condition.
+		this.moonOutlineShell.visible = !inSpace && this.world.params?.Outlines === true;
 
 		// Stars: linear ramp from late-afternoon (sunY=2, ~phi 168) to
 		// deep dusk (sunY=-3, ~phi 197). Earlier curve kept this squared
