@@ -152,7 +152,7 @@ The biggest release on this fork - three concurrent strands of work landed acros
 
 ## March 2026 - version 0.7.5 - Notblox features port ([iErcann](https://github.com/iErcann)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/31c51c472c3c908cdb2c28b75e973aa7ec565c9f))
 
-Brings the **TriggerCube + ProximityPrompt** entity pair from [iErcann/Notblox](https://github.com/iErcann/Notblox) - the multiplayer / ECS layer is dropped, the entities themselves are reshaped into single-player Sketchbook-style classes. They underpin the in-game NPC interaction prompts and any future "step into a zone to do X" mechanic.
+Brings the **TriggerCube + ProximityPrompt** entity pair from [iErcann/Notblox](https://github.com/iErcann/Notblox) - the multiplayer / ECS layer is dropped, the entities themselves are reshaped into single-player Sketchbook-style classes. They underpin the in-game NPC interaction prompts and any future "step into a zone to do X" mechanic. (TriggerCube was later removed in 0.8.0 - ProximityPrompt absorbed the per-frame distance check directly to fix a desync bug; see CHANGELOG.)
 
 ## November 2025 - version 0.7.0 - socketControl features port ([tkkaushik369](https://github.com/tkkaushik369)) ([commit](https://github.com/manuelhintermayr/sketchbook-upgraded/commit/1c8619d546617a3b4a963fa83fb58bde2a7fffa9))
 

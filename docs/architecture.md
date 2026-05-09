@@ -63,8 +63,7 @@ Slot constants are defined in `src/ts/enums/UpdateOrder.ts`. Each slot is spaced
 | `Scenarios` (60) | `RaceContent` - per-frame plane crossings against checkpoints |
 | `World` (100) | `Grass` (shader time / player-position uniforms), `Ocean` (wave / normal-map), `WanderingAnimals` (state machine + body sync), `Birds` (orbit + flap + per-bird PositionalAudio update), `Butterflies` (Lissajous drift + visibility cull) |
 | `Audio` (110) | `ProceduralAudio` (engine + ambient + background music) - master-volume sync, oscillator parameter modulation; `Speaker` shares the slot. `SfxBus` is event-driven, no per-frame update |
-| `Triggers` (120) | `TriggerCube` - AABB containment check vs. player |
-| `Prompts` (130) | `ProximityPrompt` - no-op per frame (relies on TriggerCube + keydown) |
+| `Prompts` (130) | `ProximityPrompt` - per-frame squared-distance check vs. player; show/hide DOM label, dispatch `proximity-near`/`proximity-far` events on transitions |
 | `Labels` (140) | `WorldLabels` - distance-cull CSS2D name tags |
 | `PostCamera` (150) | `CameraShake` - adds transient camera-position offset after CameraOperator finalises the frame's camera |
 
@@ -181,8 +180,14 @@ All overlays are `position: fixed; z-index: var(--z-modal)` (or higher for `--z-
 
 ## Sandbox scenes (BaseScene subclasses)
 
-`src/ts/world/sandboxes/BaseScene.ts` is an abstract class with a `THREE.Scene` and three vehicle-mesh slots (kept for upstream compat - Sketchbook always loads vehicles from `.glb`, so the slots are unused). Subclasses (`TestScene`, `Test2Scene`, `Test3Scene`, `Example`) populate `this.scene` with meshes carrying the same userData markers as a `.glb`. `World` accepts either a string `.glb` path or a `BaseScene` instance - the latter is wrapped in a `{scene: …}` fake-GLTF and runs through the same `loadScene` path.
+`src/ts/world/sandboxes/BaseScene.ts` is an abstract class with a `THREE.Scene` and three vehicle-mesh slots (kept for upstream compat - Sketchbook always loads vehicles from `.glb`, so the slots are unused). Subclasses populate `this.scene` with meshes carrying the same userData markers as a `.glb`. `World` accepts either a string `.glb` path or a `BaseScene` instance - the latter is wrapped in a `{scene: …}` fake-GLTF and runs through the same `loadScene` path.
+
+Subclasses:
+- **`TestScene` / `Test2Scene` / `Test3Scene` / `Example`** - procedural socketControl-style sandboxes, built synchronously in their constructor.
+- **`Sw01Scene`** - 1:1 recreation of the swift502 v0.1.0 demo (tiled platform + bounce spheres + credit sign + Bob (FollowCharacter) + John (Random)). Async via `static createAsync()` because it loads the credits-sign FBX.
+- **`Sw02Scene`** - 1:1 port of the swift502 v0.2.0 test world. Loads the vendored `build/assets/world_v02.glb` verbatim and translates its v0.2-era `extras.physics` / `extras.mass` userData on the fly into the modern `userData.data='physics'/'spawn'` dispatch format.
+- **`creditsSign.ts`** - shared helper used by both Sw01 and Sw02 to materialise the credits-sign FBX with its 4 sub-mesh Lambert materials (sign, grass, sign_shadow, credits).
 
 ## Map switcher
 
-`addMapSwitcher(world)` (in `src/ts/world/setup/MapSwitcher.ts`, called from `loadScene`) adds a `Map` dropdown to the Scenarios folder with seven options: Inthenew (default), `sc-v03`, `sc-v04`, `sc-test`, `sc-test2`, `sc-test3`, `sc-example`. Selecting writes to `localStorage['sketchbook.map']` and reloads the page (covered by an iris-wipe transition). `index.html` reads the value on next load and dispatches to either `glbPaths[…]` or `new sceneClasses[…]()`.
+`addMapSwitcher(world)` (in `src/ts/world/setup/MapSwitcher.ts`, called from `loadScene`) adds a `Map` dropdown to the Scenarios folder with nine options: Inthenew (default), `sw-v01` (procedural swift502 v0.1 demo via `Sw01Scene`), `sw-v02` (vendored swift502 v0.2 GLB via `Sw02Scene`), `sc-v03`, `sc-v04`, `sc-test`, `sc-test2`, `sc-test3`, `sc-example`. Selecting writes to `localStorage['sketchbook.map']` and reloads the page (covered by an iris-wipe transition). `index.html` reads the value on next load and dispatches to either `glbPaths[…]` or the matching `sceneClasses[…]` (using `createAsync()` if exposed, otherwise `new`).

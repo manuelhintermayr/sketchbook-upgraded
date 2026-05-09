@@ -29,7 +29,7 @@ DialogBox          --z-overlay   (30)              ProximityPrompt with dialog
 PauseMenu          --z-modal     (40)              Esc (after pauseMenu.enable())
 SettingsModal      --z-modal     (40)              PauseMenu → Settings
 ErrorOverlay       --z-toast     (50)              window.onerror, unhandledrejection
-NameLabel          (CSS2D pass)                    attachNameLabel(target, name, isMe)
+NameLabel          (CSS2D pass)                    attachNameLabel(target, name, isPlayer)
 StatsBox           --z-stats     (10000)           stats.js, toggle via Debug_FPS
 ```
 
