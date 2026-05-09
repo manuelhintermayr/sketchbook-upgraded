@@ -44,6 +44,10 @@ export class Sky extends THREE.Object3D implements IUpdatable
 	private skyMesh: THREE.Mesh;
 	private skyMaterial: THREE.ShaderMaterial;
 
+	// Decorative black border around the moon when viewed from Earth.
+	// See the constructor for the BackSide-shell trick.
+	private moonOutlineShell: THREE.Mesh;
+
 	// Star field - only visible when the sun has dropped below the
 	// horizon or the player is in space. The shader uses a nightFactor
 	// uniform that we drive from the sun position each frame.
@@ -89,8 +93,11 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		// Moon sphere sits at Inthenew's hand-authored moon coordinates
 		// so it shows as a body in the sky from anywhere on Earth.
 		const textureLoader = new THREE.TextureLoader();
+		// 64x32 segments (was 24x12). Without the bump the silhouette
+		// reads as a polygonal staircase under FXAA + the new moon
+		// outline ring.
 		const earthMesh = new THREE.Mesh(
-			new THREE.SphereGeometry(5010, 24, 12),
+			new THREE.SphereGeometry(5010, 64, 32),
 			new THREE.MeshBasicMaterial({
 				side: THREE.FrontSide,
 				map: textureLoader.load('src/img/equirectangular-earth.png'),
@@ -104,7 +111,7 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		// halve the visual radius so it reads as a far-away body. Block 4
 		// will keep the original 1252.5 for the gravity sphere.
 		const moonMesh = new THREE.Mesh(
-			new THREE.SphereGeometry(626.25, 24, 12),
+			new THREE.SphereGeometry(626.25, 64, 32),
 			new THREE.MeshBasicMaterial({
 				side: THREE.FrontSide,
 				map: textureLoader.load('src/img/equirectangular-moon.png'),
@@ -113,6 +120,24 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		moonMesh.position.set(15.2758, 3852.67, -11696.4);
 		moonMesh.layers.set(RenderLayer.OutlineSkip);
 		world.graphicsWorld.add(moonMesh);
+
+		// Cartoon-style outline ring around the moon: a slightly larger
+		// BackSide black sphere at the same position. Its back-facing
+		// polygons sit behind the moon's front face, so depth-test
+		// leaves the moon disk visible and only the thin annulus
+		// between the two silhouettes shows up as black. Hidden in
+		// space (see update) - up close the shell would just engulf
+		// the view in black.
+		this.moonOutlineShell = new THREE.Mesh(
+			new THREE.SphereGeometry(626.25 * 1.04, 64, 32),
+			new THREE.MeshBasicMaterial({
+				side: THREE.BackSide,
+				color: 0x000000,
+			}),
+		);
+		this.moonOutlineShell.position.copy(moonMesh.position);
+		this.moonOutlineShell.layers.set(RenderLayer.OutlineSkip);
+		world.graphicsWorld.add(this.moonOutlineShell);
 
 		// Stars - 2000 points on the upper hemisphere of a 800-unit
 		// shell. Camera-anchored each frame (this object's position
@@ -178,6 +203,11 @@ export class Sky extends THREE.Object3D implements IUpdatable
 		// above there is in transit or on the moon.
 		const inSpace = this.world.onMoon || this.world.camera.position.y > 1500;
 		this.skyMesh.visible = !inSpace;
+
+		// Outline ring only while earth-bound. Past the atmosphere
+		// boundary the camera approaches the moon and slips inside the
+		// BackSide shell, which then renders as a solid black void.
+		this.moonOutlineShell.visible = !inSpace;
 
 		// Stars: linear ramp from late-afternoon (sunY=2, ~phi 168) to
 		// deep dusk (sunY=-3, ~phi 197). Earlier curve kept this squared

@@ -35,11 +35,6 @@ uniform vec2 resolution;
 uniform vec3 outlineColor;
 uniform float outlineStrength;
 uniform float relativeThreshold;
-// Outlines fade for pixels whose non-linear depth is above this.
-// With near=0.1, far=50000, depth ≈ 1 - 1/(10z) - so 0.9999 maps
-// to z ≈ 1000 m. Lets the moon-map outlines drop out while the
-// player is on earth without affecting nearby silhouettes.
-uniform float maxDepth;
 
 varying vec2 vUv;
 
@@ -77,10 +72,7 @@ void main()
 	float scaledEdge = edge / max(avgDepth, 1e-6);
 
 	float outline = smoothstep(relativeThreshold * 0.5, relativeThreshold, scaledEdge);
-	// Fade outlines as the average depth approaches the far plane.
-	// One-pixel-wide ramp so the cutoff isn't a hard line.
-	float distFade = 1.0 - smoothstep(maxDepth - 0.00005, maxDepth, avgDepth);
-	gl_FragColor = vec4(outlineColor, outline * outlineStrength * distFade);
+	gl_FragColor = vec4(outlineColor, outline * outlineStrength);
 }
 `;
 
@@ -136,7 +128,6 @@ export class OutlineEffect
 				// 1.5 lands well into the "true edge" range without
 				// catching float-precision flicker on far terrain.
 				relativeThreshold: { value: 1.5 },
-				maxDepth: { value: 0.9999 },
 			},
 			transparent: true,
 			depthTest: false,
