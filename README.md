@@ -1,7 +1,9 @@
 <p align="center">
 	<a href="https://projects.manuelhintermayr.com/sketchbook-upgraded/"><img src="./src/img/thumbnail.png"></a>
 	<br>
-	<a href="https://projects.manuelhintermayr.com/sketchbook-upgraded/">Live demo (v0.8.0)</a>
+	<a href="https://projects.manuelhintermayr.com/sketchbook-upgraded/">Live demo (v0.8.0, Webpack edition)</a>
+	<br>
+	<a href="https://projects.manuelhintermayr.com/sketchbook-nuxt/">Live demo (Nuxt 4 + Vue 3 edition)</a>
 	<br>
 	<a href="https://jblaha.art/sketchbook/latest">Original demo by swift502</a>
 	<br>
@@ -12,6 +14,8 @@
 A maintained extension of the original [swift502/Sketchbook](https://github.com/swift502) - a small web-based game engine on [three.js](https://github.com/mrdoob/three.js) and [cannon-es](https://github.com/pmndrs/cannon-es) with a focus on third-person controls, vehicles and scripted scenarios.
 
 This fork pulls in the features from later community forks that I felt were worth keeping, rebuilds the project on current tooling (TypeScript, three.js r183, webpack 5; dependency baseline as of **1 May 2026**) and exposes everything through one engine. See the [project timeline](#project-timeline) for who did what.
+
+> **Also available as a Nuxt 4 + Vue 3 SFC port:** [`manuelhintermayr/sketchbook-nuxt`](https://github.com/manuelhintermayr/sketchbook-nuxt) is a 1:1 port of this repo where the DOM/CSS-by-hand UI shell was rebuilt with Vue components, the lil-gui controls became reactive composables, and `localStorage` plumbing landed in `useUserPrefs` / `useEngineParams`. The engine itself (World, Character, Vehicle, Sky, Ocean…) is byte-for-byte identical.
 
 ## Features
 
