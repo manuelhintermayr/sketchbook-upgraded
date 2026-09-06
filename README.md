@@ -214,3 +214,9 @@ The first tagged release. Three.js scene + cannon.js physics with **variable, FP
 - [Bar Hatsor (barhatsor)](https://github.com/barhatsor) - Joy-Con / gamepad integration.
 - [tkkaushik369](https://github.com/tkkaushik369) - socketControl: race-checkpoint system, instanced grass field, Speaker, CylinderCollider, ShapeSpawnPoint, the four sandbox scenes, and the THREE.js editor workflow.
 - [iErcann](https://github.com/iErcann) - Notblox: TriggerCube + ProximityPrompt design.
+
+---
+
+## License & third-party notices
+
+This project is distributed under the **MIT License** (see [LICENSE](./LICENSE)), **Copyright (c) 2020 swift502** - the original author's copyright notice is preserved. The features merged from later community forks, the third-party libraries, and the asset provenance are consolidated - with their authors and, where determinable, their licenses - in [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).
