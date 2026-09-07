@@ -5,6 +5,10 @@
 	<br>
 	<a href="https://projects.manuelhintermayr.com/sketchbook-nuxt/">Live demo (Nuxt 4 + Vue 3 edition)</a>
 	<br>
+	<a href="https://projects.manuelhintermayr.com/sketchbook-rapier/">Live demo (Rapier edition)</a>
+	<br>
+	<a href="https://projects.manuelhintermayr.com/sketchbook-babylon/">Live demo (Babylon.js + Havok edition)</a>
+	<br>
 	<a href="https://jblaha.art/sketchbook/latest">Original demo by swift502</a>
 	<br>
 </p>
@@ -15,7 +19,11 @@ A maintained extension of the original [swift502/Sketchbook](https://github.com/
 
 This fork pulls in the features from later community forks that I felt were worth keeping, rebuilds the project on current tooling (TypeScript, three.js r183, webpack 5; dependency baseline as of **1 May 2026**) and exposes everything through one engine. See the [project timeline](#project-timeline) for who did what.
 
-> **Also available as a Nuxt 4 + Vue 3 SFC port:** [`manuelhintermayr/sketchbook-nuxt`](https://github.com/manuelhintermayr/sketchbook-nuxt) is a 1:1 port of this repo where the DOM/CSS-by-hand UI shell was rebuilt with Vue components, the lil-gui controls became reactive composables, and `localStorage` plumbing landed in `useUserPrefs` / `useEngineParams`. The engine itself (World, Character, Vehicle, Sky, Ocean…) is byte-for-byte identical.
+> **Sibling editions of this project** (this repo is the maintained three.js + cannon-es baseline they all derive from):
+>
+> - [`manuelhintermayr/sketchbook-babylon`](https://github.com/manuelhintermayr/sketchbook-babylon) — a full port of the engine to **Babylon.js 9 + Havok** (renderer, scene graph, physics and spatial audio rewritten; maps, vehicles, scenarios and UI unchanged).
+> - [`manuelhintermayr/sketchbook-rapier`](https://github.com/manuelhintermayr/sketchbook-rapier) — the three.js line with physics ported from **cannon-es to [Rapier](https://rapier.rs)** (June 2026).
+> - [`manuelhintermayr/sketchbook-nuxt`](https://github.com/manuelhintermayr/sketchbook-nuxt) — a 1:1 **Nuxt 4 + Vue 3 SFC** port where the DOM/CSS-by-hand UI shell was rebuilt with Vue components and reactive composables; the engine (World, Character, Vehicle, Sky, Ocean…) is byte-for-byte identical.
 
 ## Features
 
