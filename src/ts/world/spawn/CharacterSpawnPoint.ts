@@ -2,6 +2,7 @@ import { ISpawnPoint } from '../../interfaces/ISpawnPoint';
 import * as THREE from 'three';
 import { World } from '../World';
 import { Character } from '../../characters/Character';
+import { loadCharacterModel } from '../../characters/CharacterAssets';
 import { LoadingManager } from '../../core/LoadingManager';
 import * as Utils from '../../core/FunctionLibrary';
 import { attachNameLabel } from '../ui/NameLabel';
@@ -18,7 +19,7 @@ export class CharacterSpawnPoint implements ISpawnPoint
 	
 	public spawn(loadingManager: LoadingManager, world: World): void
 	{
-		loadingManager.loadGLTF('build/assets/boxman.glb', (model) =>
+		loadCharacterModel(loadingManager, (model) =>
 		{
 			let player = new Character(model);
 			

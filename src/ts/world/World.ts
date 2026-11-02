@@ -347,6 +347,9 @@ export class World
 
 	public updatePhysics(timeStep: number): void
 	{
+		// Pause (Time_Scale → 0) - skip cannon + pre/post steps entirely.
+		if (timeStep === 0) return;
+
 		// ADD PRE-STEPS for all characters and vehicles
 		this.characters.forEach((char) => {
 			if (typeof char.physicsPreStep == 'function')

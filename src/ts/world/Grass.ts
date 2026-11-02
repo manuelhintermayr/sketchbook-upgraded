@@ -8,6 +8,8 @@ import { RenderLayer } from '../enums/RenderLayers';
 import { Noise } from './Perlin';
 import { GrassShader } from './GrassShader';
 import { WanderingAnimals } from './animals/WanderingAnimals';
+import { preferredGrassInstances } from '../core/DeviceProfile';
+import * as Utils from '../core/FunctionLibrary';
 
 // Reused per frame so refreshPushers() doesn't allocate. The helicopter
 // pusher used to build a fresh Vector3 every frame (one per heli) just
@@ -35,8 +37,8 @@ export class Grass implements IWorldEntity
 	public updateOrder: number = UpdateOrder.World;
 	public entityType: EntityType = EntityType.Grass;
 
-	public groundMaterial: THREE.Material;
-	public grassMaterial: THREE.ShaderMaterial;
+	public groundMaterial: THREE.Material | undefined;
+	public grassMaterial: THREE.ShaderMaterial | undefined;
 
 	private world: World;
 	private meshes: THREE.Object3D[] = [];
@@ -46,7 +48,7 @@ export class Grass implements IWorldEntity
 	private candidatePool: Candidate[] = [];
 	private candidateCount: number = 0;
 
-	constructor(transform: THREE.Object3D, world: World, instances: number = 300000)
+	constructor(transform: THREE.Object3D, world: World, instances: number = preferredGrassInstances())
 	{
 		this.world = world;
 
@@ -219,11 +221,24 @@ export class Grass implements IWorldEntity
 
 	public removeFromWorld(world: World): void
 	{
-		this.meshes.forEach((mesh) => world.graphicsWorld.remove(mesh));
+		this.meshes.forEach((mesh) =>
+		{
+			world.graphicsWorld.remove(mesh);
+			Utils.disposeObject3D(mesh);
+		});
+		this.meshes.length = 0;
+
+		if (this.groundMaterial)
+		{
+			this.groundMaterial.dispose();
+			this.groundMaterial = undefined;
+		}
+		this.grassMaterial = undefined;
 	}
 
 	public update(timeStep: number): void
 	{
+		if (timeStep === 0 || this.grassMaterial === undefined) return;
 		this.grassMaterial.uniforms.time.value += timeStep;
 		this.refreshPushers();
 	}

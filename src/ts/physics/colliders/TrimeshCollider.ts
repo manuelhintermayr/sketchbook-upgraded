@@ -14,8 +14,6 @@ export class TrimeshCollider implements ICollider
 	constructor(mesh: Object3D, options: any)
 	{
 		this.mesh = mesh.clone();
-		// Geometry conversion (toNonIndexed) is done once at scene-load
-		// in World rather than per-collider here.
 
 		const defaults = {
 			mass: 0,
@@ -58,12 +56,21 @@ export class TrimeshCollider implements ICollider
 			vertices[i * 3 + 2] = positionAttr.getZ(i) * scale.z;
 		}
 
-		// Geometry has been toNonIndexed()'d at load time (or built
-		// without an index in the sandbox scenes), so each consecutive
-		// triple of vertices forms one triangle - the indices array is
-		// just [0, 1, 2, ..., vertCount-1].
-		const indices = new Uint32Array(vertCount);
-		for (let i = 0; i < vertCount; i++) indices[i] = i;
+		// Prefer the authored index buffer so render meshes can stay
+		// indexed. Fall back to sequential indices for non-indexed
+		// sandbox geometries.
+		let indices: Uint32Array;
+		if (geometry.index !== null)
+		{
+			const src = geometry.index;
+			indices = new Uint32Array(src.count);
+			for (let i = 0; i < src.count; i++) indices[i] = src.getX(i);
+		}
+		else
+		{
+			indices = new Uint32Array(vertCount);
+			for (let i = 0; i < vertCount; i++) indices[i] = i;
+		}
 
 		// CANNON.Trimesh's typings want number[] but the constructor
 		// happily accepts a typed array (it wraps with new Float32Array

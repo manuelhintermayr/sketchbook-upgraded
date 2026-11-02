@@ -24,9 +24,14 @@ export function createCapsuleGeometry(radius: number = 1, height: number = 2, N:
  * @param {Vector3} a Vector to construct 2D matrix from
  * @param {Vector3} b Vector to apply basis to
  */
-export function appplyVectorMatrixXZ(a: THREE.Vector3, b: THREE.Vector3): THREE.Vector3
+/**
+ * Apply XZ basis of `a` to `b`, writing into `out` when provided so hot
+ * paths (character arcade velocity) can stay allocation-free.
+ */
+export function appplyVectorMatrixXZ(a: THREE.Vector3, b: THREE.Vector3, out?: THREE.Vector3): THREE.Vector3
 {
-	return new THREE.Vector3(
+	const target = out !== undefined ? out : new THREE.Vector3();
+	return target.set(
 		(a.x * b.z + a.z * b.x),
 		b.y,
 		(a.z * b.z + -a.x * b.x)
@@ -198,6 +203,36 @@ export function setupMeshProperties(child: any): void
 		mat.transparent = child.material.transparent;
 		child.material = mat;
 	}
+}
+
+/**
+ * Dispose GPU resources owned by a subtree. Does NOT dispose textures
+ * referenced by materials (those may be shared with a GLTF cache).
+ * Prefer disposing only instance-unique materials when geometry is shared.
+ */
+export function disposeObject3D(root: THREE.Object3D, options?: { geometry?: boolean; material?: boolean }): void
+{
+	const disposeGeometry = options?.geometry !== false;
+	const disposeMaterial = options?.material !== false;
+
+	root.traverse((obj: any) =>
+	{
+		if (disposeGeometry && obj.geometry)
+		{
+			obj.geometry.dispose();
+			obj.geometry = undefined;
+		}
+
+		if (disposeMaterial && obj.material)
+		{
+			const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+			for (const mat of mats)
+			{
+				if (mat && typeof mat.dispose === 'function') mat.dispose();
+			}
+			obj.material = undefined;
+		}
+	});
 }
 
 export function detectRelativeSide(from: Object3D, to: Object3D): Side

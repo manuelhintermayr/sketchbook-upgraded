@@ -11,6 +11,13 @@ import { EntityType } from '../enums/EntityType';
 import { UpdateOrder } from '../enums/UpdateOrder';
 import { t } from '../i18n';
 
+const _camOffset = new THREE.Vector3();
+const _newCamPos = new THREE.Vector3();
+const _lookDir = new THREE.Vector3();
+const _targetPos = new THREE.Vector3();
+const _LOOK_NEG_Z = new THREE.Vector3(0, 0, -1);
+const _autoRotateDummy = new THREE.Object3D();
+
 export class CameraOperator implements IInputReceiver, IUpdatable
 {
 	public updateOrder: number = UpdateOrder.Camera;
@@ -120,10 +127,11 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 		{
 			this.camera.position.y = THREE.MathUtils.clamp(this.camera.position.y, this.target.y, Number.POSITIVE_INFINITY);
 			this.camera.lookAt(this.target);
-			let newPos = this.target.clone().add(new THREE.Vector3().subVectors(this.camera.position, this.target).normalize().multiplyScalar(this.targetRadius));
-			this.camera.position.x = newPos.x;
-			this.camera.position.y = newPos.y;
-			this.camera.position.z = newPos.z;
+			_camOffset.subVectors(this.camera.position, this.target).normalize().multiplyScalar(this.targetRadius);
+			_newCamPos.copy(this.target).add(_camOffset);
+			this.camera.position.x = _newCamPos.x;
+			this.camera.position.y = _newCamPos.y;
+			this.camera.position.z = _newCamPos.z;
 		}
 		else
 		{
@@ -152,18 +160,17 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 				&& vehicle.entityType !== EntityType.RocketShip;
 			if (isInFirstPersonVehicle && vehicle?.quaternion)
 			{
-				const lookDir = new THREE.Vector3(0, 0, -1).applyQuaternion(vehicle.quaternion);
-				const targetPos = this.target.clone().add(lookDir);
+				_lookDir.copy(_LOOK_NEG_Z).applyQuaternion(vehicle.quaternion);
+				_targetPos.copy(this.target).add(_lookDir);
 				const since = performance.now() - this.lastMouseMoveTime;
 				if (since > this.autoRotateDelay)
 				{
-					const dummy = new THREE.Object3D();
-					dummy.position.copy(this.camera.position);
-					dummy.lookAt(targetPos);
-					const factor = this.camera.quaternion.angleTo(dummy.quaternion) < 0.05
+					_autoRotateDummy.position.copy(this.camera.position);
+					_autoRotateDummy.lookAt(_targetPos);
+					const factor = this.camera.quaternion.angleTo(_autoRotateDummy.quaternion) < 0.05
 						? 0.025
 						: this.autoRotateLerpFactor;
-					this.camera.quaternion.slerp(dummy.quaternion, factor);
+					this.camera.quaternion.slerp(_autoRotateDummy.quaternion, factor);
 					this.camera.up.set(0, 1, 0);
 					const angles = this.quaternionToThetaPhi(this.camera.quaternion);
 					this.theta = angles.theta;

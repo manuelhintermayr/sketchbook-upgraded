@@ -3,8 +3,13 @@ import { ICharacterAI } from '../../interfaces/ICharacterAI';
 import * as Utils from '../../core/FunctionLibrary';
 import { Vehicle } from '../../vehicles/Vehicle';
 import { Character } from '../Character';
-import { Car } from '../../vehicles/Car';
 import { EntityType } from '../../enums/EntityType';
+
+const _source = new THREE.Vector3();
+const _target = new THREE.Vector3();
+const _viewVector = new THREE.Vector3();
+const _forward = new THREE.Vector3();
+const _FORWARD_Z = new THREE.Vector3(0, 0, 1);
 
 export class FollowTarget implements ICharacterAI
 {
@@ -29,16 +34,13 @@ export class FollowTarget implements ICharacterAI
 	{
 		if (this.character.controlledObject !== undefined)
 		{
-			let source = new THREE.Vector3();
-			let target = new THREE.Vector3();
+			this.character.getWorldPosition(_source);
+			this.target.getWorldPosition(_target);
 
-			this.character.getWorldPosition(source);
-			this.target.getWorldPosition(target);
-
-			let viewVector = new THREE.Vector3().subVectors(target, source);
+			_viewVector.subVectors(_target, _source);
 
 			// Follow character
-			if (viewVector.length() > this.stopDistance)
+			if (_viewVector.length() > this.stopDistance)
 			{
 				this.isTargetReached = false;
 			}
@@ -47,15 +49,15 @@ export class FollowTarget implements ICharacterAI
 				this.isTargetReached = true;
 			}
 
-			let forward = new THREE.Vector3(0, 0, 1).applyQuaternion((this.character.controlledObject as unknown as THREE.Object3D).quaternion);
-			viewVector.y = 0;
-			viewVector.normalize();
-			let angle = Utils.getSignedAngleBetweenVectors(forward, viewVector);
+			_forward.copy(_FORWARD_Z).applyQuaternion((this.character.controlledObject as unknown as THREE.Object3D).quaternion);
+			_viewVector.y = 0;
+			_viewVector.normalize();
+			let angle = Utils.getSignedAngleBetweenVectors(_forward, _viewVector);
 
-			let goingForward = forward.dot(Utils.threeVector((this.character.controlledObject as unknown as Vehicle).collision.velocity)) > 0;
+			let goingForward = _forward.dot(Utils.threeVector((this.character.controlledObject as unknown as Vehicle).collision.velocity)) > 0;
 			let speed = (this.character.controlledObject as unknown as Vehicle).collision.velocity.length();
 
-			if (forward.dot(viewVector) < 0.0)
+			if (_forward.dot(_viewVector) < 0.0)
 			{
 				if (this.character.controlledObject.entityType === EntityType.Boat)
 				{
@@ -78,7 +80,7 @@ export class FollowTarget implements ICharacterAI
 
 			if (Math.abs(angle) > 0.15)
 			{
-				if (forward.dot(viewVector) > 0 || goingForward)
+				if (_forward.dot(_viewVector) > 0 || goingForward)
 				{
 					if (angle > 0)
 					{
@@ -113,11 +115,11 @@ export class FollowTarget implements ICharacterAI
 		}
 		else
 		{
-			let viewVector = new THREE.Vector3().subVectors(this.target.position, this.character.position);
-			this.character.setViewVector(viewVector);
+			_viewVector.subVectors(this.target.position, this.character.position);
+			this.character.setViewVector(_viewVector);
 
 			// Follow character
-			if (viewVector.length() > this.stopDistance)
+			if (_viewVector.length() > this.stopDistance)
 			{
 				this.isTargetReached = false;
 				this.character.triggerAction('up', true);
@@ -129,7 +131,7 @@ export class FollowTarget implements ICharacterAI
 				this.character.triggerAction('up', false);
 	
 				// Look at character
-				this.character.setOrientation(viewVector);
+				this.character.setOrientation(_viewVector);
 			}
 		}
 	}
