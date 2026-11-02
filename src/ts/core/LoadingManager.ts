@@ -5,6 +5,11 @@ import { Scenario } from '../world/scenarios/Scenario';
 import Swal from 'sweetalert2';
 import { World } from '../world/World';
 
+// Module-scoped so scenario relaunches (new LoadingManager) still hit
+// the parsed GLTF. Map switches full-reload the page, which clears it.
+const gltfCache = new Map<string, any>();
+const gltfInflight = new Map<string, Array<(gltf: any) => void>>();
+
 export class LoadingManager
 {
 	public firstLoad: boolean = true;
@@ -27,12 +32,39 @@ export class LoadingManager
 
 	public loadGLTF(path: string, onLoadingFinished: (gltf: any) => void): void
 	{
-		let trackerEntry = this.addLoadingEntry(path);
+		const cached = gltfCache.get(path);
+		if (cached !== undefined)
+		{
+			const trackerEntry = this.addLoadingEntry(path);
+			trackerEntry.progress = 1;
+			queueMicrotask(() =>
+			{
+				onLoadingFinished(cached);
+				this.doneLoading(trackerEntry);
+			});
+			return;
+		}
+
+		const waiters = gltfInflight.get(path);
+		if (waiters !== undefined)
+		{
+			waiters.push(onLoadingFinished);
+			return;
+		}
+
+		const trackerEntry = this.addLoadingEntry(path);
+		const callbacks: Array<(gltf: any) => void> = [onLoadingFinished];
+		gltfInflight.set(path, callbacks);
 
 		this.gltfLoader.load(path,
 			(gltf)  =>
 			{
-				onLoadingFinished(gltf);
+				gltfCache.set(path, gltf);
+				gltfInflight.delete(path);
+				for (const cb of callbacks)
+				{
+					cb(gltf);
+				}
 				this.doneLoading(trackerEntry);
 			},
 			(xhr) =>
@@ -45,6 +77,7 @@ export class LoadingManager
 			},
 			(error)  =>
 			{
+				gltfInflight.delete(path);
 				console.error(error);
 			});
 	}

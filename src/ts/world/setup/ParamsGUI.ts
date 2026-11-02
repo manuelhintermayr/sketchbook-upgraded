@@ -4,6 +4,7 @@ import CannonDebugger from 'cannon-es-debugger';
 import { World } from '../World';
 import { UIManager } from '../../core/UIManager';
 import { Car } from '../../vehicles/Car';
+import { isCoarseMobileDevice } from '../../core/DeviceProfile';
 
 // Builds the lil-gui debug panel and the params object that backs it.
 // All onChange wiring lives here so that callers (SettingsModal, the
@@ -24,10 +25,14 @@ import { Car } from '../../vehicles/Car';
 //                              and the map switcher add into
 export function createParamsGUI(world: World): void
 {
+	// Phones/tablets default to the Low-preset graphics floor until the
+	// player overrides via Settings (persisted sketchbook-settings wins).
+	const mobileDefaults = isCoarseMobileDevice();
+
 	world.params = {
 		Mouse_Sensitivity: 0.3,
 		Time_Scale: 1,
-		Shadows: true,
+		Shadows: !mobileDefaults,
 		FXAA: true,
 		Debug_Physics: false,
 		Debug_FPS: true,

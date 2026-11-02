@@ -9,6 +9,7 @@ import { RocketShip } from '../../vehicles/RocketShip';
 import * as Utils from '../../core/FunctionLibrary';
 import { Vehicle } from '../../vehicles/Vehicle';
 import { Character } from '../../characters/Character';
+import { loadCharacterModel } from '../../characters/CharacterAssets';
 import { FollowPath } from '../../characters/character_ai/FollowPath';
 import { LoadingManager } from '../../core/LoadingManager';
 import { IWorldEntity } from '../../interfaces/IWorldEntity';
@@ -28,8 +29,14 @@ export class VehicleSpawnPoint implements ISpawnPoint
 
 	public spawn(loadingManager: LoadingManager, world: World): void
 	{
-		loadingManager.loadGLTF('build/assets/' + this.type + '.glb', (model: any) =>
+		loadingManager.loadGLTF('build/assets/' + this.type + '.glb', (template: any) =>
 		{
+			// Clone so cached vehicle templates can be reused without
+			// multiple Vehicle instances sharing one scene graph.
+			const model = {
+				scene: template.scene.clone(true),
+				animations: template.animations,
+			};
 			let vehicle: Vehicle = this.getNewVehicleByType(model, this.type);
 			vehicle.spawnPoint = this.object;
 
@@ -45,7 +52,7 @@ export class VehicleSpawnPoint implements ISpawnPoint
 
 			if (this.driver !== undefined)
 			{
-				loadingManager.loadGLTF('build/assets/boxman.glb', (charModel) =>
+				loadCharacterModel(loadingManager, (charModel) =>
 				{
 					let character = new Character(charModel);
 					world.add(character);

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { ISpawnPoint } from '../../interfaces/ISpawnPoint';
 import { World } from '../World';
 import { Character } from '../../characters/Character';
+import { loadCharacterModel } from '../../characters/CharacterAssets';
 import { FollowPath } from '../../characters/character_ai/FollowPath';
 import { FollowTarget } from '../../characters/character_ai/FollowTarget';
 import { RandomBehaviour } from '../../characters/character_ai/RandomBehaviour';
@@ -46,7 +47,7 @@ export class NPCSpawnPoint implements ISpawnPoint
 
 	public spawn(loadingManager: LoadingManager, world: World): void
 	{
-		loadingManager.loadGLTF('build/assets/boxman.glb', (model) =>
+		loadCharacterModel(loadingManager, (model) =>
 		{
 			const npc = new Character(model);
 

@@ -8,6 +8,14 @@ import { PathNode } from '../../world/scenarios/PathNode';
 import { Vehicle } from '../../vehicles/Vehicle';
 import { EntityType } from '../../enums/EntityType';
 
+const _source = new THREE.Vector3();
+const _target = new THREE.Vector3();
+const _viewVector = new THREE.Vector3();
+const _targetToNextNode = new THREE.Vector3();
+const _viewNorm = new THREE.Vector3();
+const _worldPos = new THREE.Vector3();
+const _zeroAngVel = new CANNON.Vec3();
+
 export class FollowPath extends FollowTarget implements ICharacterAI
 {
 	public nodeRadius: number;
@@ -27,13 +35,10 @@ export class FollowPath extends FollowTarget implements ICharacterAI
 	{
 		super.update(timeStep);
 
-		// Todo only compute once in followTarget
-		let source = new THREE.Vector3();
-		let target = new THREE.Vector3();
-		this.character.getWorldPosition(source);
-		this.target.getWorldPosition(target);
-		let viewVector = new THREE.Vector3().subVectors(target, source);
-		viewVector.y = 0;
+		this.character.getWorldPosition(_source);
+		this.target.getWorldPosition(_target);
+		_viewVector.subVectors(_target, _source);
+		_viewVector.y = 0;
 
 		// All the throttle / reverse / stuck-detection branches below
 		// only make sense when the character is driving a vehicle. NPCs
@@ -42,15 +47,18 @@ export class FollowPath extends FollowTarget implements ICharacterAI
 		// for them - FollowTarget already drives the on-foot motion.
 		if (this.character.controlledObject !== undefined)
 		{
-			let targetToNextNode = this.targetNode.nextNode.object.position.clone().sub(this.targetNode.object.position);
-			targetToNextNode.y = 0;
-			targetToNextNode.normalize();
-			let slowDownAngle = viewVector.clone().normalize().dot(targetToNextNode);
+			_targetToNextNode.subVectors(
+				this.targetNode.nextNode.object.position,
+				this.targetNode.object.position,
+			);
+			_targetToNextNode.y = 0;
+			_targetToNextNode.normalize();
+			const slowDownAngle = _viewNorm.copy(_viewVector).normalize().dot(_targetToNextNode);
 			let speed = (this.character.controlledObject as unknown as Vehicle).collision.velocity.length();
 
 			const isBoat = this.character.controlledObject.entityType === EntityType.Boat;
 
-			if (!isBoat && slowDownAngle < 0.7 && viewVector.length() < 50 && speed > 10)
+			if (!isBoat && slowDownAngle < 0.7 && _viewVector.length() < 50 && speed > 10)
 			{
 				this.character.controlledObject.triggerAction('reverse', true);
 				this.character.controlledObject.triggerAction('throttle', false);
@@ -65,12 +73,11 @@ export class FollowPath extends FollowTarget implements ICharacterAI
 				else this.staleTimer = 0;
 				if (this.staleTimer > 5)
 				{
-					let worldPos = new THREE.Vector3();
-					this.targetNode.object.getWorldPosition(worldPos);
-					worldPos.y += 3;
-					(this.character.controlledObject as unknown as Vehicle).collision.position = Utils.cannonVector(worldPos);
-					(this.character.controlledObject as unknown as Vehicle).collision.interpolatedPosition = Utils.cannonVector(worldPos);
-					(this.character.controlledObject as unknown as Vehicle).collision.angularVelocity = new CANNON.Vec3();
+					this.targetNode.object.getWorldPosition(_worldPos);
+					_worldPos.y += 3;
+					(this.character.controlledObject as unknown as Vehicle).collision.position = Utils.cannonVector(_worldPos);
+					(this.character.controlledObject as unknown as Vehicle).collision.interpolatedPosition = Utils.cannonVector(_worldPos);
+					(this.character.controlledObject as unknown as Vehicle).collision.angularVelocity.copy(_zeroAngVel);
 					(this.character.controlledObject as unknown as Vehicle).collision.quaternion.copy((this.character.controlledObject as unknown as Vehicle).collision.initQuaternion);
 					this.staleTimer = 0;
 				}
@@ -78,7 +85,7 @@ export class FollowPath extends FollowTarget implements ICharacterAI
 		}
 
 		// Path-progression - runs for both vehicle and on-foot cases.
-		if (viewVector.length() < this.nodeRadius)
+		if (_viewVector.length() < this.nodeRadius)
 		{
 			if (this.reverse)
 			{

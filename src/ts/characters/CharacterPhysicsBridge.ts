@@ -17,6 +17,8 @@ import { Character } from './Character';
 const _simulatedVelocity = new THREE.Vector3();
 const _newVelocity = new THREE.Vector3();
 const _addThree = new THREE.Vector3();
+const _arcadeVelocity = new THREE.Vector3();
+const _globalVelocityTarget = new THREE.Vector3();
 const _normal = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _m = new THREE.Matrix4();
@@ -32,6 +34,14 @@ const _rayOpts = { collisionFilterMask: CollisionGroups.Default, skipBackfaces: 
 
 export function physicsPreStep(body: CANNON.Body, character: Character): void
 {
+	// Dialog freeze already zeroes velocity in postStep - skip the
+	// expensive trimesh feet ray while the character can't move.
+	if (character.dialogFreeze)
+	{
+		character.rayHasHit = false;
+		return;
+	}
+
 	feetRaycast(character);
 
 	// Raycast debug - position the small box mesh on the ground hit
@@ -84,32 +94,30 @@ export function physicsPostStep(body: CANNON.Body, character: Character): void
 	// Get velocities
 	_simulatedVelocity.set(body.velocity.x, body.velocity.y, body.velocity.z);
 
-	// Take local velocity, then turn local into global. The helper
-	// allocates internally - leave that as the helper's contract;
-	// pulling it apart here would couple us to its math.
+	// Take local velocity, then turn local into global (into scratches).
 	const arcadeLocal = _addThree.copy(character.velocity).multiplyScalar(character.moveSpeed);
-	const arcadeVelocity = Utils.appplyVectorMatrixXZ(character.orientation, arcadeLocal);
+	Utils.appplyVectorMatrixXZ(character.orientation, arcadeLocal, _arcadeVelocity);
 
 	// Additive velocity mode
 	if (character.arcadeVelocityIsAdditive)
 	{
 		_newVelocity.copy(_simulatedVelocity);
 
-		const globalVelocityTarget = Utils.appplyVectorMatrixXZ(character.orientation, character.velocityTarget);
-		const addX = arcadeVelocity.x * character.arcadeVelocityInfluence.x;
-		const addY = arcadeVelocity.y * character.arcadeVelocityInfluence.y;
-		const addZ = arcadeVelocity.z * character.arcadeVelocityInfluence.z;
+		Utils.appplyVectorMatrixXZ(character.orientation, character.velocityTarget, _globalVelocityTarget);
+		const addX = _arcadeVelocity.x * character.arcadeVelocityInfluence.x;
+		const addY = _arcadeVelocity.y * character.arcadeVelocityInfluence.y;
+		const addZ = _arcadeVelocity.z * character.arcadeVelocityInfluence.z;
 
-		if (Math.abs(_simulatedVelocity.x) < Math.abs(globalVelocityTarget.x * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.x, arcadeVelocity.x)) { _newVelocity.x += addX; }
-		if (Math.abs(_simulatedVelocity.y) < Math.abs(globalVelocityTarget.y * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.y, arcadeVelocity.y)) { _newVelocity.y += addY; }
-		if (Math.abs(_simulatedVelocity.z) < Math.abs(globalVelocityTarget.z * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.z, arcadeVelocity.z)) { _newVelocity.z += addZ; }
+		if (Math.abs(_simulatedVelocity.x) < Math.abs(_globalVelocityTarget.x * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.x, _arcadeVelocity.x)) { _newVelocity.x += addX; }
+		if (Math.abs(_simulatedVelocity.y) < Math.abs(_globalVelocityTarget.y * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.y, _arcadeVelocity.y)) { _newVelocity.y += addY; }
+		if (Math.abs(_simulatedVelocity.z) < Math.abs(_globalVelocityTarget.z * character.moveSpeed) || Utils.haveDifferentSigns(_simulatedVelocity.z, _arcadeVelocity.z)) { _newVelocity.z += addZ; }
 	}
 	else
 	{
 		_newVelocity.set(
-			THREE.MathUtils.lerp(_simulatedVelocity.x, arcadeVelocity.x, character.arcadeVelocityInfluence.x),
-			THREE.MathUtils.lerp(_simulatedVelocity.y, arcadeVelocity.y, character.arcadeVelocityInfluence.y),
-			THREE.MathUtils.lerp(_simulatedVelocity.z, arcadeVelocity.z, character.arcadeVelocityInfluence.z),
+			THREE.MathUtils.lerp(_simulatedVelocity.x, _arcadeVelocity.x, character.arcadeVelocityInfluence.x),
+			THREE.MathUtils.lerp(_simulatedVelocity.y, _arcadeVelocity.y, character.arcadeVelocityInfluence.y),
+			THREE.MathUtils.lerp(_simulatedVelocity.z, _arcadeVelocity.z, character.arcadeVelocityInfluence.z),
 		);
 	}
 

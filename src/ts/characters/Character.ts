@@ -308,7 +308,9 @@ export class Character extends THREE.Object3D implements IWorldEntity
 
 			if (child.isMesh)
 			{
-				child.geometry = child.geometry.toNonIndexed();
+				// Skinned non-indexed conversion happens once on the
+				// shared template in CharacterAssets - clones share that
+				// VBO, so converting again here would multiply memory.
 				Utils.setupMeshProperties(child);
 
 				if (child.material !== undefined)
@@ -838,6 +840,15 @@ export class Character extends THREE.Object3D implements IWorldEntity
 				this.sfx.dispose();
 				this.sfx = undefined;
 			}
+
+			if (this.mixer !== undefined)
+			{
+				this.mixer.stopAllAction();
+				this.mixer.uncacheRoot(this.mixer.getRoot());
+			}
+
+			// Geometry/materials stay shared with the character GLTF
+			// cache (SkeletonUtils.clone) - do not dispose them here.
 
 			this.world = undefined;
 
